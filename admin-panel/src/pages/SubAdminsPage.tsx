@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
 import { useListState } from "../hooks/useListState.ts";
 import TableControls from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
+import type { PagedResult } from "../lib/queryHelpers.ts";
 
 type Permission = "jobs.view"|"jobs.create"|"jobs.edit"|"jobs.delete"|"quotation.view"|"quotation.create"|"quotation.edit_rates"|"production.view"|"production.update_status"|"inventory.view"|"inventory.edit"|"inventory.create_po"|"billing.view"|"billing.create_invoice"|"billing.record_payment"|"clients.view"|"clients.edit"|"staff.view"|"staff.manage"|"reports.view_financial"|"settings.edit";
 
@@ -18,7 +20,15 @@ const PERMISSION_GROUPS: { label: string; perms: Permission[] }[] = [
   { label: "Reports", perms: ["reports.view_financial"] },
   { label: "Settings", perms: ["settings.edit"] },
 ];
-const PERM_LABEL: Record<Permission, string> = { "jobs.view":"View","jobs.create":"Create","jobs.edit":"Edit","jobs.delete":"Delete","quotation.view":"View","quotation.create":"Create","quotation.edit_rates":"Edit Rates","production.view":"View","production.update_status":"Update Status","inventory.view":"View","inventory.edit":"Edit","inventory.create_po":"Create PO","billing.view":"View","billing.create_invoice":"Create Invoice","billing.record_payment":"Record Payment","clients.view":"View","clients.edit":"Edit","staff.view":"View","staff.manage":"Manage","reports.view_financial":"View Financial","settings.edit":"Edit Settings" };
+const PERM_LABEL: Record<Permission, string> = {
+  "jobs.view":"View","jobs.create":"Create","jobs.edit":"Edit","jobs.delete":"Delete",
+  "quotation.view":"View","quotation.create":"Create","quotation.edit_rates":"Edit Rates",
+  "production.view":"View","production.update_status":"Update Status",
+  "inventory.view":"View","inventory.edit":"Edit","inventory.create_po":"Create PO",
+  "billing.view":"View","billing.create_invoice":"Create Invoice","billing.record_payment":"Record Payment",
+  "clients.view":"View","clients.edit":"Edit","staff.view":"View","staff.manage":"Manage",
+  "reports.view_financial":"View Financial","settings.edit":"Edit Settings",
+};
 
 interface User { id: string; name: string; email: string; role: string; status: string; }
 
@@ -60,10 +70,10 @@ export default function SubAdminsPage() {
   const qc = useQueryClient();
   const [list, actions] = useListState({ sortBy: "created_at", filters: {} });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<PagedResult<User>>({
     queryKey: ["sub-admins", actions.toParams()],
     queryFn: () => api.get("/admin/users", { params: { ...actions.toParams(), role: "sub_admin" } }).then(r => r.data),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   const invite = useMutation({
@@ -87,22 +97,17 @@ export default function SubAdminsPage() {
           </div>
         </div>
       )}
-
       <TableControls search={list.search} onSearch={actions.setSearch} placeholder="Search name, email…"
         activeFilters={list.filters} onFilter={actions.setFilter} onReset={actions.resetFilters}
         filters={[{ key: "status", label: "Status", options: [{ label: "Active", value: "active" }, { label: "Invited", value: "invited" }, { label: "Inactive", value: "inactive" }] }]}
         rightSlot={<button onClick={() => setShowInvite(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ Invite</button>}
       />
-
       {isLoading ? <p>Loading…</p> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {data?.data?.map((u: User) => (
+          {data?.data?.map((u) => (
             <div key={u.id} style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
               <div onClick={() => setExpanded(expanded === u.id ? null : u.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", cursor: "pointer" }}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{u.name}</div>
-                  <div style={{ fontSize: 13, color: "#888" }}>{u.email}</div>
-                </div>
+                <div><div style={{ fontWeight: 600 }}>{u.name}</div><div style={{ fontSize: 13, color: "#888" }}>{u.email}</div></div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 10, background: u.status === "active" ? "#d3f9d8" : "#fff3bf", color: u.status === "active" ? "#2b8a3e" : "#e67700" }}>{u.status}</span>
                   <span style={{ color: "#aaa" }}>{expanded === u.id ? "▲" : "▼"}</span>

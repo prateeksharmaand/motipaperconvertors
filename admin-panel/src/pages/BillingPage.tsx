@@ -1,16 +1,22 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
 import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
+import type { PagedResult } from "../lib/queryHelpers.ts";
 
 type Tab = "invoices" | "payments" | "ledger";
 const STATUS_COLOR: Record<string, string> = { draft: "#868e96", issued: "#1971c2", partially_paid: "#f59f00", paid: "#2b8a3e", cancelled: "#c92a2a" };
-const fmt = (n: number) => "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+const fmt = (n: number | string) => "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14 };
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
+
+interface Invoice { id: string; invoice_number: number; client_name: string; client_id: string; total: number; amount_paid: number; balance_due: number; status: string; due_date: string; issue_date: string; }
+interface Payment { id: string; client_name: string; amount: number; payment_mode: string; type: string; payment_date: string; reference_number: string; }
+interface Client  { id: string; name: string; }
 
 function RecordPaymentForm({ invoiceId, clientId, onClose }: { invoiceId: string; clientId: string; onClose: () => void }) {
   const [form, setForm] = useState({ amount: "", paymentMode: "cash", referenceNumber: "", notes: "" });
@@ -27,7 +33,7 @@ function RecordPaymentForm({ invoiceId, clientId, onClose }: { invoiceId: string
         <label><span style={{ fontSize: 13 }}>Amount (₹) *</span><input style={inputStyle} type="number" value={form.amount} onChange={set("amount")} /></label>
         <label><span style={{ fontSize: 13 }}>Mode</span>
           <select style={inputStyle} value={form.paymentMode} onChange={set("paymentMode")}>
-            {["cash", "upi", "cheque", "neft", "rtgs", "other"].map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
+            {["cash","upi","cheque","neft","rtgs","other"].map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
           </select>
         </label>
         <label><span style={{ fontSize: 13 }}>Ref / Cheque No.</span><input style={inputStyle} value={form.referenceNumber} onChange={set("referenceNumber")} /></label>
@@ -45,21 +51,23 @@ export default function BillingPage() {
   const [tab, setTab] = useState<Tab>("invoices");
   const [paymentFor, setPaymentFor] = useState<{ invoiceId: string; clientId: string } | null>(null);
   const [ledgerClientId, setLedgerClientId] = useState("");
-
   const [invList, invActions] = useListState({ sortBy: "created_at" });
   const [payList, payActions] = useListState({ sortBy: "payment_date" });
 
-  const { data: invoices, isLoading: invLoading } = useQuery({
+  const { data: invoices, isLoading: invLoading } = useQuery<PagedResult<Invoice>>({
     queryKey: ["invoices", invActions.toParams()],
     queryFn: () => api.get("/admin/billing/invoices", { params: invActions.toParams() }).then(r => r.data),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
-  const { data: payments } = useQuery({
+  const { data: payments } = useQuery<PagedResult<Payment>>({
     queryKey: ["payments", payActions.toParams()],
     queryFn: () => api.get("/admin/billing/payments", { params: payActions.toParams() }).then(r => r.data),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
-  const { data: clients = [] } = useQuery({ queryKey: ["clients-mini"], queryFn: () => api.get("/admin/clients", { params: { limit: "200" } }).then(r => r.data.data) });
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ["clients-mini"],
+    queryFn: () => api.get("/admin/clients", { params: { limit: "200" } }).then(r => r.data.data ?? []),
+  });
   const { data: ledger } = useQuery({
     queryKey: ["ledger", ledgerClientId],
     queryFn: () => ledgerClientId ? api.get(`/admin/billing/ledger/${ledgerClientId}`).then(r => r.data) : null,
@@ -69,7 +77,6 @@ export default function BillingPage() {
   const tabBtn = (t: Tab, label: string) => (
     <button onClick={() => setTab(t)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: tab === t ? "#3b5bdb" : "#eee", color: tab === t ? "#fff" : "#444", fontWeight: 600, cursor: "pointer" }}>{label}</button>
   );
-
   const invCol = (label: string, key: string) => <th style={th} onClick={() => invActions.setSort(key)}>{label}<SortIcon col={key} sortBy={invList.sortBy} sortDir={invList.sortDir} /></th>;
   const payCol = (label: string, key: string) => <th style={th} onClick={() => payActions.setSort(key)}>{label}<SortIcon col={key} sortBy={payList.sortBy} sortDir={payList.sortDir} /></th>;
 
@@ -85,10 +92,8 @@ export default function BillingPage() {
             activeFilters={invList.filters} onFilter={invActions.setFilter} onReset={invActions.resetFilters}
             filters={[
               { key: "status", label: "Status", options: [{ label: "Issued", value: "issued" }, { label: "Partial", value: "partially_paid" }, { label: "Paid", value: "paid" }, { label: "Cancelled", value: "cancelled" }] },
-              { key: "invoiceType", label: "Type", options: [{ label: "Job Work", value: "job_work" }, { label: "Goods", value: "goods" }] },
               { key: "overdue", label: "Overdue", options: [{ label: "Overdue only", value: "1" }] },
             ]} />
-          {/* Due date range */}
           <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
             <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>Due from <input type="date" value={invList.filters.dueDateFrom ?? ""} onChange={e => invActions.setFilter("dueDateFrom", e.target.value)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} /></label>
             <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>to <input type="date" value={invList.filters.dueDateTo ?? ""} onChange={e => invActions.setFilter("dueDateTo", e.target.value)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} /></label>
@@ -103,16 +108,16 @@ export default function BillingPage() {
               </tr></thead>
               <tbody>
                 {invLoading && <tr><td colSpan={8} style={{ ...td, textAlign: "center", color: "#888" }}>Loading…</td></tr>}
-                {invoices?.data?.map((inv: Record<string, string | number>) => (
-                  <tr key={inv.id as string} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                {invoices?.data?.map((inv) => (
+                  <tr key={inv.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
                     <td style={{ ...td, color: "#888" }}>#{inv.invoice_number}</td>
-                    <td style={{ ...td, fontWeight: 500 }}>{inv.client_name as string}</td>
-                    <td style={td}>{fmt(inv.total as number)}</td>
-                    <td style={{ ...td, color: "#2b8a3e" }}>{fmt(inv.amount_paid as number)}</td>
-                    <td style={{ ...td, fontWeight: 600, color: Number(inv.balance_due) > 0 ? "#c92a2a" : "#2b8a3e" }}>{fmt(inv.balance_due as number)}</td>
-                    <td style={td}><span style={{ padding: "2px 8px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[inv.status as string] ?? "#868e96") + "22", color: STATUS_COLOR[inv.status as string] ?? "#868e96" }}>{inv.status as string}</span></td>
-                    <td style={td}>{(inv.due_date as string) || "—"}</td>
-                    <td style={td}>{inv.status !== "paid" && inv.status !== "cancelled" && <button onClick={() => setPaymentFor({ invoiceId: inv.id as string, clientId: inv.client_id as string })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Pay</button>}</td>
+                    <td style={{ ...td, fontWeight: 500 }}>{inv.client_name}</td>
+                    <td style={td}>{fmt(inv.total)}</td>
+                    <td style={{ ...td, color: "#2b8a3e" }}>{fmt(inv.amount_paid)}</td>
+                    <td style={{ ...td, fontWeight: 600, color: Number(inv.balance_due) > 0 ? "#c92a2a" : "#2b8a3e" }}>{fmt(inv.balance_due)}</td>
+                    <td style={td}><span style={{ padding: "2px 8px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[inv.status] ?? "#868e96") + "22", color: STATUS_COLOR[inv.status] ?? "#868e96" }}>{inv.status}</span></td>
+                    <td style={td}>{inv.due_date || "—"}</td>
+                    <td style={td}>{inv.status !== "paid" && inv.status !== "cancelled" && <button onClick={() => setPaymentFor({ invoiceId: inv.id, clientId: inv.client_id })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Pay</button>}</td>
                   </tr>
                 ))}
                 {!invLoading && !invoices?.data?.length && <tr><td colSpan={8} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>No invoices</td></tr>}
@@ -127,14 +132,7 @@ export default function BillingPage() {
         <>
           <TableControls search={payList.search} onSearch={payActions.setSearch} placeholder="Search client, reference…"
             activeFilters={payList.filters} onFilter={payActions.setFilter} onReset={payActions.resetFilters}
-            filters={[
-              { key: "paymentMode", label: "Mode", options: [{ label: "Cash", value: "cash" }, { label: "UPI", value: "upi" }, { label: "Cheque", value: "cheque" }, { label: "NEFT", value: "neft" }, { label: "RTGS", value: "rtgs" }] },
-              { key: "type", label: "Type", options: [{ label: "Against Invoice", value: "against_invoice" }, { label: "Advance", value: "advance" }, { label: "Adjustment", value: "adjustment" }] },
-            ]} />
-          <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-            <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>From <input type="date" value={payList.filters.dateFrom ?? ""} onChange={e => payActions.setFilter("dateFrom", e.target.value)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} /></label>
-            <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>To <input type="date" value={payList.filters.dateTo ?? ""} onChange={e => payActions.setFilter("dateTo", e.target.value)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} /></label>
-          </div>
+            filters={[{ key: "paymentMode", label: "Mode", options: [{ label: "Cash", value: "cash" }, { label: "UPI", value: "upi" }, { label: "Cheque", value: "cheque" }, { label: "NEFT", value: "neft" }] }]} />
           <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
@@ -143,14 +141,14 @@ export default function BillingPage() {
                 <th style={th}>Type</th> <th style={th}>Reference</th>
               </tr></thead>
               <tbody>
-                {payments?.data?.map((p: Record<string, string | number>) => (
-                  <tr key={p.id as string} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                    <td style={td}>{new Date(p.payment_date as string).toLocaleDateString("en-IN")}</td>
-                    <td style={{ ...td, fontWeight: 500 }}>{p.client_name as string}</td>
-                    <td style={{ ...td, fontWeight: 600, color: "#2b8a3e" }}>{fmt(p.amount as number)}</td>
-                    <td style={td}>{(p.payment_mode as string).toUpperCase()}</td>
-                    <td style={td}>{p.type as string}</td>
-                    <td style={{ ...td, color: "#888" }}>{(p.reference_number as string) || "—"}</td>
+                {payments?.data?.map((p) => (
+                  <tr key={p.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                    <td style={td}>{new Date(p.payment_date).toLocaleDateString("en-IN")}</td>
+                    <td style={{ ...td, fontWeight: 500 }}>{p.client_name}</td>
+                    <td style={{ ...td, fontWeight: 600, color: "#2b8a3e" }}>{fmt(p.amount)}</td>
+                    <td style={td}>{p.payment_mode.toUpperCase()}</td>
+                    <td style={td}>{p.type}</td>
+                    <td style={{ ...td, color: "#888" }}>{p.reference_number || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -166,7 +164,7 @@ export default function BillingPage() {
             <label style={{ fontSize: 13, marginRight: 8 }}>Select Client</label>
             <select style={{ padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, minWidth: 220 }} value={ledgerClientId} onChange={e => setLedgerClientId(e.target.value)}>
               <option value="">— choose —</option>
-              {(clients as { id: string; name: string }[]).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           {ledger && (
@@ -180,16 +178,16 @@ export default function BillingPage() {
                 ))}
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
-                <thead><tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
-                  {["#", "Date", "Total", "Paid", "Balance", "Status"].map(h => <th key={h} style={{ ...th, cursor: "default" }}>{h}</th>)}
-                </tr></thead>
+                <thead><tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>{["#","Date","Total","Paid","Balance","Status"].map(h => <th key={h} style={{ ...th, cursor: "default" }}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {ledger.invoices.map((i: Record<string, string | number>) => (
-                    <tr key={i.id as string} style={{ borderBottom: "1px solid #f5f5f5" }}>
-                      <td style={td}>#{i.invoice_number}</td> <td style={td}>{i.issue_date as string}</td>
-                      <td style={td}>{fmt(i.total as number)}</td> <td style={{ ...td, color: "#2b8a3e" }}>{fmt(i.amount_paid as number)}</td>
-                      <td style={{ ...td, fontWeight: 600, color: Number(i.balance_due) > 0 ? "#c92a2a" : "#555" }}>{fmt(i.balance_due as number)}</td>
-                      <td style={td}><span style={{ padding: "2px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600, background: (STATUS_COLOR[i.status as string] ?? "#868e96") + "22", color: STATUS_COLOR[i.status as string] ?? "#868e96" }}>{i.status as string}</span></td>
+                  {ledger.invoices.map((i: Invoice) => (
+                    <tr key={i.id} style={{ borderBottom: "1px solid #f5f5f5" }}>
+                      <td style={td}>#{i.invoice_number}</td>
+                      <td style={td}>{i.issue_date}</td>
+                      <td style={td}>{fmt(i.total)}</td>
+                      <td style={{ ...td, color: "#2b8a3e" }}>{fmt(i.amount_paid)}</td>
+                      <td style={{ ...td, fontWeight: 600, color: Number(i.balance_due) > 0 ? "#c92a2a" : "#555" }}>{fmt(i.balance_due)}</td>
+                      <td style={td}><span style={{ padding: "2px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600, background: (STATUS_COLOR[i.status] ?? "#868e96") + "22", color: STATUS_COLOR[i.status] ?? "#868e96" }}>{i.status}</span></td>
                     </tr>
                   ))}
                 </tbody>

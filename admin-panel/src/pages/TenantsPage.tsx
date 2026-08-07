@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
 import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
+import type { PagedResult } from "../lib/queryHelpers.ts";
 
 interface Tenant { id: string; name: string; slug: string; plan: string; status: string; created_at: string; }
 
@@ -13,10 +15,10 @@ export default function TenantsPage() {
   const qc = useQueryClient();
   const [list, actions] = useListState({ sortBy: "created_at" });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<PagedResult<Tenant>>({
     queryKey: ["tenants", actions.toParams()],
     queryFn: () => api.get("/platform/tenants", { params: actions.toParams() }).then(r => r.data),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   const toggleStatus = useMutation({
@@ -37,7 +39,6 @@ export default function TenantsPage() {
           { key: "status", label: "Status", options: [{ label: "Active", value: "active" }, { label: "Suspended", value: "suspended" }] },
           { key: "plan", label: "Plan", options: [{ label: "Free", value: "free" }, { label: "Starter", value: "starter" }, { label: "Pro", value: "pro" }] },
         ]} />
-
       <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -47,7 +48,7 @@ export default function TenantsPage() {
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={6} style={{ ...td, textAlign: "center", color: "#888" }}>Loading…</td></tr>}
-            {(Array.isArray(data?.data) ? data.data : data ?? []).map((t: Tenant) => (
+            {data?.data?.map((t) => (
               <tr key={t.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
                 <td style={{ ...td, fontWeight: 500 }}>{t.name}</td>
                 <td style={{ ...td, color: "#888" }}>{t.slug}</td>
@@ -60,7 +61,7 @@ export default function TenantsPage() {
           </tbody>
         </table>
       </div>
-      {data?.totalPages && <Pagination page={data.page} totalPages={data.totalPages} total={data.total} limit={data.limit} onPage={actions.setPage} />}
+      {data && data.totalPages > 0 && <Pagination page={data.page} totalPages={data.totalPages} total={data.total} limit={data.limit} onPage={actions.setPage} />}
     </div>
   );
 }
