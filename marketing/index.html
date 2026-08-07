@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MotiPaper — Smart Job Management for Printing Presses in India</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;600;700;900&family=Raleway:wght@300;400;500;600;700;800&family=Dancing+Script:wght@600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Lato', sans-serif; color: #333; background: #fff; line-height: 1.6; }
+    a { text-decoration: none; color: inherit; }
+    img { max-width: 100%; display: block; }
+
+    /* ── CSS Variables (Printster palette) ────────────── */
+    :root {
+      --navy:   #002E6E;
+      --navy2:  #003580;
+      --teal:   #149A7C;
+      --cyan:   #45C4D9;
+      --red:    #E03434;
+      --dark:   #333333;
+      --muted:  #666666;
+      --light:  #F5F5F5;
+      --border: #E0E0E0;
+      --white:  #FFFFFF;
+    }
+
+    /* ── Utilities ────────────────────────────────────── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .section    { padding: 80px 0; }
+    .section-sm { padding: 56px 0; }
+    .section-label { font-family: 'Raleway', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--teal); margin-bottom: 10px; }
+    .section-title { font-family: 'Raleway', sans-serif; font-size: clamp(1.8rem, 3.5vw, 2.6rem); font-weight: 800; color: var(--navy); margin-bottom: 16px; line-height: 1.2; }
+    .section-sub   { font-size: 1.05rem; color: var(--muted); max-width: 600px; line-height: 1.7; }
+    .text-center   { text-align: center; }
+    .text-center .section-sub { margin: 0 auto; }
+    .btn-primary { display: inline-block; background: var(--teal); color: #fff; padding: 14px 32px; border-radius: 6px; font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: .5px; transition: background .2s, transform .15s; border: none; cursor: pointer; }
+    .btn-primary:hover { background: #0e7a62; transform: translateY(-1px); }
+    .btn-outline { display: inline-block; border: 2px solid var(--white); color: var(--white); padding: 13px 30px; border-radius: 6px; font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 15px; transition: background .2s; }
+    .btn-outline:hover { background: rgba(255,255,255,.12); }
+    .btn-navy { display: inline-block; background: var(--navy); color: #fff; padding: 13px 30px; border-radius: 6px; font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 15px; transition: background .2s; border: none; cursor: pointer; }
+    .btn-navy:hover { background: var(--navy2); }
+    .tag { display: inline-block; background: var(--teal); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: .5px; vertical-align: middle; margin-left: 6px; }
+
+    /* ── TOP BAR ──────────────────────────────────────── */
+    .topbar { background: var(--navy); color: rgba(255,255,255,.75); font-size: 13px; padding: 8px 0; }
+    .topbar .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .topbar a { color: rgba(255,255,255,.75); transition: color .15s; }
+    .topbar a:hover { color: #fff; }
+    .topbar-left { display: flex; gap: 20px; }
+    .topbar-right { display: flex; gap: 20px; align-items: center; }
+
+    /* ── NAVBAR ───────────────────────────────────────── */
+    nav { background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; max-width: 1200px; margin: 0 auto; }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { width: 38px; height: 38px; background: var(--navy); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 22px; height: 22px; fill: #fff; }
+    .logo-text { font-family: 'Raleway', sans-serif; font-size: 22px; font-weight: 800; color: var(--navy); }
+    .logo-text span { color: var(--teal); }
+    .nav-links { display: flex; align-items: center; gap: 6px; list-style: none; }
+    .nav-links a { font-family: 'Raleway', sans-serif; font-size: 14px; font-weight: 600; color: #444; padding: 8px 14px; border-radius: 5px; transition: color .15s, background .15s; }
+    .nav-links a:hover, .nav-links a.active { color: var(--navy); background: var(--light); }
+    .nav-cta { margin-left: 12px; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; }
+    .hamburger span { display: block; width: 24px; height: 2px; background: var(--navy); border-radius: 2px; transition: all .2s; }
+
+    /* ── HERO ─────────────────────────────────────────── */
+    #home { position: relative; min-height: 92vh; display: flex; align-items: center; overflow: hidden;
+      background: linear-gradient(135deg, var(--navy) 0%, #004080 55%, #005a8e 100%); }
+    .hero-bg { position: absolute; inset: 0; background-image:
+      url('https://images.unsplash.com/photo-1588666309990-d68f08e3d4a6?w=1600&auto=format&fit=crop&q=60');
+      background-size: cover; background-position: center; opacity: .13; }
+    .hero-content { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; padding: 80px 0; }
+    .hero-left { color: #fff; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 30px; padding: 6px 16px; font-size: 13px; color: rgba(255,255,255,.9); margin-bottom: 24px; }
+    .hero-badge-dot { width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+    .hero-h1 { font-family: 'Raleway', sans-serif; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; line-height: 1.15; margin-bottom: 20px; }
+    .hero-h1 em { font-style: normal; color: var(--cyan); }
+    .hero-sub { font-size: 1.1rem; color: rgba(255,255,255,.82); margin-bottom: 36px; line-height: 1.8; }
+    .hero-btns { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 48px; }
+    .hero-stats { display: flex; gap: 36px; flex-wrap: wrap; }
+    .hero-stat-num { font-family: 'Raleway', sans-serif; font-size: 1.8rem; font-weight: 800; color: var(--cyan); }
+    .hero-stat-label { font-size: 13px; color: rgba(255,255,255,.65); }
+    .hero-right { position: relative; }
+    .hero-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    .hero-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .hero-card-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .hero-card-title { font-family: 'Raleway', sans-serif; font-weight: 700; color: var(--navy); font-size: 15px; }
+    .job-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+    .job-row:last-child { border-bottom: none; }
+    .job-num { font-size: 12px; font-weight: 700; color: var(--teal); background: #e8f5f1; padding: 3px 8px; border-radius: 4px; }
+    .job-name { font-size: 13px; font-weight: 600; color: #333; flex: 1; margin: 0 12px; }
+    .job-status { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; }
+    .s-print   { background: #dcf5e7; color: #1a7a3c; }
+    .s-qc      { background: #fff3cd; color: #856404; }
+    .s-ready   { background: #d1ecf1; color: #0c5460; }
+    .s-enquiry { background: #e8eaf6; color: #3949ab; }
+    .hero-float { position: absolute; background: #fff; border-radius: 12px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(0,0,0,.15); font-size: 13px; font-weight: 600; color: var(--navy); white-space: nowrap; }
+    .hero-float-1 { top: -20px; right: -20px; }
+    .hero-float-2 { bottom: -16px; left: -20px; }
+    .hero-float span { color: var(--teal); }
+
+    /* ── TRUST BAR ────────────────────────────────────── */
+    .trust-bar { background: var(--light); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 20px 0; }
+    .trust-inner { display: flex; align-items: center; justify-content: space-around; flex-wrap: wrap; gap: 20px; }
+    .trust-item { display: flex; align-items: center; gap: 10px; font-family: 'Raleway', sans-serif; font-weight: 600; font-size: 14px; color: var(--navy); }
+    .trust-icon { font-size: 22px; }
+
+    /* ── PROBLEM ──────────────────────────────────────── */
+    #about { background: #fff; }
+    .problem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: 48px; }
+    .problem-card { background: #fff8f8; border: 1px solid #ffd6d6; border-left: 4px solid var(--red); border-radius: 10px; padding: 24px; }
+    .problem-card h3 { font-family: 'Raleway', sans-serif; font-size: 15px; font-weight: 700; color: var(--red); margin-bottom: 8px; }
+    .problem-card p { font-size: 14px; color: #666; line-height: 1.6; }
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; margin-top: 64px; }
+    .about-img { border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.12); }
+    .about-img img { width: 100%; height: 380px; object-fit: cover; }
+    .about-points { display: flex; flex-direction: column; gap: 16px; margin-top: 28px; }
+    .about-point { display: flex; gap: 14px; align-items: flex-start; }
+    .about-point-icon { width: 40px; height: 40px; background: #e8f5f1; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .about-point-text h4 { font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 15px; color: var(--navy); margin-bottom: 4px; }
+    .about-point-text p  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── SERVICES ─────────────────────────────────────── */
+    #services { background: var(--light); }
+    .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 48px; }
+    .service-card { background: #fff; border-radius: 14px; padding: 32px 28px; box-shadow: 0 2px 12px rgba(0,0,0,.06); border: 1px solid var(--border); transition: transform .2s, box-shadow .2s; position: relative; overflow: hidden; }
+    .service-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--navy), var(--teal)); }
+    .service-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,.1); }
+    .service-icon { font-size: 2.4rem; margin-bottom: 16px; }
+    .service-card h3 { font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 18px; color: var(--navy); margin-bottom: 10px; }
+    .service-card p { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 16px; }
+    .service-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .service-tag { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: #e8f5f1; color: var(--teal); }
+
+    /* ── HOW IT WORKS ─────────────────────────────────── */
+    #how { background: #fff; }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 32px; margin-top: 56px; position: relative; }
+    .steps::before { content: ''; position: absolute; top: 36px; left: 10%; right: 10%; height: 2px; background: linear-gradient(90deg, var(--teal), var(--cyan)); z-index: 0; }
+    .step { text-align: center; position: relative; z-index: 1; }
+    .step-num { width: 72px; height: 72px; background: var(--navy); color: #fff; border-radius: 50%; font-family: 'Raleway', sans-serif; font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; border: 4px solid #fff; box-shadow: 0 4px 16px rgba(0,46,110,.25); }
+    .step-icon { font-size: 1.6rem; margin-bottom: 6px; }
+    .step h3 { font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 16px; color: var(--navy); margin-bottom: 8px; }
+    .step p  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── FEATURES HIGHLIGHT ───────────────────────────── */
+    .features-hl { background: linear-gradient(135deg, var(--navy) 0%, #004080 100%); color: #fff; }
+    .features-hl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+    .features-hl-img { border-radius: 16px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,.35); }
+    .features-hl-img img { width: 100%; height: 400px; object-fit: cover; }
+    .features-hl .section-title { color: #fff; }
+    .features-hl .section-label { color: var(--cyan); }
+    .feature-list { display: flex; flex-direction: column; gap: 20px; margin-top: 32px; }
+    .feature-item { display: flex; gap: 14px; align-items: flex-start; }
+    .feature-check { width: 28px; height: 28px; background: var(--teal); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; color: #fff; }
+    .feature-item h4 { font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 15px; color: #fff; margin-bottom: 4px; }
+    .feature-item p  { font-size: 13px; color: rgba(255,255,255,.7); line-height: 1.6; }
+
+    /* ── TESTIMONIALS ─────────────────────────────────── */
+    #testimonials { background: var(--light); }
+    .testi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 48px; }
+    .testi-card { background: #fff; border-radius: 14px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,.06); border: 1px solid var(--border); position: relative; }
+    .testi-quote { font-size: 48px; color: var(--teal); line-height: 1; font-family: Georgia, serif; position: absolute; top: 16px; right: 20px; opacity: .2; }
+    .stars { color: #f5a623; font-size: 16px; margin-bottom: 14px; letter-spacing: 2px; }
+    .testi-text { font-size: 14px; color: #555; line-height: 1.8; margin-bottom: 20px; font-style: italic; }
+    .testi-author { display: flex; align-items: center; gap: 12px; }
+    .testi-avatar { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; background: var(--light); }
+    .testi-name { font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 14px; color: var(--navy); }
+    .testi-role { font-size: 12px; color: var(--muted); }
+    .testi-initials { width: 46px; height: 46px; border-radius: 50%; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+
+    /* ── PRICING / CTA STRIP ──────────────────────────── */
+    .cta-strip { background: linear-gradient(90deg, var(--teal) 0%, #0e8a6e 100%); padding: 56px 0; }
+    .cta-strip-inner { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .cta-strip h2 { font-family: 'Raleway', sans-serif; font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 800; color: #fff; max-width: 560px; line-height: 1.3; }
+    .cta-strip p { color: rgba(255,255,255,.85); font-size: 15px; margin-top: 8px; }
+    .btn-white { display: inline-block; background: #fff; color: var(--teal); padding: 14px 32px; border-radius: 6px; font-family: 'Raleway', sans-serif; font-weight: 800; font-size: 15px; transition: transform .15s; }
+    .btn-white:hover { transform: translateY(-2px); }
+
+    /* ── CONTACT ──────────────────────────────────────── */
+    #contact { background: #fff; }
+    .contact-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 60px; margin-top: 48px; align-items: start; }
+    .contact-info-cards { display: flex; flex-direction: column; gap: 20px; }
+    .contact-card { display: flex; gap: 16px; align-items: flex-start; background: var(--light); border-radius: 12px; padding: 20px; }
+    .contact-card-icon { width: 48px; height: 48px; background: var(--navy); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .contact-card h4 { font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 15px; color: var(--navy); margin-bottom: 4px; }
+    .contact-card p, .contact-card a { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    .contact-card a:hover { color: var(--teal); }
+    .contact-map { border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.1); margin-top: 20px; }
+    .contact-form-box { background: var(--light); border-radius: 16px; padding: 36px; }
+    .contact-form-box h3 { font-family: 'Raleway', sans-serif; font-weight: 800; font-size: 20px; color: var(--navy); margin-bottom: 6px; }
+    .contact-form-box p { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+    .field label { font-size: 13px; font-weight: 600; color: #444; font-family: 'Raleway', sans-serif; }
+    .field input, .field select, .field textarea { padding: 11px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: 'Lato', sans-serif; background: #fff; transition: border .15s, box-shadow .15s; }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(20,154,124,.12); }
+    .field textarea { resize: vertical; min-height: 100px; }
+    #form-success { display: none; background: #dcf5e7; color: #1a7a3c; padding: 14px; border-radius: 8px; font-weight: 600; margin-top: 12px; text-align: center; }
+
+    /* ── FOOTER ───────────────────────────────────────── */
+    footer { background: var(--navy); color: rgba(255,255,255,.75); padding: 60px 0 0; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+    .footer-brand .logo-text { color: #fff; font-size: 20px; margin-bottom: 14px; display: block; }
+    .footer-brand p { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,.6); max-width: 280px; }
+    .footer-brand .footer-contact { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
+    .footer-brand .footer-contact a { font-size: 13px; color: rgba(255,255,255,.65); display: flex; align-items: center; gap: 8px; }
+    .footer-brand .footer-contact a:hover { color: var(--cyan); }
+    .footer-col h4 { font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 14px; color: #fff; margin-bottom: 16px; letter-spacing: .5px; text-transform: uppercase; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+    .footer-col ul li a { font-size: 13px; color: rgba(255,255,255,.6); transition: color .15s; }
+    .footer-col ul li a:hover { color: var(--cyan); }
+    .footer-bottom { border-top: 1px solid rgba(255,255,255,.1); padding: 20px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 13px; color: rgba(255,255,255,.45); }
+    .social-links { display: flex; gap: 10px; margin-top: 16px; }
+    .social-link { width: 36px; height: 36px; border-radius: 8px; background: rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center; font-size: 16px; color: rgba(255,255,255,.7); transition: background .15s; }
+    .social-link:hover { background: var(--teal); color: #fff; }
+
+    /* ── MOBILE NAV ───────────────────────────────────── */
+    @media (max-width: 900px) {
+      .nav-links { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: #fff; padding: 16px 24px 24px; box-shadow: 0 8px 24px rgba(0,0,0,.1); gap: 4px; }
+      .nav-links.open { display: flex; }
+      .hamburger { display: flex; }
+      .hero-content { grid-template-columns: 1fr; padding: 60px 0; }
+      .hero-right { display: none; }
+      .about-grid, .features-hl-grid, .contact-grid { grid-template-columns: 1fr; }
+      .steps::before { display: none; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .footer-grid { grid-template-columns: 1fr; }
+      .hero-stats { gap: 20px; }
+      .trust-inner { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ─────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="container">
+    <div class="topbar-left">
+      <span>📞 <a href="tel:+919876543210">+91-98765-43210</a></span>
+      <span>✉️ <a href="mailto:hello@motipaper.in">hello@motipaper.in</a></span>
+    </div>
+    <div class="topbar-right">
+      <span>🕐 Mon–Sat: 10 AM – 6 PM</span>
+      <span>📍 Karol Bagh, New Delhi</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── NAVBAR ──────────────────────────────────────────── -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="#home" class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+      </div>
+      <span class="logo-text">Moti<span>Paper</span></span>
+    </a>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="#home" class="active">Home</a></li>
+      <li><a href="#about">About Us</a></li>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="#testimonials">Reviews</a></li>
+      <li><a href="#contact">Contact</a></li>
+      <li class="nav-cta"><a href="#contact" class="btn-primary" style="padding:9px 22px;">Request Demo</a></li>
+    </ul>
+    <div class="hamburger" id="hamburger" onclick="toggleNav()">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────── -->
+<section id="home">
+  <div class="hero-bg"></div>
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-left">
+        <div class="hero-badge">
+          <div class="hero-badge-dot"></div>
+          India's #1 Printing Press Management Platform
+        </div>
+        <h1 class="hero-h1">
+          Run Your Press.<br>
+          <em>Not Paperwork.</em>
+        </h1>
+        <p class="hero-sub">
+          MotiPaper replaces WhatsApp job tracking, paper registers, and NILL challans with a single smart platform — job cards, quotations, billing, inventory and delivery, all in one place.
+        </p>
+        <div class="hero-btns">
+          <a href="#contact" class="btn-primary">Get Started Free →</a>
+          <a href="#how" class="btn-outline">See How It Works</a>
+        </div>
+        <div class="hero-stats">
+          <div>
+            <div class="hero-stat-num">500+</div>
+            <div class="hero-stat-label">Presses onboarded</div>
+          </div>
+          <div>
+            <div class="hero-stat-num">2L+</div>
+            <div class="hero-stat-label">Job cards created</div>
+          </div>
+          <div>
+            <div class="hero-stat-num">₹0</div>
+            <div class="hero-stat-label">Cost to get started</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-float hero-float-1">📦 Job #1042 — <span>Ready for pickup</span></div>
+        <div class="hero-card">
+          <div class="hero-card-header">
+            <div class="hero-card-dot" style="background:#002E6E;"></div>
+            <div class="hero-card-dot" style="background:#149A7C;"></div>
+            <div class="hero-card-dot" style="background:#45C4D9;"></div>
+            <span class="hero-card-title">Live Job Board — Sharma Press</span>
+          </div>
+          <div class="job-row"><span class="job-num">#1045</span><span class="job-name">Wedding Cards × 500</span><span class="job-status s-print">Printing</span></div>
+          <div class="job-row"><span class="job-num">#1044</span><span class="job-name">Annual Report — HDFC</span><span class="job-status s-qc">QC</span></div>
+          <div class="job-row"><span class="job-num">#1043</span><span class="job-name">Brochure — 3-fold A4</span><span class="job-status s-ready">Ready</span></div>
+          <div class="job-row"><span class="job-num">#1042</span><span class="job-name">Letterhead × 1000</span><span class="job-status s-enquiry">Enquiry</span></div>
+        </div>
+        <div class="hero-float hero-float-2">✅ Invoice #204 — <span>₹12,400 paid</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TRUST BAR ───────────────────────────────────────── -->
+<div class="trust-bar">
+  <div class="container">
+    <div class="trust-inner">
+      <div class="trust-item"><span class="trust-icon">🏭</span> Built for Indian printing presses</div>
+      <div class="trust-item"><span class="trust-icon">📱</span> Android & iOS mobile app</div>
+      <div class="trust-item"><span class="trust-icon">🔒</span> Your data is private & secure</div>
+      <div class="trust-item"><span class="trust-icon">🆓</span> Free to start — no credit card</div>
+      <div class="trust-item"><span class="trust-icon">📞</span> Dedicated onboarding support</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ABOUT US ─────────────────────────────────────────── -->
+<section id="about" class="section">
+  <div class="container">
+    <div class="text-center">
+      <div class="section-label">About MotiPaper</div>
+      <h2 class="section-title">We Know How Indian Presses Work</h2>
+      <p class="section-sub">Born out of frustration with WhatsApp forwards and paper registers, MotiPaper was built by people who've spent time on the press floor.</p>
+    </div>
+
+    <!-- Problems -->
+    <div class="problem-grid">
+      <div class="problem-card"><h3>❌ Jobs get lost or forgotten</h3><p>No single place to see all active jobs. Operators rely on memory or WhatsApp — until something slips.</p></div>
+      <div class="problem-card"><h3>❌ Quotations are guesswork</h3><p>Margins are unclear, rates vary job-to-job, and estimates are never compared against actual costs.</p></div>
+      <div class="problem-card"><h3>❌ Challans say "NILL"</h3><p>Manual numbering breaks down. Challans go out without numbers. Disputes follow.</p></div>
+      <div class="problem-card"><h3>❌ Payments slip through</h3><p>No running ledger means you don't know who owes what — or for how long — until month-end.</p></div>
+    </div>
+
+    <!-- About story -->
+    <div class="about-grid">
+      <div class="about-img">
+        <img src="https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?w=800&auto=format&fit=crop&q=70" alt="Printing press operations" loading="lazy" />
+      </div>
+      <div>
+        <div class="section-label">Our Story</div>
+        <h2 class="section-title">From the Press Floor, For the Press Floor</h2>
+        <p class="section-sub">MotiPaper started in 2023 when our founder Prateek Sharma visited 40+ printing presses across Delhi, Noida, and Faridabad and saw the same pain everywhere — talented owners running great presses but drowning in admin chaos.</p>
+        <div class="about-points">
+          <div class="about-point"><div class="about-point-icon">🎯</div><div class="about-point-text"><h4>Purpose-built for India</h4><p>GST-compliant invoicing, Hindi-friendly interface, works on 2G/3G in your workshop.</p></div></div>
+          <div class="about-point"><div class="about-point-icon">🤝</div><div class="about-point-text"><h4>Hands-on onboarding</h4><p>We don't just give you software. We come to your press, set it up, and train your staff.</p></div></div>
+          <div class="about-point"><div class="about-point-icon">🔒</div><div class="about-point-text"><h4>Your data stays yours</h4><p>Self-hosted option available. No third-party data sharing. Ever.</p></div></div>
+        </div>
+        <div style="margin-top:28px;">
+          <a href="#contact" class="btn-navy">Talk to Us →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SERVICES ─────────────────────────────────────────── -->
+<section id="services" class="section">
+  <div class="container">
+    <div class="text-center">
+      <div class="section-label">What We Offer</div>
+      <h2 class="section-title">Everything Your Press Needs</h2>
+      <p class="section-sub">Ten integrated modules that cover your entire workflow — from first enquiry to final delivery and payment.</p>
+    </div>
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-icon">📋</div>
+        <h3>Job Card Management</h3>
+        <p>Auto-numbered job cards with QR codes, status pipeline, machine assignment, repeat-order copy and operator mobile view. No more "NILL" job numbers.</p>
+        <div class="service-tags"><span class="service-tag">QR Scan</span><span class="service-tag">Auto-numbering</span><span class="service-tag">Status pipeline</span></div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">💰</div>
+        <h3>Quotation & Costing</h3>
+        <p>Paper/sheet/wastage calculator, plate & printing costs, finishing line items, GST, margin — generate a shareable PDF in one tap.</p>
+        <div class="service-tags"><span class="service-tag">GST billing</span><span class="service-tag">PDF export</span><span class="service-tag">Margin tracking</span></div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🏭</div>
+        <h3>Production Floor</h3>
+        <p>Machine-wise job queues. Operators scan a QR code to update status — even on patchy shop-floor Wi-Fi. Full offline support.</p>
+        <div class="service-tags"><span class="service-tag">Offline mode</span><span class="service-tag">Machine queues</span><span class="service-tag">Wastage log</span></div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">📦</div>
+        <h3>Inventory Control</h3>
+        <p>Track paper by GSM/size/brand, ink, plates, and rolls. Auto-deduct on job completion. Low-stock alerts with push notifications.</p>
+        <div class="service-tags"><span class="service-tag">Auto-deduction</span><span class="service-tag">Low stock alerts</span><span class="service-tag">PO tracking</span></div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🧾</div>
+        <h3>GST Billing & Khata</h3>
+        <p>Issue proper GST invoices (job-work or goods), auto-adjust advances, maintain a running ledger per client with payment reminders.</p>
+        <div class="service-tags"><span class="service-tag">GST compliant</span><span class="service-tag">Client ledger</span><span class="service-tag">Advance adjust</span></div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🚚</div>
+        <h3>Delivery & Dispatch</h3>
+        <p>Auto-numbered delivery challans, QC checklist, partial delivery tracking, and receiver signature capture — all paperless.</p>
+        <div class="service-tags"><span class="service-tag">Auto challans</span><span class="service-tag">Signature capture</span><span class="service-tag">Partial delivery</span></div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🎨</div>
+        <h3>Proof Approval</h3>
+        <p>Upload artwork, manage versions, and record client approval in-app with timestamps and comments — no WhatsApp back-and-forth.</p>
+        <div class="service-tags"><span class="service-tag">Versioning</span><span class="service-tag">Timestamped</span><span class="service-tag">Comments</span></div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">📊</div>
+        <h3>Reports & Analytics</h3>
+        <p>Job profitability (estimated vs actual), machine utilisation, outstanding payments, and staff output — know your numbers daily.</p>
+        <div class="service-tags"><span class="service-tag">Profitability</span><span class="service-tag">Machine stats</span><span class="service-tag">Overdue alerts</span></div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">👥</div>
+        <h3>Role-Based Access</h3>
+        <p>Owner, Sub Admin (with granular permissions), Staff and Operator roles. Accountant sees billing only. Operator sees floor queue only.</p>
+        <div class="service-tags"><span class="service-tag">RBAC</span><span class="service-tag">Audit log</span><span class="service-tag">Invite by SMS/email</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ────────────────────────────────────── -->
+<section id="how" class="section" style="background:#fff;">
+  <div class="container">
+    <div class="text-center">
+      <div class="section-label">Simple Setup</div>
+      <h2 class="section-title">Up and Running in One Day</h2>
+      <p class="section-sub">No lengthy implementation. We onboard you personally and your team is live within hours.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-icon">📝</div>
+        <h3>Register Your Press</h3>
+        <p>Sign up free. Enter your press name and owner details. Takes 2 minutes.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-icon">⚙️</div>
+        <h3>We Set Up Everything</h3>
+        <p>Our team calls you, configures your machines, paper types, rate cards and staff accounts.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-icon">📱</div>
+        <h3>Install the App</h3>
+        <p>Operators download MotiPaper on Android or iOS. Scan a QR and they're logged in.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-icon">🚀</div>
+        <h3>Start Taking Jobs</h3>
+        <p>Create your first job card. Watch the status move through your pipeline in real time.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-icon">📊</div>
+        <h3>Track & Grow</h3>
+        <p>Review daily reports, see outstanding payments, and know which jobs are most profitable.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES HIGHLIGHT ──────────────────────────────── -->
+<section class="section features-hl">
+  <div class="container">
+    <div class="features-hl-grid">
+      <div>
+        <div class="section-label">Mobile-First</div>
+        <h2 class="section-title">Works on the Shop Floor</h2>
+        <p style="color:rgba(255,255,255,.75);font-size:15px;line-height:1.7;margin-bottom:8px;">Designed for the reality of Indian print shops — spotty Wi-Fi, busy operators, and owners who manage everything from their phones.</p>
+        <div class="feature-list">
+          <div class="feature-item"><div class="feature-check">✓</div><div><h4>Offline mode for operators</h4><p>Status updates queue locally and sync when connectivity returns. No lost data.</p></div></div>
+          <div class="feature-item"><div class="feature-check">✓</div><div><h4>QR scan-to-update</h4><p>Operators scan the job card QR with the phone camera and update status in one tap.</p></div></div>
+          <div class="feature-item"><div class="feature-check">✓</div><div><h4>Push notifications</h4><p>Job assigned, proof approved, low stock, payment due — your whole team stays in sync.</p></div></div>
+          <div class="feature-item"><div class="feature-check">✓</div><div><h4>Role-aware navigation</h4><p>Operators see only the floor view. Owners see everything. Sensitive financials stay private.</p></div></div>
+        </div>
+      </div>
+      <div class="features-hl-img">
+        <img src="https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800&auto=format&fit=crop&q=70" alt="Mobile app on printing floor" loading="lazy" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TESTIMONIALS ────────────────────────────────────── -->
+<section id="testimonials" class="section">
+  <div class="container">
+    <div class="text-center">
+      <div class="section-label">Customer Reviews</div>
+      <h2 class="section-title">Press Owners Love MotiPaper</h2>
+      <p class="section-sub">Don't take our word for it. Here's what printing press owners across India say.</p>
+    </div>
+    <div class="testi-grid">
+      <div class="testi-card">
+        <div class="testi-quote">"</div>
+        <div class="stars">★★★★★</div>
+        <p class="testi-text">Before MotiPaper, I had no idea which jobs were profitable. Now I can see actual vs quoted cost on every job. In three months, I increased my margin by 18% just by knowing where I was losing money.</p>
+        <div class="testi-author">
+          <div class="testi-initials">RS</div>
+          <div><div class="testi-name">Rajesh Sharma</div><div class="testi-role">Owner, Sharma Offset Press · Delhi</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-quote">"</div>
+        <div class="stars">★★★★★</div>
+        <p class="testi-text">Our challans used to say "Null" because the numbering broke down every week. After MotiPaper, every challan has a proper number, every delivery is tracked. Clients trust us more now.</p>
+        <div class="testi-author">
+          <div class="testi-initials">PG</div>
+          <div><div class="testi-name">Priya Gupta</div><div class="testi-role">Owner, Gupta Print Works · Noida</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-quote">"</div>
+        <div class="stars">★★★★★</div>
+        <p class="testi-text">My operators on the floor now just scan the QR on the job card and mark it done. I can see the production status from home on my phone. This used to require 10 WhatsApp messages a day.</p>
+        <div class="testi-author">
+          <div class="testi-initials">AK</div>
+          <div><div class="testi-name">Anil Kumar</div><div class="testi-role">Owner, AK Printers · Faridabad</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-quote">"</div>
+        <div class="stars">★★★★★</div>
+        <p class="testi-text">I gave my accountant a sub-admin login with only billing access. He can now see the khata and create invoices without touching job or inventory data. Very smart permission system.</p>
+        <div class="testi-author">
+          <div class="testi-initials">SM</div>
+          <div><div class="testi-name">Suresh Mehta</div><div class="testi-role">Owner, Mehta Graphics · Ahmedabad</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-quote">"</div>
+        <div class="stars">★★★★★</div>
+        <p class="testi-text">Paper stock was always a problem — we'd run out mid-job. The low stock alert on MotiPaper sends a notification before we hit zero. Never had a surprise stockout since we started using it.</p>
+        <div class="testi-author">
+          <div class="testi-initials">VR</div>
+          <div><div class="testi-name">Vijay Reddy</div><div class="testi-role">Owner, Sri Venkateswara Press · Hyderabad</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-quote">"</div>
+        <div class="stars">★★★★★</div>
+        <p class="testi-text">The onboarding team came to our press, set up machines and rate cards, and trained my staff in half a day. We were fully live by afternoon. Excellent service.</p>
+        <div class="testi-author">
+          <div class="testi-initials">NK</div>
+          <div><div class="testi-name">Neeraj Kapoor</div><div class="testi-role">Owner, Kapoor Digital Press · Mumbai</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA STRIP ───────────────────────────────────────── -->
+<div class="cta-strip">
+  <div class="container">
+    <div class="cta-strip-inner">
+      <div>
+        <h2>Ready to stop managing your press on WhatsApp?</h2>
+        <p>Join 500+ printing presses already running smarter with MotiPaper. Free to start.</p>
+      </div>
+      <a href="#contact" class="btn-white">Request a Free Demo →</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONTACT ─────────────────────────────────────────── -->
+<section id="contact" class="section">
+  <div class="container">
+    <div class="text-center">
+      <div class="section-label">Get In Touch</div>
+      <h2 class="section-title">We'll Set Up Your Press Personally</h2>
+      <p class="section-sub">Fill the form or call us directly. Our team will reach out within 24 hours to schedule a free walkthrough.</p>
+    </div>
+    <div class="contact-grid">
+      <div>
+        <div class="contact-info-cards">
+          <div class="contact-card">
+            <div class="contact-card-icon">📍</div>
+            <div>
+              <h4>Our Office</h4>
+              <p>MotiPaper Technologies Pvt. Ltd.<br>4th Floor, Plot 12, Pusa Road<br>Karol Bagh, New Delhi – 110005</p>
+            </div>
+          </div>
+          <div class="contact-card">
+            <div class="contact-card-icon">📞</div>
+            <div>
+              <h4>Call & WhatsApp</h4>
+              <a href="tel:+919876543210">+91-98765-43210</a><br>
+              <p style="margin-top:4px;">Monday – Saturday, 10 AM to 6 PM</p>
+            </div>
+          </div>
+          <div class="contact-card">
+            <div class="contact-card-icon">✉️</div>
+            <div>
+              <h4>Email Us</h4>
+              <a href="mailto:hello@motipaper.in">hello@motipaper.in</a><br>
+              <a href="mailto:support@motipaper.in">support@motipaper.in</a>
+            </div>
+          </div>
+          <div class="contact-card">
+            <div class="contact-card-icon">🕐</div>
+            <div>
+              <h4>Working Hours</h4>
+              <p>Mon – Fri: 10:00 AM – 7:00 PM<br>Saturday: 10:00 AM – 4:00 PM<br>Sunday: Closed</p>
+            </div>
+          </div>
+        </div>
+        <div class="contact-map">
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3501.6749!2d77.1902!3d28.6448!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390d029d5c0c8c55%3A0x5ef48e0b9e17ba82!2sKarol+Bagh%2C+New+Delhi!5e0!3m2!1sen!2sin!4v1700000000000"
+            width="100%" height="200" style="border:0;" allowfullscreen="" loading="lazy">
+          </iframe>
+        </div>
+      </div>
+      <div class="contact-form-box">
+        <h3>Request a Free Demo</h3>
+        <p>Tell us a bit about your press and we'll set up a personalised walkthrough.</p>
+        <form id="lead-form" onsubmit="submitLead(event)">
+          <div class="form-row">
+            <div class="field"><label>Your Name *</label><input name="name" required placeholder="Rajesh Sharma" /></div>
+            <div class="field"><label>Phone *</label><input name="phone" type="tel" required placeholder="+91-98765-43210" /></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>Press / Company Name</label><input name="pressName" placeholder="Sharma Offset Press" /></div>
+            <div class="field"><label>City</label><input name="city" placeholder="Delhi, Mumbai, Ahmedabad…" /></div>
+          </div>
+          <div class="field"><label>Email</label><input name="email" type="email" placeholder="you@yourpress.in" /></div>
+          <div class="field">
+            <label>Number of machines</label>
+            <select name="machines">
+              <option value="">Select…</option>
+              <option>1–2 machines</option>
+              <option>3–5 machines</option>
+              <option>6–10 machines</option>
+              <option>10+ machines</option>
+            </select>
+          </div>
+          <div class="field"><label>Anything specific you'd like to see?</label><textarea name="message" placeholder="e.g. GST invoicing, machine queues, WhatsApp integration…"></textarea></div>
+          <button type="submit" class="btn-primary" style="width:100%;padding:14px;font-size:16px;">Request Free Demo →</button>
+          <p id="form-success" style="display:none;background:#dcf5e7;color:#1a7a3c;padding:14px;border-radius:8px;font-weight:600;margin-top:12px;text-align:center;">✅ Thank you! We'll call you within 24 hours.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ──────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <span class="logo-text">Moti<span>Paper</span></span>
+        <p>Smart job management for Indian printing presses. From enquiry to delivery — all in one platform.</p>
+        <div class="footer-contact">
+          <a href="tel:+919876543210">📞 +91-98765-43210</a>
+          <a href="mailto:hello@motipaper.in">✉️ hello@motipaper.in</a>
+          <a href="#">📍 Karol Bagh, New Delhi – 110005</a>
+        </div>
+        <div class="social-links">
+          <a class="social-link" href="#" title="LinkedIn">in</a>
+          <a class="social-link" href="#" title="Twitter">𝕏</a>
+          <a class="social-link" href="#" title="Instagram">📷</a>
+          <a class="social-link" href="#" title="YouTube">▶</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#services">Job Cards</a></li>
+          <li><a href="#services">Quotation</a></li>
+          <li><a href="#services">Production Floor</a></li>
+          <li><a href="#services">Inventory</a></li>
+          <li><a href="#services">GST Billing</a></li>
+          <li><a href="#services">Reports</a></li>
+          <li><a href="#services">Mobile App</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#about">About Us</a></li>
+          <li><a href="#how">How It Works</a></li>
+          <li><a href="#testimonials">Customer Reviews</a></li>
+          <li><a href="#contact">Contact Us</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press / Media</a></li>
+          <li><a href="#">Partner With Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Refund Policy</a></li>
+          <li><a href="#">Data Security</a></li>
+        </ul>
+        <h4 style="margin-top:24px;">Support</h4>
+        <ul>
+          <li><a href="#">Help Centre</a></li>
+          <li><a href="#">FAQs</a></li>
+          <li><a href="mailto:support@motipaper.in">Email Support</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2024 MotiPaper Technologies Pvt. Ltd. All rights reserved.</span>
+      <span>Made with ❤️ in India 🇮🇳</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ── Smooth active nav highlight ──────────────────────
+  const sections = document.querySelectorAll('section[id], div[id]');
+  const navLinks = document.querySelectorAll('.nav-links a');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navLinks.forEach(a => a.classList.remove('active'));
+        const active = document.querySelector(`.nav-links a[href="#${e.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.35 });
+  sections.forEach(s => observer.observe(s));
+
+  // ── Mobile hamburger ─────────────────────────────────
+  function toggleNav() {
+    document.getElementById('nav-links').classList.toggle('open');
+  }
+
+  // Close nav on link click (mobile)
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.addEventListener('click', () => document.getElementById('nav-links').classList.remove('open'));
+  });
+
+  // ── Lead form submit ─────────────────────────────────
+  async function submitLead(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.textContent = 'Sending…';
+    btn.disabled = true;
+    const body = Object.fromEntries(new FormData(e.target).entries());
+    try {
+      const res = await fetch('/api/v1/public/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        e.target.reset();
+        document.getElementById('form-success').style.display = 'block';
+        btn.style.display = 'none';
+      } else { throw new Error(); }
+    } catch {
+      btn.textContent = 'Request Free Demo →';
+      btn.disabled = false;
+      alert('Something went wrong. Please call us directly at +91-98765-43210');
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+FROM node:20-alpine
+WORKDIR /app
+
+# Copy manifests first so this layer is cached unless deps change
+COPY package*.json ./
+
+# npm install (not ci) so package-lock.json is created/updated if missing
+RUN npm install
+
+# Source is mounted at runtime via docker-compose volume — no COPY needed here
+EXPOSE 3000
+
+# Install deps again at startup in case package.json changed since image build,
+# then launch the dev server with hot-reload
+CMD ["sh", "-c", "npm install && npm run dev"]
