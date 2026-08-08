@@ -54,11 +54,12 @@ router.get("/invoices", requirePermission("billing.view"), async (req, res) => {
   if (dueDateFrom) { base = base.where("invoices.due_date", ">=", dueDateFrom); countQ = countQ.where("invoices.due_date", ">=", dueDateFrom); }
   if (dueDateTo)   { base = base.where("invoices.due_date", "<=", dueDateTo);   countQ = countQ.where("invoices.due_date", "<=", dueDateTo); }
   if (overdue === "1") {
-    base = base.whereIn("invoices.status", ["issued", "partially_paid"]).where("invoices.due_date", "<", db.fn.now());
-    countQ = countQ.whereIn("invoices.status", ["issued", "partially_paid"]).where("invoices.due_date", "<", db.fn.now());
+    const today = new Date().toISOString().slice(0, 10);
+    base = base.whereIn("invoices.status", ["issued", "partially_paid"]).where("invoices.due_date", "<", today);
+    countQ = countQ.whereIn("invoices.status", ["issued", "partially_paid"]).where("invoices.due_date", "<", today);
   }
 
-  base = applySearch(base, params.search, ["clients.name", "clients.phone", db.raw("invoices.invoice_number::text")]);
+  base = applySearch(base, params.search, ["clients.name", "clients.phone"]);
   countQ = applySearch(countQ, params.search, ["clients.name", "clients.phone"]);
 
   res.json(await paginate(base, countQ, params, INV_SORT_COLS, "invoices"));
