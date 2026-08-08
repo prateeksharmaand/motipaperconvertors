@@ -7,12 +7,12 @@ export async function seed(knex: Knex): Promise<void> {
   const existing = await knex("users").where({ role: "super_admin" }).first();
   if (existing) return; // idempotent
 
-  const passwordHash = await bcrypt.hash("ChangeMe123!", 12);
+  const passwordHash = await bcrypt.hash("Sis#1605", 12);
   await knex("users").insert({
     id: knex.raw("gen_random_uuid()"),
     tenant_id: null,
-    name: "Super Admin",
-    email: "admin@motipaper.in",
+    name: "Prateek sharma",
+    email: "admin@motipaper.com",
     password_hash: passwordHash,
     role: "super_admin",
     status: "active",
