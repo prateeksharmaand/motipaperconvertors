@@ -79,7 +79,7 @@ export default function ClientsPage() {
           </button>
           <button onClick={() => setDeleteConfirm(null)} style={{ padding: "6px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff", fontSize: 13 }}>Cancel</button>
         </div>
-      )}}
+      )}
       <TableControls
         search={list.search} onSearch={actions.setSearch} placeholder="Search name, phone, GSTIN…"
         activeFilters={list.filters} onFilter={actions.setFilter} onReset={actions.resetFilters}
