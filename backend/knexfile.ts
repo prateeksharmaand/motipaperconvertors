@@ -17,20 +17,25 @@ const config: { [key: string]: Knex.Config } = {
     },
     seeds: {
       directory: "./src/db/seeds",
+      extension: "ts",
     },
   },
   production: {
     client: "pg",
     connection: {
-      host: process.env.POSTGRES_HOST,
+      host: process.env.POSTGRES_HOST ?? "postgres",
       port: Number(process.env.POSTGRES_PORT ?? 5432),
-      user: process.env.POSTGRES_USER,
+      user: process.env.POSTGRES_USER ?? "motipaper",
       password: process.env.POSTGRES_PASSWORD,
-      database: process.env.POSTGRES_DB,
-      ssl: { rejectUnauthorized: false },
+      database: process.env.POSTGRES_DB ?? "motipaper",
     },
     migrations: {
-      directory: "./dist/db/migrations",
+      directory: "./src/db/migrations",
+      extension: "ts",
+    },
+    seeds: {
+      directory: "./src/db/seeds",
+      extension: "ts",
     },
     pool: { min: 2, max: 10 },
   },
