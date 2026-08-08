@@ -10,6 +10,7 @@ import BillingPage from "./pages/BillingPage.tsx";
 import ReportsPage from "./pages/ReportsPage.tsx";
 import SubAdminsPage from "./pages/SubAdminsPage.tsx";
 import TenantsPage from "./pages/TenantsPage.tsx";
+import QuotationsPage from "./pages/QuotationsPage.tsx";
 import Layout from "./components/Layout.tsx";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -33,6 +34,7 @@ export default function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="jobs" element={<JobsPage />} />
+        <Route path="quotations" element={<QuotationsPage />} />
         <Route path="clients" element={<ClientsPage />} />
         <Route path="inventory" element={<InventoryPage />} />
         <Route path="billing" element={<BillingPage />} />

@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
 import { useListState } from "../hooks/useListState.ts";
@@ -20,18 +21,92 @@ const STATUS_COLOR: Record<string, string> = {
   delivered: "#1864ab", cancelled: "#c92a2a",
 };
 
-type Job = { id: string; job_number: number; title: string; client_name: string; status: string; due_date: string; quoted_price: number; operator_name: string; };
+type Job = { id: string; job_number: number; title: string; client_name: string; client_id: string; status: string; due_date: string; quoted_price: number; operator_name: string; description: string; job_type: string; size: string; quantity: number; };
+interface Client { id: string; name: string; }
 
+const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14 };
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
+function JobForm({ initial, clients, onSave, onCancel, isPending }: {
+  initial?: Partial<Job>; clients: Client[];
+  onSave: (d: Record<string, string>) => void; onCancel: () => void; isPending: boolean;
+}) {
+  const [form, setForm] = useState({
+    client_id: "", title: "", description: "", job_type: "", size: "", quantity: "", due_date: "",
+    ...initial, quantity: initial?.quantity?.toString() ?? "",
+  });
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }));
+  return (
+    <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 20, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
+      <h3 style={{ marginBottom: 16 }}>{initial?.id ? "Edit Job" : "New Job"}</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+        <label><span style={{ fontSize: 13 }}>Client</span>
+          <select style={inputStyle} value={form.client_id} onChange={set("client_id")}>
+            <option value="">— select client —</option>
+            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </label>
+        <label><span style={{ fontSize: 13 }}>Title *</span><input style={inputStyle} value={form.title} onChange={set("title")} /></label>
+        <label><span style={{ fontSize: 13 }}>Job Type</span><input style={inputStyle} placeholder="e.g. brochure, business card" value={form.job_type} onChange={set("job_type")} /></label>
+        <label><span style={{ fontSize: 13 }}>Paper Size</span><input style={inputStyle} placeholder="e.g. A4, A3" value={form.size} onChange={set("size")} /></label>
+        <label><span style={{ fontSize: 13 }}>Quantity</span><input style={inputStyle} type="number" value={form.quantity} onChange={set("quantity")} /></label>
+        <label><span style={{ fontSize: 13 }}>Due Date</span><input style={inputStyle} type="date" value={form.due_date} onChange={set("due_date")} /></label>
+      </div>
+      <label><span style={{ fontSize: 13 }}>Description</span>
+        <textarea style={{ ...inputStyle, height: 64 }} value={form.description} onChange={set("description")} />
+      </label>
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <button onClick={() => onSave(form as Record<string, string>)} disabled={!form.title || isPending}
+          style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
+          {isPending ? "Saving…" : "Save"}
+        </button>
+        <button onClick={onCancel} style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 export default function JobsPage() {
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Job | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const qc = useQueryClient();
   const [list, actions] = useListState({ sortBy: "created_at", filters: {} });
 
   const { data, isLoading } = useQuery<PagedResult<Job>>({
     queryKey: ["jobs", actions.toParams()],
     queryFn: () => api.get("/admin/jobs", { params: actions.toParams() }).then((r) => r.data),
     placeholderData: keepPreviousData,
+  });
+
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ["clients-mini"],
+    queryFn: () => api.get("/admin/clients", { params: { limit: "200" } }).then(r => r.data.data ?? []),
+  });
+
+  const create = useMutation({
+    mutationFn: (d: Record<string, string>) => api.post("/admin/jobs", {
+      clientId: d.client_id || undefined, title: d.title, description: d.description || undefined,
+      jobType: d.job_type || undefined, size: d.size || undefined,
+      quantity: d.quantity ? Number(d.quantity) : undefined, dueDate: d.due_date || undefined,
+    }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setShowForm(false); },
+  });
+
+  const update = useMutation({
+    mutationFn: ({ id, ...d }: Record<string, string>) => api.patch(`/admin/jobs/${id}`, {
+      title: d.title, description: d.description || undefined,
+      size: d.size || undefined, job_type: d.job_type || undefined,
+      quantity: d.quantity ? Number(d.quantity) : undefined, due_date: d.due_date || undefined,
+    }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setEditing(null); },
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/jobs/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setDeleteConfirm(null); },
   });
 
   const col = (label: string, key: string) => (
@@ -43,10 +118,23 @@ export default function JobsPage() {
   return (
     <div>
       <h1 style={{ marginBottom: 20 }}>Job Cards</h1>
+      {showForm && <JobForm clients={clients} isPending={create.isPending} onSave={(d) => create.mutate(d)} onCancel={() => setShowForm(false)} />}
+      {editing && <JobForm initial={editing} clients={clients} isPending={update.isPending} onSave={(d) => update.mutate({ id: editing.id, ...d })} onCancel={() => setEditing(null)} />}
+      {deleteConfirm && (
+        <div style={{ background: "#fff3f3", border: "1px solid #fdd", borderRadius: 8, padding: 16, marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 14 }}>Delete this job? This cannot be undone.</span>
+          <button onClick={() => remove.mutate(deleteConfirm)} disabled={remove.isPending}
+            style={{ padding: "6px 16px", background: "#c92a2a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13 }}>
+            {remove.isPending ? "Deleting…" : "Confirm Delete"}
+          </button>
+          <button onClick={() => setDeleteConfirm(null)} style={{ padding: "6px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff", fontSize: 13 }}>Cancel</button>
+        </div>
+      )}
       <TableControls
         search={list.search} onSearch={actions.setSearch} placeholder="Search jobs, clients…"
         activeFilters={list.filters} onFilter={actions.setFilter} onReset={actions.resetFilters}
         filters={[{ key: "status", label: "Status", options: STATUS_OPTIONS }]}
+        rightSlot={<button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Job</button>}
       />
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
         <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>
@@ -63,11 +151,11 @@ export default function JobsPage() {
               {col("#", "job_number")} {col("Title", "title")}
               <th style={th}>Client</th> {col("Status", "status")}
               {col("Due", "due_date")} {col("Quoted", "quoted_price")}
-              <th style={th}>Operator</th>
+              <th style={th}>Operator</th> <th style={th} />
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={7} style={{ ...td, textAlign: "center", color: "#888" }}>Loading…</td></tr>}
+            {isLoading && <tr><td colSpan={8} style={{ ...td, textAlign: "center", color: "#888" }}>Loading…</td></tr>}
             {data?.data?.map((j) => (
               <tr key={j.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
                 <td style={{ ...td, color: "#888" }}>{j.job_number}</td>
@@ -79,9 +167,15 @@ export default function JobsPage() {
                 <td style={td}>{j.due_date ?? "—"}</td>
                 <td style={td}>{j.quoted_price ? "₹" + Number(j.quoted_price).toLocaleString("en-IN") : "—"}</td>
                 <td style={td}>{j.operator_name ?? "—"}</td>
+                <td style={td}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => setEditing(j)} style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>Edit</button>
+                    <button onClick={() => setDeleteConfirm(j.id)} style={{ padding: "4px 10px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff", color: "#c92a2a" }}>Del</button>
+                  </div>
+                </td>
               </tr>
             ))}
-            {!isLoading && !data?.data?.length && <tr><td colSpan={7} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>No jobs found</td></tr>}
+            {!isLoading && !data?.data?.length && <tr><td colSpan={8} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>No jobs found</td></tr>}
           </tbody>
         </table>
       </div>

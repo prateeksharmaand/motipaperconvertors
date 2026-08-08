@@ -70,4 +70,11 @@ router.patch("/:id", requirePermission("clients.edit"), async (req, res) => {
   res.json(updated);
 });
 
+router.delete("/:id", requirePermission("clients.edit"), async (req, res) => {
+  const existing = await db("clients").where({ id: req.params.id, tenant_id: req.user.tenantId! }).first();
+  if (!existing) { res.status(404).json({ error: "Client not found" }); return; }
+  await db("clients").where({ id: req.params.id }).delete();
+  res.status(204).send();
+});
+
 export default router;

@@ -38,6 +38,7 @@ function ClientForm({ initial, onSave, onCancel }: { initial?: Partial<Client>; 
 export default function ClientsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const qc = useQueryClient();
   const [list, actions] = useListState({ sortBy: "name", filters: {} });
 
@@ -55,6 +56,10 @@ export default function ClientsPage() {
     mutationFn: ({ id, ...d }: Record<string, string>) => api.patch(`/admin/clients/${id}`, { name: d.name, companyName: d.company_name, phone: d.phone, email: d.email, city: d.city, gstin: d.gstin }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setEditing(null); },
   });
+  const remove = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/clients/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDeleteConfirm(null); },
+  });
 
   const col = (label: string, key: string) => (
     <th style={th} onClick={() => actions.setSort(key)}>{label}<SortIcon col={key} sortBy={list.sortBy} sortDir={list.sortDir} /></th>
@@ -65,6 +70,16 @@ export default function ClientsPage() {
       <h1 style={{ marginBottom: 20 }}>Clients</h1>
       {showForm && <ClientForm onSave={(d) => create.mutate(d)} onCancel={() => setShowForm(false)} />}
       {editing && <ClientForm initial={editing} onSave={(d) => update.mutate({ id: editing.id, ...d })} onCancel={() => setEditing(null)} />}
+      {deleteConfirm && (
+        <div style={{ background: "#fff3f3", border: "1px solid #fdd", borderRadius: 8, padding: 16, marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 14 }}>Delete this client? This cannot be undone.</span>
+          <button onClick={() => remove.mutate(deleteConfirm)} disabled={remove.isPending}
+            style={{ padding: "6px 16px", background: "#c92a2a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13 }}>
+            {remove.isPending ? "Deleting…" : "Confirm Delete"}
+          </button>
+          <button onClick={() => setDeleteConfirm(null)} style={{ padding: "6px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff", fontSize: 13 }}>Cancel</button>
+        </div>
+      )}}
       <TableControls
         search={list.search} onSearch={actions.setSearch} placeholder="Search name, phone, GSTIN…"
         activeFilters={list.filters} onFilter={actions.setFilter} onReset={actions.resetFilters}
@@ -89,7 +104,12 @@ export default function ClientsPage() {
                 <td style={td}>{c.phone || "—"}</td>
                 <td style={td}>{c.city || "—"}</td>
                 <td style={td}>{c.gstin || "—"}</td>
-                <td style={td}><button onClick={() => setEditing(c)} style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>Edit</button></td>
+                <td style={td}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => setEditing(c)} style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>Edit</button>
+                    <button onClick={() => setDeleteConfirm(c.id)} style={{ padding: "4px 10px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff", color: "#c92a2a" }}>Del</button>
+                  </div>
+                </td>
               </tr>
             ))}
             {!isLoading && !data?.data?.length && <tr><td colSpan={6} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>No clients found</td></tr>}

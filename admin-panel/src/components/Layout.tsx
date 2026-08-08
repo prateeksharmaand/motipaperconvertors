@@ -34,6 +34,7 @@ export default function Layout() {
         <span style={SECTION_LABEL}>Operations</span>
         <NavLink to="/" end style={navStyle}>Dashboard</NavLink>
         <NavLink to="/jobs" style={navStyle}>Job Cards</NavLink>
+        <NavLink to="/quotations" style={navStyle}>Quotations</NavLink>
         <NavLink to="/clients" style={navStyle}>Clients</NavLink>
 
         <span style={SECTION_LABEL}>Finance</span>

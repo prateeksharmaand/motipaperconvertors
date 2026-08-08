@@ -17,6 +17,94 @@ const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 interface Invoice { id: string; invoice_number: number; client_name: string; client_id: string; total: number; amount_paid: number; balance_due: number; status: string; due_date: string; issue_date: string; }
 interface Payment { id: string; client_name: string; amount: number; payment_mode: string; type: string; payment_date: string; reference_number: string; }
 interface Client  { id: string; name: string; }
+interface JobMini { id: string; job_number: number; title: string; }
+interface LineItem { description: string; qty: number; rate: number; amount: number; }
+
+function NewInvoiceForm({ clients, onClose }: { clients: Client[]; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({ clientId: "", jobId: "", dueDate: "", notes: "", gstPercent: "18", discountAmount: "0" });
+  const [lines, setLines] = useState<LineItem[]>([{ description: "", qty: 1, rate: 0, amount: 0 }]);
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const { data: jobs = [] } = useQuery<JobMini[]>({
+    queryKey: ["jobs-ready"],
+    queryFn: () => api.get("/admin/jobs", { params: { status: "ready", limit: "200" } }).then(r => r.data.data ?? []),
+  });
+
+  const updateLine = (i: number, k: keyof LineItem, v: string | number) => {
+    setLines(ls => ls.map((l, idx) => {
+      if (idx !== i) return l;
+      const updated = { ...l, [k]: v };
+      if (k === "qty" || k === "rate") updated.amount = Number(updated.qty) * Number(updated.rate);
+      return updated;
+    }));
+  };
+  const addLine = () => setLines(ls => [...ls, { description: "", qty: 1, rate: 0, amount: 0 }]);
+  const removeLine = (i: number) => setLines(ls => ls.filter((_, idx) => idx !== i));
+
+  const save = useMutation({
+    mutationFn: () => api.post("/admin/billing/invoices", {
+      clientId: form.clientId, jobId: form.jobId || undefined,
+      dueDate: form.dueDate || undefined, notes: form.notes || undefined,
+      gstPercent: Number(form.gstPercent), discountAmount: Number(form.discountAmount),
+      lineItems: lines,
+    }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); onClose(); },
+  });
+
+  const subTotal = lines.reduce((s, l) => s + l.amount, 0) - Number(form.discountAmount);
+  const gstAmt = subTotal * Number(form.gstPercent) / 100;
+  const total = subTotal + gstAmt;
+
+  return (
+    <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
+      <h3 style={{ marginBottom: 16 }}>New Invoice</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+        <label><span style={{ fontSize: 13 }}>Client *</span>
+          <select style={inputStyle} value={form.clientId} onChange={set("clientId")}>
+            <option value="">— select client —</option>
+            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </label>
+        <label><span style={{ fontSize: 13 }}>Job (Ready)</span>
+          <select style={inputStyle} value={form.jobId} onChange={set("jobId")}>
+            <option value="">— optional —</option>
+            {jobs.map(j => <option key={j.id} value={j.id}>#{j.job_number} {j.title}</option>)}
+          </select>
+        </label>
+        <label><span style={{ fontSize: 13 }}>Due Date</span><input style={inputStyle} type="date" value={form.dueDate} onChange={set("dueDate")} /></label>
+        <label><span style={{ fontSize: 13 }}>GST %</span><input style={inputStyle} type="number" value={form.gstPercent} onChange={set("gstPercent")} /></label>
+        <label><span style={{ fontSize: 13 }}>Discount (₹)</span><input style={inputStyle} type="number" value={form.discountAmount} onChange={set("discountAmount")} /></label>
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Line Items</div>
+        {lines.map((l, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr auto", gap: 8, marginBottom: 8, alignItems: "center" }}>
+            <input style={inputStyle} placeholder="Description" value={l.description} onChange={e => updateLine(i, "description", e.target.value)} />
+            <input style={inputStyle} type="number" placeholder="Qty" value={l.qty} onChange={e => updateLine(i, "qty", Number(e.target.value))} />
+            <input style={inputStyle} type="number" placeholder="Rate" value={l.rate} onChange={e => updateLine(i, "rate", Number(e.target.value))} />
+            <div style={{ padding: "8px 12px", border: "1px solid #eee", borderRadius: 6, fontSize: 14, background: "#f8f9fa" }}>{fmt(l.amount)}</div>
+            {lines.length > 1 && <button onClick={() => removeLine(i)} style={{ padding: "8px 10px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", background: "#fff", color: "#c92a2a", fontSize: 13 }}>✕</button>}
+          </div>
+        ))}
+        <button onClick={addLine} style={{ padding: "6px 14px", border: "1px dashed #bbb", borderRadius: 6, cursor: "pointer", background: "#fff", fontSize: 13 }}>+ Add line</button>
+      </div>
+      <label><span style={{ fontSize: 13 }}>Notes</span><textarea style={{ ...inputStyle, height: 56 }} value={form.notes} onChange={set("notes")} /></label>
+      <div style={{ marginTop: 12, padding: 12, background: "#f8f9fa", borderRadius: 6, fontSize: 13, display: "flex", gap: 24 }}>
+        <span>Subtotal: <strong>{fmt(subTotal)}</strong></span>
+        <span>GST {form.gstPercent}%: <strong>{fmt(gstAmt)}</strong></span>
+        <span style={{ fontWeight: 800, color: "#1971c2" }}>Total: {fmt(total)}</span>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <button onClick={() => save.mutate()} disabled={!form.clientId || lines.length === 0 || save.isPending}
+          style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
+          {save.isPending ? "Creating…" : "Create Invoice"}
+        </button>
+        <button onClick={onClose} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
 
 function RecordPaymentForm({ invoiceId, clientId, onClose }: { invoiceId: string; clientId: string; onClose: () => void }) {
   const [form, setForm] = useState({ amount: "", paymentMode: "cash", referenceNumber: "", notes: "" });
@@ -50,6 +138,7 @@ function RecordPaymentForm({ invoiceId, clientId, onClose }: { invoiceId: string
 export default function BillingPage() {
   const [tab, setTab] = useState<Tab>("invoices");
   const [paymentFor, setPaymentFor] = useState<{ invoiceId: string; clientId: string } | null>(null);
+  const [showNewInvoice, setShowNewInvoice] = useState(false);
   const [ledgerClientId, setLedgerClientId] = useState("");
   const [invList, invActions] = useListState({ sortBy: "created_at" });
   const [payList, payActions] = useListState({ sortBy: "payment_date" });
@@ -87,13 +176,15 @@ export default function BillingPage() {
 
       {tab === "invoices" && (
         <>
+          {showNewInvoice && <NewInvoiceForm clients={clients} onClose={() => setShowNewInvoice(false)} />}
           {paymentFor && <RecordPaymentForm invoiceId={paymentFor.invoiceId} clientId={paymentFor.clientId} onClose={() => setPaymentFor(null)} />}
           <TableControls search={invList.search} onSearch={invActions.setSearch} placeholder="Search client, invoice #…"
             activeFilters={invList.filters} onFilter={invActions.setFilter} onReset={invActions.resetFilters}
             filters={[
               { key: "status", label: "Status", options: [{ label: "Issued", value: "issued" }, { label: "Partial", value: "partially_paid" }, { label: "Paid", value: "paid" }, { label: "Cancelled", value: "cancelled" }] },
               { key: "overdue", label: "Overdue", options: [{ label: "Overdue only", value: "1" }] },
-            ]} />
+            ]}
+            rightSlot={<button onClick={() => setShowNewInvoice(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Invoice</button>} />
           <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
             <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>Due from <input type="date" value={invList.filters.dueDateFrom ?? ""} onChange={e => invActions.setFilter("dueDateFrom", e.target.value)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} /></label>
             <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>to <input type="date" value={invList.filters.dueDateTo ?? ""} onChange={e => invActions.setFilter("dueDateTo", e.target.value)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} /></label>
