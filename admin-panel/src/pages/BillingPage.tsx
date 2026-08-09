@@ -14,16 +14,26 @@ const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px soli
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
-interface Invoice { id: string; invoice_number: number; client_name: string; client_id: string; total: number; amount_paid: number; balance_due: number; status: string; due_date: string; issue_date: string; }
+interface Invoice { id: string; invoice_number: number; client_name: string; client_id: string; job_id: string; total: number; amount_paid: number; balance_due: number; status: string; due_date: string; issue_date: string; notes: string; gst_percent: number; discount_amount: number; line_items: LineItem[]; }
 interface Payment { id: string; client_name: string; amount: number; payment_mode: string; type: string; payment_date: string; reference_number: string; }
 interface Client  { id: string; name: string; }
 interface JobMini { id: string; job_number: number; title: string; }
 interface LineItem { description: string; qty: number; rate: number; amount: number; }
 
-function NewInvoiceForm({ clients, onClose }: { clients: Client[]; onClose: () => void }) {
+function InvoiceForm({ clients, initial, onClose }: { clients: Client[]; initial?: Invoice; onClose: () => void }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({ clientId: "", jobId: "", dueDate: "", notes: "", gstPercent: "18", discountAmount: "0" });
-  const [lines, setLines] = useState<LineItem[]>([{ description: "", qty: 1, rate: 0, amount: 0 }]);
+  const isEdit = !!initial;
+  const [form, setForm] = useState({
+    clientId: initial?.client_id ?? "",
+    jobId: initial?.job_id ?? "",
+    dueDate: initial?.due_date?.slice(0, 10) ?? "",
+    notes: initial?.notes ?? "",
+    gstPercent: String(initial?.gst_percent ?? 18),
+    discountAmount: String(initial?.discount_amount ?? 0),
+  });
+  const [lines, setLines] = useState<LineItem[]>(
+    initial?.line_items?.length ? initial.line_items : [{ description: "", qty: 1, rate: 0, amount: 0 }]
+  );
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const { data: jobs = [] } = useQuery<JobMini[]>({
@@ -42,13 +52,17 @@ function NewInvoiceForm({ clients, onClose }: { clients: Client[]; onClose: () =
   const addLine = () => setLines(ls => [...ls, { description: "", qty: 1, rate: 0, amount: 0 }]);
   const removeLine = (i: number) => setLines(ls => ls.filter((_, idx) => idx !== i));
 
+  const payload = {
+    clientId: form.clientId, jobId: form.jobId || undefined,
+    dueDate: form.dueDate || undefined, notes: form.notes || undefined,
+    gstPercent: Number(form.gstPercent), discountAmount: Number(form.discountAmount),
+    lineItems: lines,
+  };
+
   const save = useMutation({
-    mutationFn: () => api.post("/admin/billing/invoices", {
-      clientId: form.clientId, jobId: form.jobId || undefined,
-      dueDate: form.dueDate || undefined, notes: form.notes || undefined,
-      gstPercent: Number(form.gstPercent), discountAmount: Number(form.discountAmount),
-      lineItems: lines,
-    }),
+    mutationFn: () => isEdit
+      ? api.patch(`/admin/billing/invoices/${initial!.id}`, payload)
+      : api.post("/admin/billing/invoices", payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); onClose(); },
   });
 
@@ -58,7 +72,7 @@ function NewInvoiceForm({ clients, onClose }: { clients: Client[]; onClose: () =
 
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
-      <h3 style={{ marginBottom: 16 }}>New Invoice</h3>
+      <h3 style={{ marginBottom: 16 }}>{isEdit ? `Edit Invoice #${initial!.invoice_number}` : "New Invoice"}</h3>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
         <label><span style={{ fontSize: 13 }}>Client *</span>
           <select style={inputStyle} value={form.clientId} onChange={set("clientId")}>
@@ -98,7 +112,7 @@ function NewInvoiceForm({ clients, onClose }: { clients: Client[]; onClose: () =
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
         <button onClick={() => save.mutate()} disabled={!form.clientId || lines.length === 0 || save.isPending}
           style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
-          {save.isPending ? "Creating…" : "Create Invoice"}
+          {save.isPending ? "Saving…" : isEdit ? "Update Invoice" : "Create Invoice"}
         </button>
         <button onClick={onClose} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
       </div>
@@ -139,6 +153,7 @@ export default function BillingPage() {
   const [tab, setTab] = useState<Tab>("invoices");
   const [paymentFor, setPaymentFor] = useState<{ invoiceId: string; clientId: string } | null>(null);
   const [showNewInvoice, setShowNewInvoice] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [ledgerClientId, setLedgerClientId] = useState("");
   const [invList, invActions] = useListState({ sortBy: "created_at" });
   const [payList, payActions] = useListState({ sortBy: "payment_date" });
@@ -176,7 +191,8 @@ export default function BillingPage() {
 
       {tab === "invoices" && (
         <>
-          {showNewInvoice && <NewInvoiceForm clients={clients} onClose={() => setShowNewInvoice(false)} />}
+          {showNewInvoice && <InvoiceForm clients={clients} onClose={() => setShowNewInvoice(false)} />}
+          {editingInvoice && <InvoiceForm clients={clients} initial={editingInvoice} onClose={() => setEditingInvoice(null)} />}
           {paymentFor && <RecordPaymentForm invoiceId={paymentFor.invoiceId} clientId={paymentFor.clientId} onClose={() => setPaymentFor(null)} />}
           <TableControls search={invList.search} onSearch={invActions.setSearch} placeholder="Search client, invoice #…"
             activeFilters={invList.filters} onFilter={invActions.setFilter} onReset={invActions.resetFilters}
@@ -208,7 +224,12 @@ export default function BillingPage() {
                     <td style={{ ...td, fontWeight: 600, color: Number(inv.balance_due) > 0 ? "#c92a2a" : "#2b8a3e" }}>{fmt(inv.balance_due)}</td>
                     <td style={td}><span style={{ padding: "2px 8px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[inv.status] ?? "#868e96") + "22", color: STATUS_COLOR[inv.status] ?? "#868e96" }}>{inv.status}</span></td>
                     <td style={td}>{inv.due_date || "—"}</td>
-                    <td style={td}>{inv.status !== "paid" && inv.status !== "cancelled" && <button onClick={() => setPaymentFor({ invoiceId: inv.id, clientId: inv.client_id })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Pay</button>}</td>
+                    <td style={td}>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => setEditingInvoice(inv)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>Edit</button>
+                        {inv.status !== "paid" && inv.status !== "cancelled" && <button onClick={() => setPaymentFor({ invoiceId: inv.id, clientId: inv.client_id })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Pay</button>}
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {!invLoading && !invoices?.data?.length && <tr><td colSpan={8} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>No invoices</td></tr>}

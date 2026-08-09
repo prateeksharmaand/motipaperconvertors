@@ -102,6 +102,38 @@ router.post("/invoices", requirePermission("billing.create_invoice"), async (req
   res.status(201).json(invoice);
 });
 
+router.patch("/invoices/:id", requirePermission("billing.create_invoice"), async (req, res) => {
+  const parsed = InvoiceSchema.partial().safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+  const d = parsed.data;
+  const existing = await db("invoices").where({ id: req.params.id, tenant_id: req.user.tenantId! }).first();
+  if (!existing) { res.status(404).json({ error: "Invoice not found" }); return; }
+
+  const lineItems = d.lineItems ?? existing.line_items;
+  const discount = d.discountAmount ?? existing.discount_amount;
+  const gstPct = d.gstPercent ?? existing.gst_percent;
+  const { subTotal, gstAmount, total } = calcInvoiceTotals(lineItems, Number(discount), Number(gstPct));
+  const advAdj = d.advanceAdjusted ?? existing.advance_adjusted ?? 0;
+  const amtPaid = Number(existing.amount_paid);
+  const balanceDue = total - Number(advAdj) - amtPaid;
+
+  const updates: Record<string, unknown> = {
+    line_items: JSON.stringify(lineItems),
+    sub_total: subTotal, discount_amount: discount, gst_percent: gstPct,
+    gst_amount: gstAmount, total, balance_due: balanceDue,
+    advance_adjusted: advAdj, updated_at: new Date(),
+  };
+  if (d.clientId) updates.client_id = d.clientId;
+  if (d.jobId !== undefined) updates.job_id = d.jobId ?? null;
+  if (d.dueDate !== undefined) updates.due_date = d.dueDate ?? null;
+  if (d.notes !== undefined) updates.notes = d.notes ?? null;
+  if (d.issueDate) updates.issue_date = d.issueDate;
+
+  const [updated] = await db("invoices").where({ id: req.params.id }).update(updates).returning("*");
+  await writeAuditLog(req, "invoice.updated", "invoice", req.params.id, existing, updated);
+  res.json(updated);
+});
+
 router.patch("/invoices/:id/status", requirePermission("billing.create_invoice"), async (req, res) => {
   const { status } = req.body;
   const [updated] = await db("invoices")
