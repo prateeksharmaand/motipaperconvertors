@@ -3,6 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../store/auth.ts";
 import { api } from "../lib/api.ts";
 import * as theme from "../theme.ts";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, PieChart, Pie, Cell,
+} from "recharts";
 
 const ROLE_LABEL: Record<string, string> = {
   super_admin: "Super Admin",
@@ -25,6 +29,25 @@ const STATUS_COLOR: Record<string, "green" | "red" | "amber" | "blue" | "purple"
   cancelled: "red",
 };
 
+// Hex colors matching STATUS_COLOR semantics for charts
+const STATUS_HEX: Record<string, string> = {
+  enquiry: "#868e96",
+  quotation: "#1971c2",
+  design: "#7048e8",
+  approval: "#f59e0b",
+  print: "#2f9e44",
+  finishing: "#0c8599",
+  qc: "#e67700",
+  ready: "#2b8a3e",
+  delivered: "#1864ab",
+  cancelled: "#c92a2a",
+};
+
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const axisTickStyle = { fontSize: 11, fill: "#6b7280" };
+const gridStyle = { stroke: "#f3f4f6", strokeDasharray: "3 3" as const };
+
 interface Job {
   id: string;
   job_number: number;
@@ -33,6 +56,7 @@ interface Job {
   status: string;
   due_date: string;
   quoted_price: number;
+  created_at?: string;
 }
 
 interface PagedJobs {
@@ -53,8 +77,18 @@ export default function DashboardPage() {
     },
   });
 
+  // Larger fetch for charts — group by status & month
+  const { data: chartJobsResult } = useQuery<PagedJobs>({
+    queryKey: ["dashboard-jobs-chart"],
+    queryFn: async () => {
+      const { data } = await api.get("/admin/jobs", { params: { limit: 1000, sortBy: "created_at", sortDir: "desc" } });
+      return data;
+    },
+  });
+
   const recentJobs: Job[] = jobsResult?.data ?? [];
   const totalJobs = jobsResult?.total ?? 0;
+  const chartJobs: Job[] = chartJobsResult?.data ?? [];
 
   const activeJobs = recentJobs.filter((j) =>
     !["delivered", "cancelled"].includes(j.status)
@@ -66,6 +100,42 @@ export default function DashboardPage() {
     { label: "Recent (shown)", value: recentJobs.length, icon: "🕐", color: "#059669", bg: "#d1fae5" },
     { label: "Pending Approval", value: recentJobs.filter((j) => j.status === "approval").length, icon: "✅", color: "#d97706", bg: "#fef3c7" },
   ];
+
+  // --- Chart data derivations ---
+
+  // Jobs by Status (Pie/Donut)
+  const statusCounts: Record<string, number> = {};
+  chartJobs.forEach((j) => {
+    statusCounts[j.status] = (statusCounts[j.status] || 0) + 1;
+  });
+  const statusPieData = Object.entries(statusCounts).map(([status, count]) => ({
+    name: status,
+    value: count,
+    color: STATUS_HEX[status] ?? "#868e96",
+  }));
+
+  // Jobs by Month (Bar)
+  const monthCounts: Record<string, number> = {};
+  chartJobs.forEach((j) => {
+    const date = j.created_at ? new Date(j.created_at) : null;
+    if (!date || isNaN(date.getTime())) return;
+    const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, "0")}`;
+    monthCounts[key] = (monthCounts[key] || 0) + 1;
+  });
+  const monthChartData = Object.entries(monthCounts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-12)
+    .map(([key, count]) => {
+      const monthIndex = parseInt(key.split("-")[1], 10);
+      return { name: MONTH_NAMES[monthIndex] ?? key, Jobs: count };
+    });
+
+  const chartCardStyle: React.CSSProperties = {
+    background: "#fff",
+    borderRadius: 10,
+    border: "1px solid #e5e7eb",
+    padding: 20,
+  };
 
   return (
     <div>
@@ -101,6 +171,51 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Charts row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+          {/* Chart 1 — Jobs by Status (Donut) */}
+          <div style={chartCardStyle}>
+            <div style={{ fontWeight: 600, fontSize: 14, color: "#111827", marginBottom: 16 }}>Jobs by Status</div>
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={statusPieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={110}
+                  dataKey="value"
+                  paddingAngle={2}
+                >
+                  {statusPieData.map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [value ?? 0, "Jobs"]} />
+                <Legend
+                  wrapperStyle={{ fontSize: 11 }}
+                  formatter={(value) => value}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Chart 2 — Jobs Created per Month (Bar) */}
+          <div style={chartCardStyle}>
+            <div style={{ fontWeight: 600, fontSize: 14, color: "#111827", marginBottom: 16 }}>Jobs Created per Month</div>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={monthChartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                <CartesianGrid {...gridStyle} />
+                <XAxis dataKey="name" tick={axisTickStyle} />
+                <YAxis tick={axisTickStyle} allowDecimals={false} />
+                <Tooltip formatter={(value) => [value ?? 0, "Jobs"]} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="Jobs" fill="#7c3aed" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
       {/* Recent Jobs */}
       <div style={theme.card}>
