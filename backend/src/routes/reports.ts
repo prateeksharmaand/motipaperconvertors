@@ -27,16 +27,42 @@ router.get("/job-profitability", requirePermission("reports.view_financial"), as
       "job_cards.completed_at",
       "clients.name as client_name",
       db.raw(`
+        COALESCE(job_cards.plate_cost,0) + COALESCE(job_cards.die_cost,0) +
+        COALESCE(job_cards.composing_amount,0) + COALESCE(job_cards.hela_cost,0) +
+        COALESCE(job_cards.other_cost,0) + COALESCE(job_cards.approved_rate,0) as computed_cost
+      `),
+      db.raw(`
         CASE
-          WHEN job_cards.quoted_price IS NOT NULL AND job_cards.actual_cost IS NOT NULL
-          THEN job_cards.quoted_price - job_cards.actual_cost
+          WHEN job_cards.quoted_price IS NOT NULL AND (
+            COALESCE(job_cards.plate_cost,0) + COALESCE(job_cards.die_cost,0) +
+            COALESCE(job_cards.composing_amount,0) + COALESCE(job_cards.hela_cost,0) +
+            COALESCE(job_cards.other_cost,0) + COALESCE(job_cards.approved_rate,0)
+          ) > 0
+          THEN job_cards.quoted_price - (
+            COALESCE(job_cards.plate_cost,0) + COALESCE(job_cards.die_cost,0) +
+            COALESCE(job_cards.composing_amount,0) + COALESCE(job_cards.hela_cost,0) +
+            COALESCE(job_cards.other_cost,0) + COALESCE(job_cards.approved_rate,0)
+          )
           ELSE NULL
         END as actual_margin
       `),
       db.raw(`
         CASE
-          WHEN job_cards.quoted_price IS NOT NULL AND job_cards.actual_cost > 0
-          THEN ROUND(((job_cards.quoted_price - job_cards.actual_cost) / job_cards.actual_cost) * 100, 2)
+          WHEN job_cards.quoted_price IS NOT NULL AND (
+            COALESCE(job_cards.plate_cost,0) + COALESCE(job_cards.die_cost,0) +
+            COALESCE(job_cards.composing_amount,0) + COALESCE(job_cards.hela_cost,0) +
+            COALESCE(job_cards.other_cost,0) + COALESCE(job_cards.approved_rate,0)
+          ) > 0
+          THEN ROUND(
+            (job_cards.quoted_price - (
+              COALESCE(job_cards.plate_cost,0) + COALESCE(job_cards.die_cost,0) +
+              COALESCE(job_cards.composing_amount,0) + COALESCE(job_cards.hela_cost,0) +
+              COALESCE(job_cards.other_cost,0) + COALESCE(job_cards.approved_rate,0)
+            )) / NULLIF((
+              COALESCE(job_cards.plate_cost,0) + COALESCE(job_cards.die_cost,0) +
+              COALESCE(job_cards.composing_amount,0) + COALESCE(job_cards.hela_cost,0) +
+              COALESCE(job_cards.other_cost,0) + COALESCE(job_cards.approved_rate,0)
+            ), 0) * 100, 2)
           ELSE NULL
         END as margin_percent
       `),
@@ -53,7 +79,7 @@ router.get("/job-profitability", requirePermission("reports.view_financial"), as
   // Summary row
   const totals = jobs.reduce((acc: { revenue: number; cost: number; margin: number }, j: Record<string, number>) => ({
     revenue: acc.revenue + Number(j.quoted_price ?? 0),
-    cost: acc.cost + Number(j.actual_cost ?? 0),
+    cost: acc.cost + Number(j.computed_cost ?? 0),
     margin: acc.margin + Number(j.actual_margin ?? 0),
   }), { revenue: 0, cost: 0, margin: 0 });
 
