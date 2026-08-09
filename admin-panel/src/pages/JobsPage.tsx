@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import JobPrintView from "./JobPrintView.tsx";
 import { keepPreviousData } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
 import { useListState } from "../hooks/useListState.ts";
@@ -902,6 +903,7 @@ export default function JobsPage() {
   const [editing, setEditing] = useState<Job | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [printJob, setPrintJob] = useState<Job | null>(null);
   const qc = useQueryClient();
 
   async function handleExport() {
@@ -948,6 +950,11 @@ export default function JobsPage() {
     enabled: showForm || !!editing,
   });
 
+  const { data: printTemplate } = useQuery<{ header: string; footer: string; signature: string }>({
+    queryKey: ["print-template"],
+    queryFn: () => api.get("/admin/settings/print-template").then(r => r.data),
+  });
+
   const create = useMutation({
     mutationFn: (form: FormState) => api.post("/admin/jobs", buildApiPayload(form)),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setShowForm(false); },
@@ -972,6 +979,13 @@ export default function JobsPage() {
 
   return (
     <div>
+      {printJob && (
+        <JobPrintView
+          job={printJob}
+          template={printTemplate ?? { header: "", footer: "", signature: "" }}
+          onClose={() => setPrintJob(null)}
+        />
+      )}
       <h1 style={{ marginBottom: 20 }}>Job Cards</h1>
       {showForm && (
         <JobForm
@@ -1053,6 +1067,7 @@ export default function JobsPage() {
                 <td style={td}>{j.quoted_price ? "Rs." + Number(j.quoted_price).toLocaleString("en-IN") : "—"}</td>
                 <td style={td}>
                   <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => setPrintJob(j)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }} title="Print Job Card">🖨</button>
                     <button onClick={() => setEditing(j)} style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>Edit</button>
                     <button onClick={() => setDeleteConfirm(j.id)} style={{ padding: "4px 10px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff", color: "#c92a2a" }}>Del</button>
                   </div>

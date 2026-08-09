@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
+import InvoicePrintView from "./InvoicePrintView.tsx";
 import { api } from "../lib/api.ts";
 import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
@@ -155,6 +156,7 @@ export default function BillingPage() {
   const [paymentFor, setPaymentFor] = useState<{ invoiceId: string; clientId: string } | null>(null);
   const [showNewInvoice, setShowNewInvoice] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null);
   const [ledgerClientId, setLedgerClientId] = useState("");
   const [exportingInvoices, setExportingInvoices] = useState(false);
   const [exportingPayments, setExportingPayments] = useState(false);
@@ -202,6 +204,10 @@ export default function BillingPage() {
   const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ["clients-mini"],
     queryFn: () => api.get("/admin/clients", { params: { limit: "200" } }).then(r => r.data.data ?? []),
+  });
+  const { data: printTemplate } = useQuery<{ header: string | null; footer: string | null; signature: string | null }>({
+    queryKey: ["print-template"],
+    queryFn: () => api.get("/admin/settings/print-template").then(r => r.data),
   });
   const { data: ledger } = useQuery({
     queryKey: ["ledger", ledgerClientId],
@@ -259,6 +265,7 @@ export default function BillingPage() {
                       <div style={{ display: "flex", gap: 6 }}>
                         <button onClick={() => setEditingInvoice(inv)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>Edit</button>
                         {inv.status !== "paid" && inv.status !== "cancelled" && <button onClick={() => setPaymentFor({ invoiceId: inv.id, clientId: inv.client_id })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Pay</button>}
+                        <button onClick={() => setPrintInvoice(inv)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }} title="Print Invoice">Print</button>
                       </div>
                     </td>
                   </tr>
@@ -300,6 +307,14 @@ export default function BillingPage() {
           </div>
           {payments && <Pagination page={payments.page} totalPages={payments.totalPages} total={payments.total} limit={payments.limit} onPage={payActions.setPage} />}
         </>
+      )}
+
+      {printInvoice && (
+        <InvoicePrintView
+          invoice={printInvoice}
+          template={printTemplate ?? { header: null, footer: null, signature: null }}
+          onClose={() => setPrintInvoice(null)}
+        />
       )}
 
       {tab === "ledger" && (
