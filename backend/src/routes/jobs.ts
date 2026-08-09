@@ -351,6 +351,21 @@ router.patch("/:id", requirePermission("jobs.edit"), async (req, res) => {
   res.json(updated);
 });
 
+// ── POST /jobs/:id/note — log a note without changing status ─
+router.post("/:id/note", async (req, res) => {
+  const { note } = req.body as { note: string };
+  const job = await db("job_cards").where({ id: req.params.id, tenant_id: req.user.tenantId! }).first();
+  if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+  await db("job_status_history").insert({
+    job_id: req.params.id,
+    changed_by: req.user.id,
+    from_status: job.status,
+    to_status: job.status,
+    notes: note,
+  });
+  res.json({ ok: true });
+});
+
 // ── PATCH /jobs/:id/status ────────────────────────────────
 router.patch("/:id/status", requirePermission("production.update_status"), async (req, res) => {
   const { status, notes } = req.body;

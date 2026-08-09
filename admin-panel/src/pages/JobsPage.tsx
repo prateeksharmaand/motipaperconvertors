@@ -918,6 +918,7 @@ export default function JobsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [printJob, setPrintJob] = useState<Job | null>(null);
+  const [startedJobs, setStartedJobs] = useState<Set<string>>(new Set());
   const qc = useQueryClient();
   const currentUserId = useAuthStore(s => s.userId);
   const currentRole = useAuthStore(s => s.role);
@@ -992,6 +993,16 @@ export default function JobsPage() {
       api.patch(`/admin/jobs/${id}/status`, { status }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs"] }),
   });
+
+  const logNote = useMutation({
+    mutationFn: ({ id, note }: { id: string; note: string }) =>
+      api.post(`/admin/jobs/${id}/note`, { note }),
+  });
+
+  const markStarted = (jobId: string, role: string) => {
+    logNote.mutate({ id: jobId, note: `${role} started` });
+    setStartedJobs(prev => new Set(prev).add(jobId));
+  };
 
   const col = (label: string, key: string) => (
     <th style={th} onClick={() => actions.setSort(key)}>
@@ -1101,18 +1112,30 @@ export default function JobsPage() {
                 <td style={td}>{j.quoted_price ? "Rs." + Number(j.quoted_price).toLocaleString("en-IN") : "—"}</td>
                 <td style={td}>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {/* Print operator action buttons */}
+                    {/* ── Print Operator ── */}
                     {j.print_operator_id === currentUserId && j.status === "approval" && (
-                      <button
-                        onClick={() => changeStatus.mutate({ id: j.id, status: "print" })}
-                        style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#2f9e44", color: "#fff" }}
-                      >▶ Start Printing</button>
+                      !startedJobs.has(j.id + "_print")
+                        ? <button onClick={() => markStarted(j.id + "_print", "Printing")} style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#2f9e44", color: "#fff" }}>▶ Start Printing</button>
+                        : <button onClick={() => changeStatus.mutate({ id: j.id, status: "print" })} style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#1864ab", color: "#fff" }}>🖨 Printing...</button>
                     )}
                     {j.print_operator_id === currentUserId && j.status === "print" && (
-                      <button
-                        onClick={() => changeStatus.mutate({ id: j.id, status: "finishing" })}
-                        style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#0c8599", color: "#fff" }}
-                      >✓ Printing Done</button>
+                      !startedJobs.has(j.id + "_printdone")
+                        ? <button onClick={() => markStarted(j.id + "_printdone", "Printing completed")} style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#e67700", color: "#fff" }}>✓ Printing Done</button>
+                        : <button onClick={() => changeStatus.mutate({ id: j.id, status: "finishing" })} style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#0c8599", color: "#fff" }}>→ Send to Binding</button>
+                    )}
+
+                    {/* ── Binding Operator ── */}
+                    {j.binding_operator_id === currentUserId && j.status === "finishing" && (
+                      !startedJobs.has(j.id + "_binding")
+                        ? <button onClick={() => markStarted(j.id + "_binding", "Binding started")} style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#7048e8", color: "#fff" }}>▶ Binding Started</button>
+                        : <button onClick={() => changeStatus.mutate({ id: j.id, status: "qc" })} style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#0c8599", color: "#fff" }}>✓ Binding Done</button>
+                    )}
+
+                    {/* ── Packing Operator ── */}
+                    {j.packing_operator_id === currentUserId && j.status === "qc" && (
+                      !startedJobs.has(j.id + "_packing")
+                        ? <button onClick={() => markStarted(j.id + "_packing", "Packing started")} style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#c2410c", color: "#fff" }}>▶ Packing Started</button>
+                        : <button onClick={() => changeStatus.mutate({ id: j.id, status: "ready" })} style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#2b8a3e", color: "#fff" }}>✓ Packing Done → Ready</button>
                     )}
                     {currentRole !== "operator" && currentRole !== "staff" && (
                       <>
