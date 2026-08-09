@@ -33,8 +33,13 @@ function JobForm({ initial, clients, onSave, onCancel, isPending }: {
   onSave: (d: Record<string, string>) => void; onCancel: () => void; isPending: boolean;
 }) {
   const [form, setForm] = useState({
-    client_id: "", title: "", description: "", job_type: "", size: "", quantity: "", due_date: "",
-    ...initial, quantity: initial?.quantity?.toString() ?? "",
+    client_id: initial?.client_id ?? "",
+    title: initial?.title ?? "",
+    description: initial?.description ?? "",
+    job_type: initial?.job_type ?? "",
+    size: initial?.size ?? "",
+    quantity: initial?.quantity?.toString() ?? "",
+    due_date: initial?.due_date ?? "",
   });
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
@@ -58,7 +63,7 @@ function JobForm({ initial, clients, onSave, onCancel, isPending }: {
         <textarea style={{ ...inputStyle, height: 64 }} value={form.description} onChange={set("description")} />
       </label>
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <button onClick={() => onSave(form as Record<string, string>)} disabled={!form.title || isPending}
+        <button onClick={() => onSave(form as unknown as Record<string, string>)} disabled={!form.title || isPending}
           style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
           {isPending ? "Saving…" : "Save"}
         </button>

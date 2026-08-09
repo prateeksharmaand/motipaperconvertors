@@ -60,7 +60,16 @@ function TxnForm({ target, onClose }: { target: { id: string; isPaper: boolean; 
 }
 
 function PaperForm({ initial, onSave, onCancel, isPending }: { initial?: Partial<PaperItem>; onSave: (d: Record<string, string>) => void; onCancel: () => void; isPending: boolean }) {
-  const [form, setForm] = useState({ name: "", brand: "", gsm: "", size: "", unit: "sheets", quantity: "", low_stock_threshold: "", cost_per_unit: "", ...initial, gsm: initial?.gsm?.toString() ?? "", quantity: initial?.quantity?.toString() ?? "", low_stock_threshold: initial?.low_stock_threshold?.toString() ?? "" });
+  const [form, setForm] = useState({
+    name: initial?.name ?? "",
+    brand: initial?.brand ?? "",
+    gsm: initial?.gsm?.toString() ?? "",
+    size: initial?.size ?? "",
+    unit: initial?.unit ?? "sheets",
+    quantity: initial?.quantity?.toString() ?? "",
+    low_stock_threshold: initial?.low_stock_threshold?.toString() ?? "",
+    cost_per_unit: "",
+  });
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
@@ -76,7 +85,7 @@ function PaperForm({ initial, onSave, onCancel, isPending }: { initial?: Partial
         <label><span style={{ fontSize: 13 }}>Cost/Unit (₹)</span><input style={inputStyle} type="number" value={form.cost_per_unit} onChange={set("cost_per_unit")} /></label>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => onSave(form as Record<string, string>)} disabled={!form.name || isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{isPending ? "Saving…" : "Save"}</button>
+        <button onClick={() => onSave(form as unknown as Record<string, string>)} disabled={!form.name || isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{isPending ? "Saving…" : "Save"}</button>
         <button onClick={onCancel} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
       </div>
     </div>
@@ -84,7 +93,14 @@ function PaperForm({ initial, onSave, onCancel, isPending }: { initial?: Partial
 }
 
 function ItemForm({ initial, onSave, onCancel, isPending }: { initial?: Partial<InvItem>; onSave: (d: Record<string, string>) => void; onCancel: () => void; isPending: boolean }) {
-  const [form, setForm] = useState({ name: "", category: "ink", unit: "pcs", quantity: "", low_stock_threshold: "", cost_per_unit: "", ...initial, quantity: initial?.quantity?.toString() ?? "", low_stock_threshold: initial?.low_stock_threshold?.toString() ?? "" });
+  const [form, setForm] = useState({
+    name: initial?.name ?? "",
+    category: initial?.category ?? "ink",
+    unit: initial?.unit ?? "pcs",
+    quantity: initial?.quantity?.toString() ?? "",
+    low_stock_threshold: initial?.low_stock_threshold?.toString() ?? "",
+    cost_per_unit: "",
+  });
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
@@ -103,7 +119,7 @@ function ItemForm({ initial, onSave, onCancel, isPending }: { initial?: Partial<
         <label><span style={{ fontSize: 13 }}>Cost/Unit (₹)</span><input style={inputStyle} type="number" value={form.cost_per_unit} onChange={set("cost_per_unit")} /></label>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => onSave(form as Record<string, string>)} disabled={!form.name || isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{isPending ? "Saving…" : "Save"}</button>
+        <button onClick={() => onSave(form as unknown as Record<string, string>)} disabled={!form.name || isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{isPending ? "Saving…" : "Save"}</button>
         <button onClick={onCancel} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
       </div>
     </div>
