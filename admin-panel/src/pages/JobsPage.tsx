@@ -262,10 +262,11 @@ function initForm(initial?: Partial<Job>): FormState {
   };
 }
 
-function JobForm({ initial, clients, machines, onSave, onCancel, isPending }: {
+function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, isPending }: {
   initial?: Partial<Job>;
   clients: Client[];
   machines: Machine[];
+  plateSources: SettingItem[];
   onSave: (d: FormState) => void;
   onCancel: () => void;
   isPending: boolean;
@@ -306,6 +307,13 @@ function JobForm({ initial, clients, machines, onSave, onCancel, isPending }: {
   const { data: printColors = [] } = useQuery<SettingItem[]>({
     queryKey: ["settings-print-colors"],
     queryFn: () => api.get("/admin/settings/print-colors").then(r => r.data),
+    enabled: formEnabled,
+  });
+
+  // Plate sources from settings
+  const { data: plateSources = [] } = useQuery<SettingItem[]>({
+    queryKey: ["settings-plate-sources"],
+    queryFn: () => api.get("/admin/settings/plate-sources").then(r => r.data),
     enabled: formEnabled,
   });
 
@@ -450,7 +458,10 @@ function JobForm({ initial, clients, machines, onSave, onCancel, isPending }: {
             <input style={inputStyle} type="number" step="0.01" value={form.die_cost as string} onChange={set("die_cost")} />
           </label>
           <label style={labelStyle}>Plate Source
-            <input style={inputStyle} value={form.plate_source as string} onChange={set("plate_source")} />
+            <select style={inputStyle} value={form.plate_source as string} onChange={set("plate_source")}>
+              <option value="">— select —</option>
+              {plateSources.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+            </select>
           </label>
           <label style={labelStyle}>Approved Rate (Rs.)
             <input style={inputStyle} type="number" step="0.01" value={form.approved_rate as string} onChange={set("approved_rate")} />
@@ -656,6 +667,7 @@ export default function JobsPage() {
         <JobForm
           clients={clients}
           machines={machines}
+          plateSources={plateSources}
           isPending={create.isPending}
           onSave={(form) => create.mutate(form)}
           onCancel={() => setShowForm(false)}
@@ -666,6 +678,7 @@ export default function JobsPage() {
           initial={editing}
           clients={clients}
           machines={machines}
+          plateSources={plateSources}
           isPending={update.isPending}
           onSave={(form) => update.mutate({ id: editing.id, form })}
           onCancel={() => setEditing(null)}
