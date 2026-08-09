@@ -56,7 +56,6 @@ const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 const gridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
 const labelStyle: React.CSSProperties = { fontSize: 13, color: "#444", display: "flex", flexDirection: "column", gap: 4 };
 const checkRowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" };
-const reqMark: React.CSSProperties = { color: "#c92a2a", marginLeft: 2 };
 
 type FormState = Record<string, string | boolean>;
 
@@ -530,7 +529,7 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
       <div>
         <div style={gridStyle}>
           <label style={labelStyle}>
-            Client<span style={reqMark}>*</span>
+            Client
             <SearchableSelect
               options={clientOptions}
               value={form.client_id as string}
@@ -539,7 +538,7 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
             />
           </label>
           <label style={labelStyle}>
-            Job Name / Title<span style={reqMark}>*</span>
+            Job Name / Title
             <input style={inputStyle} value={form.title as string} onChange={set("title")} placeholder="e.g. MARRIAGE CARD AND ENVELOPS" />
           </label>
           <label style={labelStyle}>
@@ -552,7 +551,7 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
             />
           </label>
           <label style={labelStyle}>
-            Order Type<span style={reqMark}>*</span>
+            Order Type
             <SearchableSelect
               options={orderTypeOptions}
               value={form.order_type as string}
@@ -561,11 +560,11 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
             />
           </label>
           <label style={labelStyle}>
-            Quantity<span style={reqMark}>*</span>
+            Quantity
             <input style={inputStyle} type="number" value={form.quantity as string} onChange={set("quantity")} />
           </label>
           <label style={labelStyle}>
-            Due Date<span style={reqMark}>*</span>
+            Due Date
             <input style={inputStyle} type="date" value={form.due_date as string} onChange={set("due_date")} />
           </label>
         </div>
@@ -581,7 +580,7 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
     2: (
       <div style={gridStyle}>
         <label style={labelStyle}>
-          Machine<span style={reqMark}>*</span>
+          Machine
           <SearchableSelect
             options={machineOptions}
             value={form.machine_id as string}
@@ -853,7 +852,7 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
 
       {stepError && (
         <div style={{ color: "#c92a2a", fontSize: 13, marginBottom: 12, fontWeight: 500 }}>
-          Please fill required fields (*)
+          Please fill all required fields before proceeding.
         </div>
       )}
 
