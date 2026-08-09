@@ -2,14 +2,21 @@ import type { Request, Response, NextFunction } from "express";
 import type { Permission, Role } from "../types/index.js";
 
 const OWNER_OR_ABOVE: Role[] = ["super_admin", "owner"];
+// Staff/operators can access routes — row-level visibility is enforced in the query
+const STAFF_ROLES: Role[] = ["staff", "operator"];
 
-// Owners and above bypass the permission check entirely.
-// Sub-admins must have the specific flag. Staff/operators are rejected.
+// Owners and above bypass entirely. Staff/operators pass through (query filters their data).
+// Sub-admins must have the specific permission flag.
 export function requirePermission(...perms: Permission[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const { role, permissions } = req.user;
 
     if (OWNER_OR_ABOVE.includes(role)) {
+      next();
+      return;
+    }
+
+    if (STAFF_ROLES.includes(role)) {
       next();
       return;
     }
