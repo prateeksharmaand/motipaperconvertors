@@ -6,6 +6,7 @@ import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
+import { exportToCsv } from "../lib/exportCsv.ts";
 
 const STATUS_OPTIONS = [
   { label: "Enquiry", value: "enquiry" }, { label: "Quotation", value: "quotation" },
@@ -900,7 +901,28 @@ export default function JobsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Job | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const qc = useQueryClient();
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await api.get("/admin/jobs", { params: { limit: 5000 } });
+      const jobs: Job[] = res.data.data ?? [];
+      const rows = jobs.map(j => ({
+        job_number: j.job_number, title: j.title, client_name: j.client_name,
+        job_type: j.job_type, order_type: j.order_type, status: j.status,
+        quantity: j.quantity, sheet_size: j.sheet_size, paper_type: j.paper_type,
+        paper_gsm: j.paper_gsm, quoted_price: j.quoted_price,
+        advance_amount: j.advance_amount,
+        due_date: j.due_date ? j.due_date.slice(0, 10) : "",
+        created_at: "",
+      }));
+      exportToCsv(`jobs-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+    } finally {
+      setExporting(false);
+    }
+  }
   const [list, actions] = useListState({ sortBy: "created_at", filters: {} });
 
   const { data, isLoading } = useQuery<PagedResult<Job>>({
@@ -986,7 +1008,7 @@ export default function JobsPage() {
         search={list.search} onSearch={actions.setSearch} placeholder="Search jobs, clients..."
         activeFilters={list.filters} onFilter={actions.setFilter} onReset={actions.resetFilters}
         filters={[{ key: "status", label: "Status", options: STATUS_OPTIONS }]}
-        rightSlot={<button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Job</button>}
+        rightSlot={<div style={{ display: "flex", gap: 8 }}><button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export Jobs"}</button><button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Job</button></div>}
       />
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
         <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>

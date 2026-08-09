@@ -6,6 +6,7 @@ import { useListState } from "../hooks/useListState.ts";
 import TableControls from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
+import { exportToCsv } from "../lib/exportCsv.ts";
 
 interface StaffMember {
   id: string;
@@ -135,7 +136,20 @@ function StaffModal({
 export default function StaffPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<StaffMember | null>(null);
+  const [exporting, setExporting] = useState(false);
   const qc = useQueryClient();
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await api.get("/admin/users", { params: { role: "operator", limit: 5000 } });
+      const list: StaffMember[] = res.data.data ?? [];
+      const date = new Date().toISOString().slice(0, 10);
+      exportToCsv(`staff-${date}.csv`, list.map(u => ({
+        name: u.name, email: u.email ?? "", staff_type: u.staff_type ?? "", status: u.status,
+      })));
+    } finally { setExporting(false); }
+  }
   const [list, actions] = useListState({ sortBy: "name", filters: {} });
 
   const { data, isLoading } = useQuery<PagedResult<StaffMember>>({
@@ -226,12 +240,15 @@ export default function StaffPage() {
           },
         ]}
         rightSlot={
-          <button
-            onClick={() => setShowAdd(true)}
-            style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}
-          >
-            + Add Staff
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export"}</button>
+            <button
+              onClick={() => setShowAdd(true)}
+              style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}
+            >
+              + Add Staff
+            </button>
+          </div>
         }
       />
 

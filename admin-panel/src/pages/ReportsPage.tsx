@@ -1,9 +1,16 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
+import { exportToCsv } from "../lib/exportCsv.ts";
 
 function fmt(n: number) { return "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 }); }
 
+const exportBtnStyle: React.CSSProperties = { padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 };
+
 export default function ReportsPage() {
+  const [exportingOutstanding, setExportingOutstanding] = useState(false);
+  const [exportingProfitability, setExportingProfitability] = useState(false);
+
   const { data: profitability } = useQuery({
     queryKey: ["report-profitability"],
     queryFn: () => api.get("/admin/reports/job-profitability").then(r => r.data),
@@ -17,6 +24,31 @@ export default function ReportsPage() {
     queryFn: () => api.get("/admin/reports/outstanding-payments").then(r => r.data),
   });
 
+  function handleExportOutstanding() {
+    if (!outstanding?.invoices?.length) return;
+    setExportingOutstanding(true);
+    const date = new Date().toISOString().slice(0, 10);
+    const rows = outstanding.invoices.map((i: { client_name: string; invoice_number: number; balance_due: number; due_date: string; urgency: string }) => ({
+      client_name: i.client_name, invoice_number: i.invoice_number,
+      balance_due: i.balance_due, due_date: i.due_date, urgency: i.urgency,
+    }));
+    exportToCsv(`outstanding-payments-${date}.csv`, rows);
+    setExportingOutstanding(false);
+  }
+
+  function handleExportProfitability() {
+    if (!profitability?.jobs?.length) return;
+    setExportingProfitability(true);
+    const date = new Date().toISOString().slice(0, 10);
+    const rows = profitability.jobs.map((j: { job_number: number; title: string; client_name: string; quoted_price: number; actual_cost: number; actual_margin: number; margin_percent: number }) => ({
+      job_number: j.job_number, title: j.title, client_name: j.client_name,
+      quoted_price: j.quoted_price, actual_cost: j.actual_cost,
+      actual_margin: j.actual_margin, margin_percent: j.margin_percent,
+    }));
+    exportToCsv(`job-profitability-${date}.csv`, rows);
+    setExportingProfitability(false);
+  }
+
   return (
     <div>
       <h1 style={{ marginBottom: 24 }}>Reports</h1>
@@ -24,7 +56,10 @@ export default function ReportsPage() {
       {/* Outstanding payments summary */}
       {outstanding && (
         <div style={{ marginBottom: 32 }}>
-          <h2 style={{ marginBottom: 16, fontSize: 18 }}>Outstanding Payments</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+            <h2 style={{ margin: 0, fontSize: 18 }}>Outstanding Payments</h2>
+            <button onClick={handleExportOutstanding} disabled={exportingOutstanding} style={exportBtnStyle}>{exportingOutstanding ? "Exporting…" : "⬇ Export"}</button>
+          </div>
           <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
             <div style={{ background: "#fff", padding: 20, borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,.06)", borderTop: "3px solid #c92a2a", minWidth: 160 }}>
               <div style={{ fontSize: 13, color: "#888" }}>Total Outstanding</div>
@@ -61,7 +96,10 @@ export default function ReportsPage() {
       {/* Job profitability */}
       {profitability && (
         <div style={{ marginBottom: 32 }}>
-          <h2 style={{ marginBottom: 16, fontSize: 18 }}>Job Profitability</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+            <h2 style={{ margin: 0, fontSize: 18 }}>Job Profitability</h2>
+            <button onClick={handleExportProfitability} disabled={exportingProfitability} style={exportBtnStyle}>{exportingProfitability ? "Exporting…" : "⬇ Export"}</button>
+          </div>
           <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
             {[
               { label: "Revenue", value: fmt(profitability.summary.revenue), color: "#1971c2" },

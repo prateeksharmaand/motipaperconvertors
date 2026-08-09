@@ -6,6 +6,7 @@ import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
+import { exportToCsv } from "../lib/exportCsv.ts";
 
 interface Tenant { id: string; name: string; slug: string; plan: string; status: string; created_at: string; }
 
@@ -60,7 +61,20 @@ function NewTenantForm({ onClose }: { onClose: () => void }) {
 
 export default function TenantsPage() {
   const [showForm, setShowForm] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const qc = useQueryClient();
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await api.get("/platform/tenants", { params: { limit: 5000 } });
+      const list: Tenant[] = res.data.data ?? [];
+      const date = new Date().toISOString().slice(0, 10);
+      exportToCsv(`tenants-${date}.csv`, list.map(t => ({
+        name: t.name, slug: t.slug, plan: t.plan, status: t.status, created_at: t.created_at,
+      })));
+    } finally { setExporting(false); }
+  }
   const [list, actions] = useListState({ sortBy: "created_at" });
 
   const { data, isLoading } = useQuery<PagedResult<Tenant>>({
@@ -88,7 +102,7 @@ export default function TenantsPage() {
           { key: "status", label: "Status", options: [{ label: "Active", value: "active" }, { label: "Suspended", value: "suspended" }] },
           { key: "plan", label: "Plan", options: [{ label: "Free", value: "free" }, { label: "Starter", value: "starter" }, { label: "Pro", value: "pro" }] },
         ]}
-        rightSlot={<button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Tenant</button>} />
+        rightSlot={<div style={{ display: "flex", gap: 8 }}><button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export"}</button><button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Tenant</button></div>} />
       <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>

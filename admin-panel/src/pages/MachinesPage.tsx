@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
+import { exportToCsv } from "../lib/exportCsv.ts";
 
 interface Machine { id: string; name: string; type: string; model: string; max_colors: number; status: string; notes: string; }
 
@@ -38,7 +39,24 @@ function MachineForm({ initial, onSave, onCancel }: { initial?: Partial<Machine>
 export default function MachinesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Machine | null>(null);
+  const [exporting, setExporting] = useState(false);
   const qc = useQueryClient();
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await api.get("/admin/machines", { params: { limit: 5000 } });
+      const machineList: Machine[] = res.data.data ?? [];
+      const date = new Date().toISOString().slice(0, 10);
+      const rows = machineList.map(m => ({
+        name: m.name, type: m.type, model: m.model,
+        max_colors: m.max_colors, status: m.status, notes: m.notes,
+      }));
+      exportToCsv(`machines-${date}.csv`, rows);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const { data: machinesResult, isLoading } = useQuery<{ data: Machine[] }>({
     queryKey: ["machines"],
@@ -67,7 +85,10 @@ export default function MachinesPage() {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <h1>Machines</h1>
-        <button onClick={() => setShowForm(true)} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>+ New Machine</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export"}</button>
+          <button onClick={() => setShowForm(true)} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>+ New Machine</button>
+        </div>
       </div>
       {showForm && <MachineForm onSave={(d) => create.mutate(d)} onCancel={() => setShowForm(false)} />}
       {editing && <MachineForm initial={editing} onSave={(d) => update.mutate({ id: editing.id, ...d })} onCancel={() => setEditing(null)} />}

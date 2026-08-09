@@ -6,6 +6,7 @@ import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
+import { exportToCsv } from "../lib/exportCsv.ts";
 
 interface Client { id: string; name: string; company_name: string; phone: string; email: string; city: string; gstin: string; status: string; }
 
@@ -39,7 +40,24 @@ export default function ClientsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const qc = useQueryClient();
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await api.get("/admin/clients", { params: { limit: 5000 } });
+      const clients: Client[] = res.data.data ?? [];
+      const date = new Date().toISOString().slice(0, 10);
+      const rows = clients.map(c => ({
+        name: c.name, company_name: c.company_name, phone: c.phone,
+        email: c.email, city: c.city, gstin: c.gstin, status: c.status,
+      }));
+      exportToCsv(`clients-${date}.csv`, rows);
+    } finally {
+      setExporting(false);
+    }
+  }
   const [list, actions] = useListState({ sortBy: "name", filters: {} });
 
   const { data, isLoading } = useQuery<PagedResult<Client>>({
@@ -84,7 +102,7 @@ export default function ClientsPage() {
         search={list.search} onSearch={actions.setSearch} placeholder="Search name, phone, GSTIN…"
         activeFilters={list.filters} onFilter={actions.setFilter} onReset={actions.resetFilters}
         filters={[{ key: "status", label: "Status", options: [{ label: "Active", value: "active" }, { label: "Inactive", value: "inactive" }] }]}
-        rightSlot={<button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Client</button>}
+        rightSlot={<div style={{ display: "flex", gap: 8 }}><button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export"}</button><button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Client</button></div>}
       />
       <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>

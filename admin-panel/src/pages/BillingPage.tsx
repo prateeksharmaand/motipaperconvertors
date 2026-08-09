@@ -6,6 +6,7 @@ import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
+import { exportToCsv } from "../lib/exportCsv.ts";
 
 type Tab = "invoices" | "payments" | "ledger";
 const STATUS_COLOR: Record<string, string> = { draft: "#868e96", issued: "#1971c2", partially_paid: "#f59f00", paid: "#2b8a3e", cancelled: "#c92a2a" };
@@ -155,6 +156,36 @@ export default function BillingPage() {
   const [showNewInvoice, setShowNewInvoice] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [ledgerClientId, setLedgerClientId] = useState("");
+  const [exportingInvoices, setExportingInvoices] = useState(false);
+  const [exportingPayments, setExportingPayments] = useState(false);
+
+  async function handleExportInvoices() {
+    setExportingInvoices(true);
+    try {
+      const res = await api.get("/admin/billing/invoices", { params: { limit: 5000 } });
+      const list: Invoice[] = res.data.data ?? [];
+      const date = new Date().toISOString().slice(0, 10);
+      exportToCsv(`invoices-${date}.csv`, list.map(i => ({
+        invoice_number: i.invoice_number, client_name: i.client_name,
+        total: i.total, amount_paid: i.amount_paid, balance_due: i.balance_due,
+        status: i.status, issue_date: i.issue_date, due_date: i.due_date,
+      })));
+    } finally { setExportingInvoices(false); }
+  }
+
+  async function handleExportPayments() {
+    setExportingPayments(true);
+    try {
+      const res = await api.get("/admin/billing/payments", { params: { limit: 5000 } });
+      const list: Payment[] = res.data.data ?? [];
+      const date = new Date().toISOString().slice(0, 10);
+      exportToCsv(`payments-${date}.csv`, list.map(p => ({
+        payment_date: p.payment_date, client_name: p.client_name,
+        amount: p.amount, payment_mode: p.payment_mode, type: p.type,
+        reference_number: p.reference_number, notes: "",
+      })));
+    } finally { setExportingPayments(false); }
+  }
   const [invList, invActions] = useListState({ sortBy: "created_at" });
   const [payList, payActions] = useListState({ sortBy: "payment_date" });
 
@@ -200,7 +231,7 @@ export default function BillingPage() {
               { key: "status", label: "Status", options: [{ label: "Issued", value: "issued" }, { label: "Partial", value: "partially_paid" }, { label: "Paid", value: "paid" }, { label: "Cancelled", value: "cancelled" }] },
               { key: "overdue", label: "Overdue", options: [{ label: "Overdue only", value: "1" }] },
             ]}
-            rightSlot={<button onClick={() => setShowNewInvoice(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Invoice</button>} />
+            rightSlot={<div style={{ display: "flex", gap: 8 }}><button onClick={handleExportInvoices} disabled={exportingInvoices} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exportingInvoices ? "Exporting…" : "⬇ Export"}</button><button onClick={() => setShowNewInvoice(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Invoice</button></div>} />
           <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
             <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>Due from <input type="date" value={invList.filters.dueDateFrom ?? ""} onChange={e => invActions.setFilter("dueDateFrom", e.target.value)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} /></label>
             <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>to <input type="date" value={invList.filters.dueDateTo ?? ""} onChange={e => invActions.setFilter("dueDateTo", e.target.value)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} /></label>
@@ -244,7 +275,8 @@ export default function BillingPage() {
         <>
           <TableControls search={payList.search} onSearch={payActions.setSearch} placeholder="Search client, reference…"
             activeFilters={payList.filters} onFilter={payActions.setFilter} onReset={payActions.resetFilters}
-            filters={[{ key: "paymentMode", label: "Mode", options: [{ label: "Cash", value: "cash" }, { label: "UPI", value: "upi" }, { label: "Cheque", value: "cheque" }, { label: "NEFT", value: "neft" }] }]} />
+            filters={[{ key: "paymentMode", label: "Mode", options: [{ label: "Cash", value: "cash" }, { label: "UPI", value: "upi" }, { label: "Cheque", value: "cheque" }, { label: "NEFT", value: "neft" }] }]}
+            rightSlot={<button onClick={handleExportPayments} disabled={exportingPayments} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exportingPayments ? "Exporting…" : "⬇ Export"}</button>} />
           <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>

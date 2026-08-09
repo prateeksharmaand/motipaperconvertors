@@ -6,6 +6,7 @@ import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
+import { exportToCsv } from "../lib/exportCsv.ts";
 
 type Tab = "paper" | "items" | "transactions";
 const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14 };
@@ -133,7 +134,49 @@ export default function InventoryPage() {
   const [editingPaper, setEditingPaper] = useState<PaperItem | null>(null);
   const [showItemForm, setShowItemForm] = useState(false);
   const [editingItem, setEditingItem] = useState<InvItem | null>(null);
+  const [exportingPaper, setExportingPaper] = useState(false);
+  const [exportingItems, setExportingItems] = useState(false);
+  const [exportingTxns, setExportingTxns] = useState(false);
   const qcInv = useQueryClient();
+
+  async function handleExportPaper() {
+    setExportingPaper(true);
+    try {
+      const res = await api.get("/admin/inventory/paper", { params: { limit: 5000 } });
+      const list: PaperItem[] = res.data.data ?? [];
+      const date = new Date().toISOString().slice(0, 10);
+      exportToCsv(`paper-stock-${date}.csv`, list.map(p => ({
+        name: p.name, brand: p.brand, gsm: p.gsm, size: p.size,
+        unit: p.unit, quantity: p.quantity, low_stock_threshold: p.low_stock_threshold,
+      })));
+    } finally { setExportingPaper(false); }
+  }
+
+  async function handleExportItems() {
+    setExportingItems(true);
+    try {
+      const res = await api.get("/admin/inventory/items", { params: { limit: 5000 } });
+      const list: InvItem[] = res.data.data ?? [];
+      const date = new Date().toISOString().slice(0, 10);
+      exportToCsv(`inventory-items-${date}.csv`, list.map(i => ({
+        name: i.name, category: i.category, unit: i.unit,
+        quantity: i.quantity, low_stock_threshold: i.low_stock_threshold,
+      })));
+    } finally { setExportingItems(false); }
+  }
+
+  async function handleExportTxns() {
+    setExportingTxns(true);
+    try {
+      const res = await api.get("/admin/inventory/transactions", { params: { limit: 5000 } });
+      const list: TxnItem[] = res.data.data ?? [];
+      const date = new Date().toISOString().slice(0, 10);
+      exportToCsv(`inventory-transactions-${date}.csv`, list.map(t => ({
+        transacted_at: t.transacted_at, paper_name: t.paper_name, item_name: t.item_name,
+        type: t.type, quantity: t.quantity, performed_by_name: t.performed_by_name, notes: t.notes,
+      })));
+    } finally { setExportingTxns(false); }
+  }
 
   const [paperList, paperActions] = useListState({ sortBy: "name" });
   const [itemList, itemActions]   = useListState({ sortBy: "name" });
@@ -180,7 +223,7 @@ export default function InventoryPage() {
           {editingPaper && <PaperForm initial={editingPaper} isPending={updatePaper.isPending} onSave={(d) => updatePaper.mutate({ id: editingPaper.id, ...d })} onCancel={() => setEditingPaper(null)} />}
           <TableControls search={paperList.search} onSearch={paperActions.setSearch} placeholder="Search paper…" activeFilters={paperList.filters} onFilter={paperActions.setFilter} onReset={paperActions.resetFilters}
             filters={[{ key: "isLow", label: "Low Stock", options: [{ label: "Low only", value: "1" }] }]}
-            rightSlot={<button onClick={() => setShowPaperForm(true)} style={{ padding: "8px 16px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ Add Paper</button>} />
+            rightSlot={<div style={{ display: "flex", gap: 8 }}><button onClick={handleExportPaper} disabled={exportingPaper} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exportingPaper ? "Exporting…" : "⬇ Export Paper"}</button><button onClick={() => setShowPaperForm(true)} style={{ padding: "8px 16px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ Add Paper</button></div>} />
           <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
@@ -218,7 +261,7 @@ export default function InventoryPage() {
           {editingItem && <ItemForm initial={editingItem} isPending={updateItem.isPending} onSave={(d) => updateItem.mutate({ id: editingItem.id, ...d })} onCancel={() => setEditingItem(null)} />}
           <TableControls search={itemList.search} onSearch={itemActions.setSearch} placeholder="Search items…" activeFilters={itemList.filters} onFilter={itemActions.setFilter} onReset={itemActions.resetFilters}
             filters={[{ key: "category", label: "Category", options: [{ label: "Ink", value: "ink" }, { label: "Plate", value: "plate" }, { label: "Consumable", value: "consumable" }] }, { key: "isLow", label: "Low Stock", options: [{ label: "Low only", value: "1" }] }]}
-            rightSlot={<button onClick={() => setShowItemForm(true)} style={{ padding: "8px 16px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ Add Item</button>} />
+            rightSlot={<div style={{ display: "flex", gap: 8 }}><button onClick={handleExportItems} disabled={exportingItems} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exportingItems ? "Exporting…" : "⬇ Export Items"}</button><button onClick={() => setShowItemForm(true)} style={{ padding: "8px 16px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ Add Item</button></div>} />
           <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
@@ -249,7 +292,8 @@ export default function InventoryPage() {
       {tab === "transactions" && (
         <>
           <TableControls search={txnList.search} onSearch={txnActions.setSearch} placeholder="Search notes…" activeFilters={txnList.filters} onFilter={txnActions.setFilter} onReset={txnActions.resetFilters}
-            filters={[{ key: "type", label: "Type", options: [{ label: "In", value: "in" }, { label: "Out", value: "out" }, { label: "Wastage", value: "wastage" }, { label: "Adjustment", value: "adjustment" }] }]} />
+            filters={[{ key: "type", label: "Type", options: [{ label: "In", value: "in" }, { label: "Out", value: "out" }, { label: "Wastage", value: "wastage" }, { label: "Adjustment", value: "adjustment" }] }]}
+            rightSlot={<button onClick={handleExportTxns} disabled={exportingTxns} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exportingTxns ? "Exporting…" : "⬇ Export Txns"}</button>} />
           <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>

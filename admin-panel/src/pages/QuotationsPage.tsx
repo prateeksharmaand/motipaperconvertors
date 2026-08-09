@@ -6,6 +6,7 @@ import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
+import { exportToCsv } from "../lib/exportCsv.ts";
 
 interface Quotation { id: string; quotation_number: number; job_id: string; job_title: string; job_number: number; total: number; status: string; notes: string; paper_cost: number; plate_cost: number; printing_cost: number; gst_percent: number; discount_amount: number; margin_percent: number; }
 interface JobMini { id: string; job_number: number; title: string; client_name: string; }
@@ -98,7 +99,21 @@ function QuotationForm({ initial, jobs, onSave, onCancel, isPending }: {
 export default function QuotationsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Quotation | null>(null);
+  const [exporting, setExporting] = useState(false);
   const qc = useQueryClient();
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await api.get("/admin/quotations", { params: { limit: 5000 } });
+      const list: Quotation[] = res.data.data ?? [];
+      const date = new Date().toISOString().slice(0, 10);
+      exportToCsv(`quotations-${date}.csv`, list.map(q => ({
+        quotation_number: q.quotation_number, job_title: q.job_title,
+        total: q.total, status: q.status, notes: q.notes, created_at: "",
+      })));
+    } finally { setExporting(false); }
+  }
   const [list, actions] = useListState({ sortBy: "created_at", filters: {} });
 
   const { data, isLoading } = useQuery<PagedResult<Quotation>>({
@@ -135,7 +150,7 @@ export default function QuotationsPage() {
         search={list.search} onSearch={actions.setSearch} placeholder="Search job, notes…"
         activeFilters={list.filters} onFilter={actions.setFilter} onReset={actions.resetFilters}
         filters={[{ key: "status", label: "Status", options: STATUS_OPTIONS }]}
-        rightSlot={<button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Quotation</button>}
+        rightSlot={<div style={{ display: "flex", gap: 8 }}><button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export"}</button><button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Quotation</button></div>}
       />
       <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
