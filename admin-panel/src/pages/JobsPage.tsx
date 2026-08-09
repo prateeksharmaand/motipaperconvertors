@@ -1,3 +1,4 @@
+import { useAuthStore } from "../store/auth.ts";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import JobPrintView from "./JobPrintView.tsx";
@@ -27,6 +28,7 @@ const STATUS_COLOR: Record<string, string> = {
 type Job = {
   id: string; job_number: number; title: string; client_name: string; client_id: string;
   machine_id: string; status: string; due_date: string; quoted_price: number;
+  print_operator_id: string; binding_operator_id: string; packing_operator_id: string; qc_operator_id: string; designer_id: string;
   operator_name: string; description: string; job_type: string; size: string; quantity: number;
   order_type: string; sheet_size: string; sheet_count: number; paper_gsm: number;
   paper_type: string;
@@ -917,6 +919,8 @@ export default function JobsPage() {
   const [exporting, setExporting] = useState(false);
   const [printJob, setPrintJob] = useState<Job | null>(null);
   const qc = useQueryClient();
+  const currentUserId = useAuthStore(s => s.userId);
+  const currentRole = useAuthStore(s => s.role);
 
   async function handleExport() {
     setExporting(true);
@@ -1078,22 +1082,45 @@ export default function JobsPage() {
                 <td style={td}>{j.sheet_size ?? "—"}</td>
                 <td style={td}>{j.quantity ?? "—"}</td>
                 <td style={td}>
-                  <select
-                    value={j.status}
-                    onChange={e => changeStatus.mutate({ id: j.id, status: e.target.value })}
-                    style={{ padding: "3px 8px", borderRadius: 8, border: `1px solid ${STATUS_COLOR[j.status] ?? "#e5e7eb"}`, background: (STATUS_COLOR[j.status] ?? "#868e96") + "18", color: STATUS_COLOR[j.status] ?? "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer", outline: "none" }}
-                  >
-                    {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
+                  {currentRole === "operator" || currentRole === "staff" ? (
+                    <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[j.status] ?? "#868e96") + "22", color: STATUS_COLOR[j.status] ?? "#868e96" }}>
+                      {statusLabel(j.status)}
+                    </span>
+                  ) : (
+                    <select
+                      value={j.status}
+                      onChange={e => changeStatus.mutate({ id: j.id, status: e.target.value })}
+                      style={{ padding: "3px 8px", borderRadius: 8, border: `1px solid ${STATUS_COLOR[j.status] ?? "#e5e7eb"}`, background: (STATUS_COLOR[j.status] ?? "#868e96") + "18", color: STATUS_COLOR[j.status] ?? "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer", outline: "none" }}
+                    >
+                      {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  )}
                 </td>
                 <td style={td}>{j.due_date ? j.due_date.slice(0, 10) : "—"}</td>
                 <td style={td}>{j.advance_amount != null ? "Rs." + Number(j.advance_amount).toLocaleString("en-IN") : "—"}</td>
                 <td style={td}>{j.quoted_price ? "Rs." + Number(j.quoted_price).toLocaleString("en-IN") : "—"}</td>
                 <td style={td}>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setPrintJob(j)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }} title="Print Job Card">🖨</button>
-                    <button onClick={() => setEditing(j)} style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>Edit</button>
-                    <button onClick={() => setDeleteConfirm(j.id)} style={{ padding: "4px 10px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff", color: "#c92a2a" }}>Del</button>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {/* Print operator action buttons */}
+                    {j.print_operator_id === currentUserId && j.status === "approval" && (
+                      <button
+                        onClick={() => changeStatus.mutate({ id: j.id, status: "print" })}
+                        style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#2f9e44", color: "#fff" }}
+                      >▶ Start Printing</button>
+                    )}
+                    {j.print_operator_id === currentUserId && j.status === "print" && (
+                      <button
+                        onClick={() => changeStatus.mutate({ id: j.id, status: "finishing" })}
+                        style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#0c8599", color: "#fff" }}
+                      >✓ Printing Done</button>
+                    )}
+                    {currentRole !== "operator" && currentRole !== "staff" && (
+                      <>
+                        <button onClick={() => setPrintJob(j)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }} title="Print Job Card">🖨</button>
+                        <button onClick={() => setEditing(j)} style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>Edit</button>
+                        <button onClick={() => setDeleteConfirm(j.id)} style={{ padding: "4px 10px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff", color: "#c92a2a" }}>Del</button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
