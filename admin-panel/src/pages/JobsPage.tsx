@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
@@ -51,13 +51,7 @@ const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px soli
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
-const sectionStyle: React.CSSProperties = { marginBottom: 24 };
-const sectionHeaderStyle: React.CSSProperties = {
-  fontSize: 13, fontWeight: 700, color: "#3b5bdb", textTransform: "uppercase",
-  letterSpacing: "0.06em", marginBottom: 12, paddingBottom: 6,
-  borderBottom: "2px solid #e7ecff",
-};
-const gridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
+const gridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
 const labelStyle: React.CSSProperties = { fontSize: 13, color: "#444", display: "flex", flexDirection: "column", gap: 4 };
 const checkRowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" };
 const reqMark: React.CSSProperties = { color: "#c92a2a", marginLeft: 2 };
@@ -262,6 +256,147 @@ function initForm(initial?: Partial<Job>): FormState {
   };
 }
 
+// ─── SearchableSelect ────────────────────────────────────────────────────────
+
+interface SearchableSelectProps {
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+function SearchableSelect({ options, value, onChange, placeholder = "— select —", disabled = false }: SearchableSelectProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selectedLabel = options.find(o => o.value === value)?.label ?? "";
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  const filtered = query.trim() === ""
+    ? options
+    : options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()));
+
+  function handleInputClick() {
+    if (disabled) return;
+    setOpen(true);
+    setQuery("");
+  }
+
+  function handleSelect(opt: { value: string; label: string }) {
+    onChange(opt.value);
+    setOpen(false);
+    setQuery("");
+  }
+
+  return (
+    <div ref={containerRef} style={{ position: "relative", width: "100%" }}>
+      <input
+        readOnly={!open}
+        disabled={disabled}
+        value={open ? query : selectedLabel}
+        onChange={e => setQuery(e.target.value)}
+        onClick={handleInputClick}
+        onFocus={handleInputClick}
+        placeholder={placeholder}
+        style={{
+          ...inputStyle,
+          cursor: disabled ? "not-allowed" : "pointer",
+          background: disabled ? "#f5f5f5" : "#fff",
+        }}
+      />
+      {open && (
+        <div style={{
+          position: "absolute", top: "100%", left: 0, right: 0, zIndex: 1000,
+          background: "#fff", border: "1px solid #ddd", borderRadius: 6,
+          boxShadow: "0 4px 16px rgba(0,0,0,.12)", maxHeight: 220, overflowY: "auto",
+          marginTop: 2,
+        }}>
+          {filtered.length === 0 && (
+            <div style={{ padding: "10px 14px", fontSize: 13, color: "#888" }}>No options found</div>
+          )}
+          {filtered.map(opt => (
+            <div
+              key={opt.value}
+              onMouseDown={() => handleSelect(opt)}
+              style={{
+                padding: "9px 14px", fontSize: 13, cursor: "pointer",
+                background: opt.value === value ? "#e7ecff" : "transparent",
+                color: opt.value === value ? "#3b5bdb" : "#333",
+                fontWeight: opt.value === value ? 600 : 400,
+              }}
+              onMouseEnter={e => { if (opt.value !== value) (e.currentTarget as HTMLDivElement).style.background = "#f5f7ff"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = opt.value === value ? "#e7ecff" : "transparent"; }}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Stepper ─────────────────────────────────────────────────────────────────
+
+const STEP_LABELS = [
+  "Basic Info",
+  "Paper & Machine",
+  "Pre-Print",
+  "Print Process",
+  "Post-Print",
+  "Financial & Delivery",
+];
+
+function Stepper({ current }: { current: number }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", marginBottom: 32 }}>
+      {STEP_LABELS.map((label, i) => {
+        const stepNum = i + 1;
+        const isCompleted = stepNum < current;
+        const isActive = stepNum === current;
+        const circleColor = isCompleted ? "#2f9e44" : isActive ? "#3b5bdb" : "#ced4da";
+        const textColor = isCompleted ? "#2f9e44" : isActive ? "#3b5bdb" : "#868e96";
+        return (
+          <div key={i} style={{ display: "flex", alignItems: "center", flex: i < STEP_LABELS.length - 1 ? 1 : "none" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 60 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%",
+                background: circleColor,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontSize: 13, fontWeight: 700,
+                flexShrink: 0,
+              }}>
+                {isCompleted ? "✓" : stepNum}
+              </div>
+              <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, color: textColor, marginTop: 4, whiteSpace: "nowrap" }}>
+                {label}
+              </span>
+            </div>
+            {i < STEP_LABELS.length - 1 && (
+              <div style={{ flex: 1, height: 2, background: isCompleted ? "#2f9e44" : "#ced4da", margin: "0 6px", marginBottom: 18 }} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── JobForm ──────────────────────────────────────────────────────────────────
+
 function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, isPending }: {
   initial?: Partial<Job>;
   clients: Client[];
@@ -272,46 +407,58 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
   isPending: boolean;
 }) {
   const [form, setForm] = useState<FormState>(() => initForm(initial));
-  const formEnabled = true;
+  const [step, setStep] = useState(1);
+  const [stepError, setStepError] = useState(false);
 
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const setVal = (k: string, v: string | boolean) =>
+    setForm(f => ({ ...f, [k]: v }));
 
   const setCheck = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [k]: e.target.checked }));
 
   const isNumbering = boolField(form, "is_numbering");
 
-  // Paper stocks for dropdown (Task 2)
+  // Paper stocks
   const { data: paperStocks = [] } = useQuery<PaperStock[]>({
     queryKey: ["paper-stocks-mini"],
     queryFn: () => api.get("/admin/inventory/paper", { params: { limit: "200" } }).then(r => r.data.data ?? []),
-    enabled: formEnabled,
   });
 
-  // Staff users for operator dropdowns (Task 3)
+  // Staff users
   const { data: staffUsers = [] } = useQuery<StaffUser[]>({
     queryKey: ["staff-users"],
     queryFn: () => api.get("/admin/users", { params: { limit: "200" } }).then(r => r.data.data ?? []),
-    enabled: formEnabled,
   });
 
-  // Job types from settings (Task 6)
+  // Job types
   const { data: jobTypes = [] } = useQuery<SettingItem[]>({
     queryKey: ["settings-job-types"],
     queryFn: () => api.get("/admin/settings/job-types").then(r => r.data),
-    enabled: formEnabled,
   });
 
-  // Print colors from settings (Task 6)
+  // Print colors
   const { data: printColors = [] } = useQuery<SettingItem[]>({
     queryKey: ["settings-print-colors"],
     queryFn: () => api.get("/admin/settings/print-colors").then(r => r.data),
-    enabled: formEnabled,
   });
 
-  function handlePaperSelect(e: React.ChangeEvent<HTMLSelectElement>) {
-    const paperId = e.target.value;
+  // Derived option arrays
+  const clientOptions = clients.map(c => ({ value: c.id, label: c.name }));
+  const machineOptions = machines.map(m => ({ value: m.id, label: m.name }));
+  const plateSourceOptions = plateSources.map(p => ({ value: p.name, label: p.name }));
+  const jobTypeOptions = jobTypes.map(jt => ({ value: jt.name, label: jt.name }));
+  const printColorOptions = printColors.map(pc => ({ value: pc.name, label: pc.name }));
+  const paperOptions = paperStocks.map(p => ({ value: p.id, label: `${p.name} ${p.gsm}gsm ${p.size}` }));
+  const staffOptions = staffUsers.map(u => ({ value: u.name, label: u.name }));
+  const orderTypeOptions = [
+    { value: "in_house", label: "In House" },
+    { value: "external", label: "External" },
+  ];
+
+  function handlePaperSelect(paperId: string) {
     const paper = paperStocks.find(p => p.id === paperId);
     if (paper) {
       setForm(f => ({
@@ -320,288 +467,408 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
         paper_gsm: String(paper.gsm),
         sheet_size: paper.size,
       }));
+    } else {
+      setVal("paper_type", "");
     }
   }
 
-  // Detect "Other" for job type and print colors
-  const jobTypeIsOther = (form.job_type as string) !== "" && !jobTypes.some(jt => jt.name === (form.job_type as string));
-  const printColorsIsOther = (form.print_colors as string) !== "" && !printColors.some(pc => pc.name === (form.print_colors as string));
+  // Per-step validation
+  function validateStep(s: number): boolean {
+    if (s === 1) {
+      return (
+        (form.client_id as string).trim() !== "" &&
+        (form.title as string).trim() !== "" &&
+        (form.quantity as string).trim() !== "" &&
+        (form.due_date as string).trim() !== ""
+      );
+    }
+    if (s === 2) {
+      return (form.machine_id as string).trim() !== "";
+    }
+    return true;
+  }
 
-  // Mandatory field check (Task 1)
-  const canSubmit =
-    (form.client_id as string).trim() !== "" &&
-    (form.title as string).trim() !== "" &&
-    (form.quantity as string).trim() !== "" &&
-    (form.machine_id as string).trim() !== "" &&
-    (form.due_date as string).trim() !== "" &&
-    !isPending;
+  function handleNext() {
+    if (!validateStep(step)) {
+      setStepError(true);
+      return;
+    }
+    setStepError(false);
+    if (step < 6) setStep(s => s + 1);
+  }
 
-  return (
-    <div style={{ background: "#fff", padding: 28, borderRadius: 10, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,.10)", maxWidth: 900 }}>
-      <h3 style={{ marginBottom: 20, fontSize: 17 }}>{initial?.id ? `Edit Job #${initial.job_number}` : "New Job Card"}</h3>
+  function handlePrev() {
+    setStepError(false);
+    if (step > 1) setStep(s => s - 1);
+  }
 
-      {/* Section 1 — Basic Info */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>1. Basic Information</div>
+  function handleSave() {
+    onSave(form);
+  }
+
+  // Display names for summary
+  const clientName = clients.find(c => c.id === (form.client_id as string))?.name ?? "—";
+  const machineName = machines.find(m => m.id === (form.machine_id as string))?.name ?? "—";
+
+  const stepContent: Record<number, React.ReactNode> = {
+    1: (
+      <div>
         <div style={gridStyle}>
-          <label style={labelStyle}>Client<span style={reqMark}>*</span>
-            <select style={inputStyle} value={form.client_id as string} onChange={set("client_id")}>
-              <option value="">— select client —</option>
-              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+          <label style={labelStyle}>
+            Client<span style={reqMark}>*</span>
+            <SearchableSelect
+              options={clientOptions}
+              value={form.client_id as string}
+              onChange={v => setVal("client_id", v)}
+              placeholder="— select client —"
+            />
           </label>
-          <label style={labelStyle}>Job Name / Title<span style={reqMark}>*</span>
+          <label style={labelStyle}>
+            Job Name / Title<span style={reqMark}>*</span>
             <input style={inputStyle} value={form.title as string} onChange={set("title")} placeholder="e.g. MARRIAGE CARD AND ENVELOPS" />
           </label>
-          <label style={labelStyle}>Job Type
-            <select
-              style={inputStyle}
-              value={jobTypeIsOther ? "__other__" : (form.job_type as string)}
-              onChange={e => {
-                if (e.target.value === "__other__") {
-                  setForm(f => ({ ...f, job_type: "" }));
-                } else {
-                  setForm(f => ({ ...f, job_type: e.target.value }));
-                }
-              }}
-            >
-              <option value="">— select job type —</option>
-              {jobTypes.map(jt => <option key={jt.id} value={jt.name}>{jt.name}</option>)}
-              <option value="__other__">Other (custom)</option>
-            </select>
-            {jobTypeIsOther && (
-              <input
-                style={{ ...inputStyle, marginTop: 6 }}
-                value={form.job_type as string}
-                onChange={set("job_type")}
-                placeholder="Enter custom job type"
-              />
-            )}
+          <label style={labelStyle}>
+            Job Type
+            <SearchableSelect
+              options={jobTypeOptions}
+              value={form.job_type as string}
+              onChange={v => setVal("job_type", v)}
+              placeholder="— select job type —"
+            />
           </label>
-          <label style={labelStyle}>Order Type<span style={reqMark}>*</span>
-            <select style={inputStyle} value={form.order_type as string} onChange={set("order_type")}>
-              <option value="in_house">In House</option>
-              <option value="external">External</option>
-            </select>
+          <label style={labelStyle}>
+            Order Type<span style={reqMark}>*</span>
+            <SearchableSelect
+              options={orderTypeOptions}
+              value={form.order_type as string}
+              onChange={v => setVal("order_type", v)}
+              placeholder="— select order type —"
+            />
           </label>
-          <label style={labelStyle}>Quantity<span style={reqMark}>*</span>
+          <label style={labelStyle}>
+            Quantity<span style={reqMark}>*</span>
             <input style={inputStyle} type="number" value={form.quantity as string} onChange={set("quantity")} />
           </label>
-          <label style={labelStyle}>Due Date<span style={reqMark}>*</span>
+          <label style={labelStyle}>
+            Due Date<span style={reqMark}>*</span>
             <input style={inputStyle} type="date" value={form.due_date as string} onChange={set("due_date")} />
           </label>
         </div>
-        <div style={{ marginTop: 12 }}>
-          <label style={labelStyle}>Description
-            <textarea style={{ ...inputStyle, height: 64, resize: "vertical" }} value={form.description as string} onChange={set("description")} />
+        <div style={{ marginTop: 16 }}>
+          <label style={labelStyle}>
+            Description
+            <textarea style={{ ...inputStyle, height: 72, resize: "vertical" }} value={form.description as string} onChange={set("description")} />
           </label>
         </div>
       </div>
+    ),
 
-      {/* Section 2 — Paper & Machine */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>2. Paper &amp; Machine</div>
-        <div style={gridStyle}>
-          <label style={labelStyle}>Paper Type
-            <select style={inputStyle} onChange={handlePaperSelect} defaultValue="">
-              <option value="">— select from inventory —</option>
-              {paperStocks.map(p => (
-                <option key={p.id} value={p.id}>{p.name} {p.gsm}gsm {p.size}</option>
-              ))}
-            </select>
-            <input
-              style={{ ...inputStyle, marginTop: 6 }}
-              value={form.paper_type as string}
-              onChange={set("paper_type")}
-              placeholder="e.g. COSMO-NEEDLE-TEXTURE CREAM"
-            />
-          </label>
-          <label style={labelStyle}>Paper GSM
-            <input style={inputStyle} type="number" value={form.paper_gsm as string} onChange={set("paper_gsm")} placeholder="e.g. 130" />
-          </label>
-          <label style={labelStyle}>Sheet Size
-            <input style={inputStyle} value={form.sheet_size as string} onChange={set("sheet_size")} placeholder="e.g. 12X18" />
-          </label>
-          <label style={labelStyle}>Sheet Count
-            <input style={inputStyle} type="number" value={form.sheet_count as string} onChange={set("sheet_count")} />
-          </label>
-          <label style={labelStyle}>Machine<span style={reqMark}>*</span>
-            <select style={inputStyle} value={form.machine_id as string} onChange={set("machine_id")}>
-              <option value="">— select machine —</option>
-              {machines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-          </label>
-        </div>
+    2: (
+      <div style={gridStyle}>
+        <label style={labelStyle}>
+          Machine<span style={reqMark}>*</span>
+          <SearchableSelect
+            options={machineOptions}
+            value={form.machine_id as string}
+            onChange={v => setVal("machine_id", v)}
+            placeholder="— select machine —"
+          />
+        </label>
+        <label style={labelStyle}>
+          Paper Type
+          <SearchableSelect
+            options={paperOptions}
+            value={paperStocks.find(p => p.name === (form.paper_type as string))?.id ?? ""}
+            onChange={handlePaperSelect}
+            placeholder="— select from inventory —"
+          />
+        </label>
+        <label style={labelStyle}>
+          Paper GSM
+          <input style={inputStyle} type="number" value={form.paper_gsm as string} onChange={set("paper_gsm")} placeholder="e.g. 130" />
+        </label>
+        <label style={labelStyle}>
+          Sheet Size
+          <input style={inputStyle} value={form.sheet_size as string} onChange={set("sheet_size")} placeholder="e.g. 12X18" />
+        </label>
+        <label style={labelStyle}>
+          Sheet Count
+          <input style={inputStyle} type="number" value={form.sheet_count as string} onChange={set("sheet_count")} />
+        </label>
       </div>
+    ),
 
-      {/* Section 3 — Pre-Print Process */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>3. Pre-Print Process</div>
+    3: (
+      <div>
         <div style={gridStyle}>
-          <label style={labelStyle}>Composing Date
+          <label style={labelStyle}>
+            Composing Date
             <input style={inputStyle} type="date" value={form.composing_date as string} onChange={set("composing_date")} />
           </label>
-          <label style={labelStyle}>Composing Amount (Rs.)
+          <label style={labelStyle}>
+            Composing Amount (Rs.)
             <input style={inputStyle} type="number" step="0.01" value={form.composing_amount as string} onChange={set("composing_amount")} />
           </label>
-          <label style={labelStyle}>Plate Cost (Rs.)
+          <label style={labelStyle}>
+            Plate Cost (Rs.)
             <input style={inputStyle} type="number" step="0.01" value={form.plate_cost as string} onChange={set("plate_cost")} />
           </label>
-          <label style={labelStyle}>Die Cost (Rs.)
+          <label style={labelStyle}>
+            Die Cost (Rs.)
             <input style={inputStyle} type="number" step="0.01" value={form.die_cost as string} onChange={set("die_cost")} />
           </label>
-          <label style={labelStyle}>Plate Source
-            <select style={inputStyle} value={form.plate_source as string} onChange={set("plate_source")}>
-              <option value="">— select —</option>
-              {plateSources.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-            </select>
+          <label style={labelStyle}>
+            Plate Source
+            <SearchableSelect
+              options={plateSourceOptions}
+              value={form.plate_source as string}
+              onChange={v => setVal("plate_source", v)}
+              placeholder="— select plate source —"
+            />
           </label>
-          <label style={labelStyle}>Approved Rate (Rs.)
+          <label style={labelStyle}>
+            Approved Rate (Rs.)
             <input style={inputStyle} type="number" step="0.01" value={form.approved_rate as string} onChange={set("approved_rate")} />
           </label>
-          <label style={labelStyle}>Hela Cost (Rs.)
+          <label style={labelStyle}>
+            Hela Cost (Rs.)
             <input style={inputStyle} type="number" step="0.01" value={form.hela_cost as string} onChange={set("hela_cost")} />
           </label>
-          <label style={labelStyle}>Other Cost (Rs.)
+          <label style={labelStyle}>
+            Other Cost (Rs.)
             <input style={inputStyle} type="number" step="0.01" value={form.other_cost as string} onChange={set("other_cost")} />
           </label>
         </div>
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 16 }}>
           <label style={checkRowStyle}>
             <input type="checkbox" checked={boolField(form, "proof_required")} onChange={setCheck("proof_required")} />
             Proof Required
           </label>
         </div>
       </div>
+    ),
 
-      {/* Section 4 — Print Process */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>4. Print Process</div>
-        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 14 }}>
+    4: (
+      <div>
+        <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
           <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_offset")} onChange={setCheck("is_offset")} /> Offset</label>
           <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_digital")} onChange={setCheck("is_digital")} /> Digital</label>
           <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_screen")} onChange={setCheck("is_screen")} /> Screen</label>
         </div>
         <div style={gridStyle}>
-          <label style={labelStyle}>Print Colors
-            <select
-              style={inputStyle}
-              value={printColorsIsOther ? "__other__" : (form.print_colors as string)}
-              onChange={e => {
-                if (e.target.value === "__other__") {
-                  setForm(f => ({ ...f, print_colors: "" }));
-                } else {
-                  setForm(f => ({ ...f, print_colors: e.target.value }));
-                }
-              }}
-            >
-              <option value="">— select print colors —</option>
-              {printColors.map(pc => <option key={pc.id} value={pc.name}>{pc.name}</option>)}
-              <option value="__other__">Other (custom)</option>
-            </select>
-            {printColorsIsOther && (
-              <input
-                style={{ ...inputStyle, marginTop: 6 }}
-                value={form.print_colors as string}
-                onChange={set("print_colors")}
-                placeholder="e.g. MULTICOLOR, 1 COLOR, 4 COLOR"
-              />
-            )}
+          <label style={labelStyle}>
+            Print Colors
+            <SearchableSelect
+              options={printColorOptions}
+              value={form.print_colors as string}
+              onChange={v => setVal("print_colors", v)}
+              placeholder="— select print colors —"
+            />
           </label>
-          <label style={labelStyle}>Print Operator Name
-            <select style={inputStyle} value={form.print_operator as string} onChange={set("print_operator")}>
-              <option value="">— select operator —</option>
-              {staffUsers.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
-            </select>
+          <label style={labelStyle}>
+            Print Operator
+            <SearchableSelect
+              options={staffOptions}
+              value={form.print_operator as string}
+              onChange={v => setVal("print_operator", v)}
+              placeholder="— select operator —"
+            />
           </label>
-          <label style={labelStyle}>Print Date
+          <label style={labelStyle}>
+            Print Date
             <input style={inputStyle} type="date" value={form.print_date as string} onChange={set("print_date")} />
           </label>
         </div>
       </div>
+    ),
 
-      {/* Section 5 — Post-Print Process */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>5. Post-Print Process</div>
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
-          <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_numbering")} onChange={setCheck("is_numbering")} /> Numbering</label>
-          <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_binding")} onChange={setCheck("is_binding")} /> Binding</label>
-          <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_uv")} onChange={setCheck("is_uv")} /> UV</label>
-          <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_foil")} onChange={setCheck("is_foil")} /> Foil</label>
-          <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_die_cutting")} onChange={setCheck("is_die_cutting")} /> Die Cutting</label>
-          <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_half_cutting")} onChange={setCheck("is_half_cutting")} /> Half Cutting</label>
-          <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_creasing")} onChange={setCheck("is_creasing")} /> Creasing</label>
-          <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_pasting")} onChange={setCheck("is_pasting")} /> Pasting</label>
-          <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_lamination")} onChange={setCheck("is_lamination")} /> Lamination</label>
-          <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_folding")} onChange={setCheck("is_folding")} /> Folding</label>
-          <label style={checkRowStyle}><input type="checkbox" checked={boolField(form, "is_gumming")} onChange={setCheck("is_gumming")} /> Gumming</label>
+    5: (
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+          {([
+            ["is_numbering", "Numbering"],
+            ["is_binding", "Binding"],
+            ["is_uv", "UV"],
+            ["is_foil", "Foil"],
+            ["is_die_cutting", "Die Cutting"],
+            ["is_half_cutting", "Half Cutting"],
+            ["is_creasing", "Creasing"],
+            ["is_pasting", "Pasting"],
+            ["is_lamination", "Lamination"],
+            ["is_folding", "Folding"],
+            ["is_gumming", "Gumming"],
+          ] as [string, string][]).map(([key, label]) => (
+            <label key={key} style={checkRowStyle}>
+              <input type="checkbox" checked={boolField(form, key)} onChange={setCheck(key)} />
+              {label}
+            </label>
+          ))}
         </div>
         {isNumbering && (
-          <div style={{ ...gridStyle, marginBottom: 14 }}>
-            <label style={labelStyle}>Numbering From
+          <div style={{ ...gridStyle, marginBottom: 20 }}>
+            <label style={labelStyle}>
+              Numbering From
               <input style={inputStyle} type="number" value={form.numbering_from as string} onChange={set("numbering_from")} />
             </label>
-            <label style={labelStyle}>Numbering To
+            <label style={labelStyle}>
+              Numbering To
               <input style={inputStyle} type="number" value={form.numbering_to as string} onChange={set("numbering_to")} />
             </label>
           </div>
         )}
         <div style={gridStyle}>
-          <label style={labelStyle}>Binding Operator
-            <select style={inputStyle} value={form.binding_operator as string} onChange={set("binding_operator")}>
-              <option value="">— select operator —</option>
-              {staffUsers.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
-            </select>
+          <label style={labelStyle}>
+            Binding Operator
+            <SearchableSelect
+              options={staffOptions}
+              value={form.binding_operator as string}
+              onChange={v => setVal("binding_operator", v)}
+              placeholder="— select operator —"
+            />
           </label>
-          <label style={labelStyle}>Packing Operator
-            <select style={inputStyle} value={form.packing_operator as string} onChange={set("packing_operator")}>
-              <option value="">— select operator —</option>
-              {staffUsers.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
-            </select>
+          <label style={labelStyle}>
+            Packing Operator
+            <SearchableSelect
+              options={staffOptions}
+              value={form.packing_operator as string}
+              onChange={v => setVal("packing_operator", v)}
+              placeholder="— select operator —"
+            />
           </label>
-          <label style={labelStyle}>Post-Print Date
+          <label style={labelStyle}>
+            Post-Print Date
             <input style={inputStyle} type="date" value={form.post_print_date as string} onChange={set("post_print_date")} />
           </label>
         </div>
       </div>
+    ),
 
-      {/* Section 6 — Financial & Delivery */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>6. Financial &amp; Delivery</div>
+    6: (
+      <div>
         <div style={gridStyle}>
-          <label style={labelStyle}>Quoted Price (Rs.)
+          <label style={labelStyle}>
+            Quoted Price (Rs.)
             <input style={inputStyle} type="number" step="0.01" value={form.quoted_price as string} onChange={set("quoted_price")} />
           </label>
-          <label style={labelStyle}>Advance Amount (Rs.)
+          <label style={labelStyle}>
+            Advance Amount (Rs.)
             <input style={inputStyle} type="number" step="0.01" value={form.advance_amount as string} onChange={set("advance_amount")} />
           </label>
-          <label style={labelStyle}>Quotation Ref
+          <label style={labelStyle}>
+            Quotation Ref
             <input style={inputStyle} value={form.quotation_ref as string} onChange={set("quotation_ref")} placeholder="e.g. NILL" />
           </label>
-          <label style={labelStyle}>Indent Number
+          <label style={labelStyle}>
+            Indent Number
             <input style={inputStyle} value={form.indent_number as string} onChange={set("indent_number")} />
           </label>
-          <label style={labelStyle}>Delivery Quantity
+          <label style={labelStyle}>
+            Delivery Quantity
             <input style={inputStyle} type="number" value={form.delivery_quantity as string} onChange={set("delivery_quantity")} />
           </label>
-          <label style={labelStyle}>Challan Number
+          <label style={labelStyle}>
+            Challan Number
             <input style={inputStyle} value={form.challan_number as string} onChange={set("challan_number")} />
           </label>
-          <label style={labelStyle}>Challan Date
+          <label style={labelStyle}>
+            Challan Date
             <input style={inputStyle} type="date" value={form.challan_date as string} onChange={set("challan_date")} />
           </label>
         </div>
+
+        {/* Summary */}
+        <div style={{
+          marginTop: 28, padding: 20, background: "#f8f9ff",
+          border: "1px solid #e7ecff", borderRadius: 8,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#3b5bdb", marginBottom: 12, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            Job Summary
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            {([
+              ["Client", clientName],
+              ["Job Title", (form.title as string) || "—"],
+              ["Quantity", (form.quantity as string) || "—"],
+              ["Machine", machineName],
+              ["Due Date", (form.due_date as string) || "—"],
+              ["Quoted Price", (form.quoted_price as string) ? `Rs.${form.quoted_price}` : "—"],
+            ] as [string, string][]).map(([k, v]) => (
+              <div key={k}>
+                <div style={{ fontSize: 11, color: "#868e96", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{k}</div>
+                <div style={{ fontSize: 14, color: "#212529", fontWeight: 500, marginTop: 2 }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    ),
+  };
+
+  return (
+    <div style={{
+      background: "#fff", padding: 32, borderRadius: 10, marginBottom: 20,
+      boxShadow: "0 2px 8px rgba(0,0,0,.10)",
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <h3 style={{ margin: 0, fontSize: 17 }}>
+          {initial?.id ? `Edit Job #${initial.job_number}` : "New Job Card"}
+        </h3>
+        <button
+          onClick={onCancel}
+          style={{ padding: "6px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff", fontSize: 13 }}
+        >
+          Cancel
+        </button>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+      <Stepper current={step} />
+
+      <div style={{ minHeight: 260, padding: "4px 0 24px" }}>
+        {stepContent[step]}
+      </div>
+
+      {stepError && (
+        <div style={{ color: "#c92a2a", fontSize: 13, marginBottom: 12, fontWeight: 500 }}>
+          Please fill required fields (*)
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f0f0f0", paddingTop: 20 }}>
         <button
-          onClick={() => onSave(form)}
-          disabled={!canSubmit}
-          style={{ padding: "9px 24px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: canSubmit ? "pointer" : "not-allowed", fontWeight: 600, opacity: canSubmit ? 1 : 0.5 }}
+          onClick={handlePrev}
+          disabled={step === 1}
+          style={{
+            padding: "9px 22px", border: "1px solid #ddd", borderRadius: 6,
+            cursor: step === 1 ? "not-allowed" : "pointer", background: "#fff",
+            fontWeight: 500, fontSize: 14, opacity: step === 1 ? 0.4 : 1,
+          }}
         >
-          {isPending ? "Saving..." : "Save Job Card"}
+          &larr; Previous
         </button>
-        <button onClick={onCancel} style={{ padding: "9px 16px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
+
+        {step < 6 ? (
+          <button
+            onClick={handleNext}
+            style={{
+              padding: "9px 22px", background: "#3b5bdb", color: "#fff",
+              border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 14,
+            }}
+          >
+            Next &rarr;
+          </button>
+        ) : (
+          <button
+            onClick={handleSave}
+            disabled={isPending}
+            style={{
+              padding: "9px 24px", background: "#2f9e44", color: "#fff",
+              border: "none", borderRadius: 6, cursor: isPending ? "not-allowed" : "pointer",
+              fontWeight: 700, fontSize: 14, opacity: isPending ? 0.6 : 1,
+            }}
+          >
+            {isPending ? "Saving..." : "Save Job"}
+          </button>
+        )}
       </div>
     </div>
   );
