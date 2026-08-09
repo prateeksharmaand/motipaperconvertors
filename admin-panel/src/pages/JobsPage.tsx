@@ -983,6 +983,12 @@ export default function JobsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setDeleteConfirm(null); },
   });
 
+  const changeStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      api.patch(`/admin/jobs/${id}/status`, { status }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs"] }),
+  });
+
   const col = (label: string, key: string) => (
     <th style={th} onClick={() => actions.setSort(key)}>
       {label}<SortIcon col={key} sortBy={list.sortBy} sortDir={list.sortDir} />
@@ -1072,7 +1078,13 @@ export default function JobsPage() {
                 <td style={td}>{j.sheet_size ?? "—"}</td>
                 <td style={td}>{j.quantity ?? "—"}</td>
                 <td style={td}>
-                  <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[j.status] ?? "#868e96") + "22", color: STATUS_COLOR[j.status] ?? "#868e96" }}>{statusLabel(j.status)}</span>
+                  <select
+                    value={j.status}
+                    onChange={e => changeStatus.mutate({ id: j.id, status: e.target.value })}
+                    style={{ padding: "3px 8px", borderRadius: 8, border: `1px solid ${STATUS_COLOR[j.status] ?? "#e5e7eb"}`, background: (STATUS_COLOR[j.status] ?? "#868e96") + "18", color: STATUS_COLOR[j.status] ?? "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer", outline: "none" }}
+                  >
+                    {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
                 </td>
                 <td style={td}>{j.due_date ? j.due_date.slice(0, 10) : "—"}</td>
                 <td style={td}>{j.advance_amount != null ? "Rs." + Number(j.advance_amount).toLocaleString("en-IN") : "—"}</td>
