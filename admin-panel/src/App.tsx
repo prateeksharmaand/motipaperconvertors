@@ -19,8 +19,6 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 }
 
 export default function App() {
-  const role = useAuthStore((s) => s.role);
-
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
@@ -39,15 +37,9 @@ export default function App() {
         <Route path="inventory" element={<InventoryPage />} />
         <Route path="billing" element={<BillingPage />} />
         <Route path="reports" element={<ReportsPage />} />
-        {(role === "owner" || role === "super_admin") && (
-          <>
-            <Route path="machines" element={<MachinesPage />} />
-            <Route path="sub-admins" element={<SubAdminsPage />} />
-          </>
-        )}
-        {role === "super_admin" && (
-          <Route path="tenants" element={<TenantsPage />} />
-        )}
+        <Route path="machines" element={<MachinesPage />} />
+        <Route path="sub-admins" element={<SubAdminsPage />} />
+        <Route path="tenants" element={<TenantsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
