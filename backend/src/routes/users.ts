@@ -98,7 +98,7 @@ router.post("/", requirePermission("staff.manage"), async (req, res) => {
     role: "operator",
     status,
     staff_type: staffType ?? null,
-  }).returning("id", "name", "email", "role", "status", "staff_type");
+  }).returning(["id", "name", "email", "role", "status", "staff_type"]);
 
   await writeAuditLog(req, "user.created", "user", user.id, null, { role: "operator", email });
   res.status(201).json(user);
@@ -125,7 +125,7 @@ router.patch("/:id", requirePermission("staff.manage"), async (req, res) => {
   if (parsed.data.staff_type !== undefined) updates.staff_type = parsed.data.staff_type;
   if (parsed.data.status !== undefined) updates.status = parsed.data.status;
 
-  const [updated] = await db("users").where({ id: req.params.id }).update(updates).returning("id", "name", "email", "role", "status", "staff_type");
+  const [updated] = await db("users").where({ id: req.params.id }).update(updates).returning(["id", "name", "email", "role", "status", "staff_type"]);
   await writeAuditLog(req, "user.updated", "user", req.params.id, target, updated);
   res.json(updated);
 });
