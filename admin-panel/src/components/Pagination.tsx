@@ -8,18 +8,19 @@ interface PaginationProps {
 
 const btn = (active: boolean, disabled: boolean): React.CSSProperties => ({
   padding: "6px 12px",
-  border: "1px solid #ddd",
-  borderRadius: 6,
+  border: `1px solid ${active ? "#7c3aed" : "#e5e7eb"}`,
+  borderRadius: 7,
   cursor: disabled ? "default" : "pointer",
-  background: active ? "#3b5bdb" : disabled ? "#f5f5f5" : "#fff",
-  color: active ? "#fff" : disabled ? "#ccc" : "#444",
+  background: active ? "#7c3aed" : disabled ? "#f9fafb" : "#fff",
+  color: active ? "#fff" : disabled ? "#d1d5db" : "#374151",
   fontWeight: active ? 700 : 400,
-  fontSize: 13,
+  fontSize: 12,
+  fontFamily: "inherit",
 });
 
 export default function Pagination({ page, totalPages, total, limit, onPage }: PaginationProps) {
   if (totalPages <= 1) return (
-    <div style={{ color: "#888", fontSize: 13, marginTop: 12 }}>
+    <div style={{ color: "#9ca3af", fontSize: 12, marginTop: 12 }}>
       {total} result{total !== 1 ? "s" : ""}
     </div>
   );
@@ -40,14 +41,14 @@ export default function Pagination({ page, totalPages, total, limit, onPage }: P
   const to = Math.min(page * limit, total);
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-      <span style={{ fontSize: 13, color: "#888", marginRight: 8 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 16, flexWrap: "wrap" }}>
+      <span style={{ fontSize: 12, color: "#9ca3af", marginRight: 6 }}>
         {from}–{to} of {total}
       </span>
       <button style={btn(false, page === 1)} disabled={page === 1} onClick={() => onPage(page - 1)}>‹ Prev</button>
       {pages.map((p, i) =>
         p === "..." ? (
-          <span key={`e${i}`} style={{ padding: "6px 4px", color: "#888", fontSize: 13 }}>…</span>
+          <span key={`e${i}`} style={{ padding: "6px 4px", color: "#9ca3af", fontSize: 12 }}>…</span>
         ) : (
           <button key={p} style={btn(p === page, false)} onClick={() => onPage(p as number)}>{p}</button>
         )

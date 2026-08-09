@@ -2,20 +2,47 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/auth.ts";
 import { api } from "../lib/api.ts";
 
-const navStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
-  display: "block",
-  padding: "9px 14px",
-  borderRadius: 6,
-  background: isActive ? "#3b5bdb" : "transparent",
-  color: isActive ? "#fff" : "#555",
-  fontWeight: 500,
-  fontSize: 14,
-});
+const SIDEBAR_W = 220;
 
-const SECTION_LABEL: React.CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#bbb", padding: "12px 14px 4px", display: "block" };
+const sectionLabel: React.CSSProperties = {
+  padding: "20px 16px 6px",
+  fontSize: 10,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: "0.8px",
+  color: "#6b7280",
+  display: "block",
+};
+
+function navStyle({ isActive }: { isActive: boolean }): React.CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "9px 16px",
+    margin: "1px 8px",
+    borderRadius: 8,
+    background: isActive ? "#7c3aed" : "transparent",
+    color: isActive ? "#fff" : "#9ca3af",
+    fontWeight: 500,
+    fontSize: 13,
+    cursor: "pointer",
+    textDecoration: "none",
+    transition: "background 0.15s, color 0.15s",
+  };
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  super_admin: "Super Admin",
+  owner: "Owner",
+  sub_admin: "Sub Admin",
+  staff: "Staff",
+  operator: "Operator",
+};
 
 export default function Layout() {
   const role = useAuthStore((s) => s.role);
+  const userId = useAuthStore((s) => s.userId);
   const clear = useAuthStore((s) => s.clear);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const navigate = useNavigate();
@@ -28,47 +55,129 @@ export default function Layout() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
-      <aside style={{ width: 220, background: "#fff", borderRight: "1px solid #eee", padding: "16px 12px", display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
-        <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 20, padding: "0 4px", color: "#3b5bdb" }}>MotiPaper</div>
+      {/* ── Sidebar ── */}
+      <aside style={{
+        width: SIDEBAR_W,
+        background: "#1f2937",
+        display: "flex",
+        flexDirection: "column",
+        flexShrink: 0,
+        position: "fixed",
+        top: 0,
+        left: 0,
+        height: "100vh",
+        overflowY: "auto",
+        zIndex: 100,
+      }}>
+        {/* Logo */}
+        <div style={{
+          height: 56,
+          display: "flex",
+          alignItems: "center",
+          padding: "0 20px",
+          borderBottom: "1px solid #374151",
+          flexShrink: 0,
+        }}>
+          <span style={{ color: "#fff", fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>
+            MotiPaper
+          </span>
+        </div>
 
-        <span style={SECTION_LABEL}>Operations</span>
-        <NavLink to="/" end style={navStyle}>Dashboard</NavLink>
-        <NavLink to="/jobs" style={navStyle}>Job Cards</NavLink>
-        <NavLink to="/quotations" style={navStyle}>Quotations</NavLink>
-        <NavLink to="/clients" style={navStyle}>Clients</NavLink>
-        <NavLink to="/staff" style={navStyle}>Staff</NavLink>
+        {/* Nav */}
+        <nav style={{ flex: 1, paddingBottom: 12 }}>
+          <span style={sectionLabel}>Operations</span>
+          <NavLink to="/" end style={navStyle}>Dashboard</NavLink>
+          <NavLink to="/jobs" style={navStyle}>Job Cards</NavLink>
+          <NavLink to="/quotations" style={navStyle}>Quotations</NavLink>
+          <NavLink to="/clients" style={navStyle}>Clients</NavLink>
+          <NavLink to="/staff" style={navStyle}>Staff</NavLink>
 
-        <span style={SECTION_LABEL}>Finance</span>
-        <NavLink to="/billing" style={navStyle}>Billing & Khata</NavLink>
-        <NavLink to="/reports" style={navStyle}>Reports</NavLink>
+          <span style={sectionLabel}>Finance</span>
+          <NavLink to="/inventory" style={navStyle}>Inventory</NavLink>
+          <NavLink to="/billing" style={navStyle}>Billing</NavLink>
+          <NavLink to="/reports" style={navStyle}>Reports</NavLink>
 
-        <span style={SECTION_LABEL}>Stock</span>
-        <NavLink to="/inventory" style={navStyle}>Inventory</NavLink>
+          {(role === "owner" || role === "super_admin") && (
+            <>
+              <span style={sectionLabel}>Config</span>
+              <NavLink to="/machines" style={navStyle}>Machines</NavLink>
+              <NavLink to="/sub-admins" style={navStyle}>Sub Admins</NavLink>
+              <NavLink to="/settings" style={navStyle}>Settings</NavLink>
+            </>
+          )}
 
-        {(role === "owner" || role === "super_admin") && (
-          <>
-            <span style={SECTION_LABEL}>Settings</span>
-            <NavLink to="/machines" style={navStyle}>Machines</NavLink>
-            <NavLink to="/sub-admins" style={navStyle}>Sub Admins</NavLink>
-            <NavLink to="/settings" style={navStyle}>Settings</NavLink>
-          </>
-        )}
+          {role === "super_admin" && (
+            <>
+              <span style={sectionLabel}>Platform</span>
+              <NavLink to="/tenants" style={navStyle}>Tenants</NavLink>
+            </>
+          )}
+        </nav>
 
-        {role === "super_admin" && (
-          <>
-            <span style={SECTION_LABEL}>Platform</span>
-            <NavLink to="/tenants" style={navStyle}>All Tenants</NavLink>
-          </>
-        )}
-
-        <div style={{ flex: 1 }} />
-        <button onClick={logout} style={{ padding: "9px 14px", border: "none", background: "none", cursor: "pointer", textAlign: "left", color: "#999", fontSize: 14 }}>
-          Sign out
-        </button>
+        {/* User info + logout */}
+        <div style={{
+          borderTop: "1px solid #374151",
+          padding: "12px 16px",
+          flexShrink: 0,
+        }}>
+          <div style={{ color: "#9ca3af", fontSize: 11, marginBottom: 2 }}>
+            {role ? (ROLE_LABEL[role] ?? role) : "—"}
+          </div>
+          {userId && (
+            <div style={{ color: "#6b7280", fontSize: 10, marginBottom: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              ID: {userId.slice(0, 8)}…
+            </div>
+          )}
+          <button
+            onClick={logout}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#ef4444",
+              fontSize: 12,
+              padding: 0,
+              fontFamily: "inherit",
+            }}
+          >
+            Sign out
+          </button>
+        </div>
       </aside>
-      <main style={{ flex: 1, padding: 32, overflowY: "auto", background: "#f5f5f5" }}>
-        <Outlet />
-      </main>
+
+      {/* ── Main area ── */}
+      <div style={{ marginLeft: SIDEBAR_W, flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        {/* Top bar */}
+        <header style={{
+          height: 56,
+          background: "#fff",
+          borderBottom: "1px solid #e5e7eb",
+          display: "flex",
+          alignItems: "center",
+          padding: "0 24px",
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          flexShrink: 0,
+        }}>
+          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#111827" }}>MotiPaper Admin</span>
+          <div style={{
+            background: "#ede9fe",
+            color: "#6d28d9",
+            borderRadius: 10,
+            padding: "2px 10px",
+            fontSize: 11,
+            fontWeight: 600,
+          }}>
+            {role ? (ROLE_LABEL[role] ?? role) : "—"}
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main style={{ flex: 1, padding: 24, background: "var(--color-bg)", overflowY: "auto" }}>
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

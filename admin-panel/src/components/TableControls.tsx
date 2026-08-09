@@ -25,8 +25,8 @@ function useDebounce<T>(value: T, delay = 350): T {
 }
 
 export function SortIcon({ col, sortBy, sortDir }: { col: string; sortBy: string; sortDir: string }) {
-  if (sortBy !== col) return <span style={{ color: "#ccc", marginLeft: 4 }}>⇅</span>;
-  return <span style={{ color: "#3b5bdb", marginLeft: 4 }}>{sortDir === "asc" ? "↑" : "↓"}</span>;
+  if (sortBy !== col) return <span style={{ color: "#d1d5db", marginLeft: 4 }}>⇅</span>;
+  return <span style={{ color: "#7c3aed", marginLeft: 4 }}>{sortDir === "asc" ? "↑" : "↓"}</span>;
 }
 
 export default function TableControls({
@@ -50,16 +50,25 @@ export default function TableControls({
     <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
       {/* Search input */}
       <div style={{ position: "relative", flex: "1 1 220px", minWidth: 180 }}>
-        <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#aaa", pointerEvents: "none" }}>🔍</span>
+        <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", pointerEvents: "none", fontSize: 13 }}>🔍</span>
         <input
           value={local}
           onChange={(e) => setLocal(e.target.value)}
           placeholder={placeholder}
-          style={{ width: "100%", padding: "8px 10px 8px 30px", border: "1px solid #ddd", borderRadius: 7, fontSize: 14, outline: "none" }}
+          style={{
+            width: "100%",
+            padding: "8px 10px 8px 32px",
+            border: "1px solid #e5e7eb",
+            borderRadius: 7,
+            fontSize: 12,
+            outline: "none",
+            background: "#fff",
+            fontFamily: "inherit",
+          }}
         />
         {local && (
           <button onClick={() => { setLocal(""); onSearch(""); }}
-            style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: 16, lineHeight: 1 }}>
+            style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: 16, lineHeight: 1 }}>
             ×
           </button>
         )}
@@ -71,7 +80,16 @@ export default function TableControls({
           key={f.key}
           value={activeFilters[f.key] ?? ""}
           onChange={(e) => onFilter?.(f.key, e.target.value)}
-          style={{ padding: "8px 12px", border: `1px solid ${activeFilters[f.key] ? "#3b5bdb" : "#ddd"}`, borderRadius: 7, fontSize: 14, background: activeFilters[f.key] ? "#eef2ff" : "#fff", color: activeFilters[f.key] ? "#3b5bdb" : "#444", cursor: "pointer" }}>
+          style={{
+            padding: "8px 12px",
+            border: `1px solid ${activeFilters[f.key] ? "#7c3aed" : "#e5e7eb"}`,
+            borderRadius: 7,
+            fontSize: 12,
+            background: activeFilters[f.key] ? "#ede9fe" : "#fff",
+            color: activeFilters[f.key] ? "#6d28d9" : "#374151",
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}>
           <option value="">{f.label}: All</option>
           {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -79,7 +97,16 @@ export default function TableControls({
 
       {/* Reset */}
       {hasActiveFilters && (
-        <button onClick={onReset} style={{ padding: "8px 12px", border: "1px solid #eee", borderRadius: 7, background: "#fff", fontSize: 13, color: "#888", cursor: "pointer" }}>
+        <button onClick={onReset} style={{
+          padding: "8px 12px",
+          border: "1px solid #e5e7eb",
+          borderRadius: 7,
+          background: "#f9fafb",
+          fontSize: 12,
+          color: "#6b7280",
+          cursor: "pointer",
+          fontFamily: "inherit",
+        }}>
           Clear all
         </button>
       )}
