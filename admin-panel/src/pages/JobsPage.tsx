@@ -101,6 +101,7 @@ function buildApiPayload(form: FormState) {
     bindingOperatorId: str("binding_operator_id") || undefined,
     packingOperatorId: str("packing_operator_id") || undefined,
     qcOperatorId: str("qc_operator_id") || undefined,
+    designerId: str("designer_id") || undefined,
     printDate: str("print_date") || undefined,
     isNumbering: bool("is_numbering"),
     numberingFrom: num("numbering_from"),
@@ -163,6 +164,7 @@ function buildPatchPayload(form: FormState) {
     binding_operator_id: str("binding_operator_id") || null,
     packing_operator_id: str("packing_operator_id") || null,
     qc_operator_id: str("qc_operator_id") || null,
+    designer_id: str("designer_id") || null,
     print_date: str("print_date") || undefined,
     is_numbering: bool("is_numbering"),
     numbering_from: num("numbering_from"),
@@ -207,7 +209,7 @@ function initForm(initial?: Partial<Job>): FormState {
       post_print_date: "", binding_operator: "", packing_operator: "",
       advance_amount: "", quotation_ref: "", indent_number: "",
       delivery_quantity: "", challan_number: "", challan_date: "",
-      print_operator_id: "", binding_operator_id: "", packing_operator_id: "", qc_operator_id: "",
+      print_operator_id: "", binding_operator_id: "", packing_operator_id: "", qc_operator_id: "", designer_id: "",
     };
   }
   const s = (v: unknown) => (v !== null && v !== undefined ? String(v) : "");
@@ -267,6 +269,7 @@ function initForm(initial?: Partial<Job>): FormState {
     binding_operator_id: (initial as Record<string, unknown>).binding_operator_id as string ?? "",
     packing_operator_id: (initial as Record<string, unknown>).packing_operator_id as string ?? "",
     qc_operator_id: (initial as Record<string, unknown>).qc_operator_id as string ?? "",
+    designer_id: (initial as Record<string, unknown>).designer_id as string ?? "",
   };
 }
 
@@ -615,6 +618,15 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
     3: (
       <div>
         <div style={gridStyle}>
+          <label style={labelStyle}>
+            Designer
+            <SearchableSelect
+              options={staffUsers.map(u => ({ value: u.id, label: u.name }))}
+              value={form.designer_id as string}
+              onChange={v => setVal("designer_id", v)}
+              placeholder="— assign designer —"
+            />
+          </label>
           <label style={labelStyle}>
             Composing Date
             <input style={inputStyle} type="date" value={form.composing_date as string} onChange={set("composing_date")} />

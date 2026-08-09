@@ -28,6 +28,7 @@ router.get("/", requirePermission("jobs.view"), async (req, res) => {
     .leftJoin("users as binding_op", "job_cards.binding_operator_id", "binding_op.id")
     .leftJoin("users as packing_op", "job_cards.packing_operator_id", "packing_op.id")
     .leftJoin("users as qc_op", "job_cards.qc_operator_id", "qc_op.id")
+    .leftJoin("users as designer", "job_cards.designer_id", "designer.id")
     .select(
       "job_cards.*",
       "clients.name as client_name",
@@ -36,11 +37,19 @@ router.get("/", requirePermission("jobs.view"), async (req, res) => {
       "binding_op.name as binding_operator_name",
       "packing_op.name as packing_operator_name",
       "qc_op.name as qc_operator_name",
+      "designer.name as designer_name",
     );
 
-  // Staff/operators see only their assigned jobs
+  // Staff/operators see jobs where they are assigned in any operator role
   if (["staff", "operator"].includes(req.user.role)) {
-    base = base.where("job_cards.assigned_operator_id", req.user.id);
+    base = base.where(function () {
+      this.where("job_cards.assigned_operator_id", req.user.id)
+          .orWhere("job_cards.print_operator_id", req.user.id)
+          .orWhere("job_cards.binding_operator_id", req.user.id)
+          .orWhere("job_cards.packing_operator_id", req.user.id)
+          .orWhere("job_cards.qc_operator_id", req.user.id)
+          .orWhere("job_cards.designer_id", req.user.id);
+    });
   }
 
   if (status) base = base.where("job_cards.status", status);
@@ -79,7 +88,8 @@ router.get("/my-assigned", async (req, res) => {
         .orWhere("job_cards.binding_operator_id", userId)
         .orWhere("job_cards.packing_operator_id", userId)
         .orWhere("job_cards.qc_operator_id", userId)
-        .orWhere("job_cards.assigned_operator_id", userId);
+        .orWhere("job_cards.assigned_operator_id", userId)
+        .orWhere("job_cards.designer_id", userId);
     })
     .leftJoin("clients", "job_cards.client_id", "clients.id")
     .select(
@@ -161,6 +171,7 @@ const CreateJobSchema = z.object({
   bindingOperatorId: z.string().uuid().optional(),
   packingOperatorId: z.string().uuid().optional(),
   qcOperatorId: z.string().uuid().optional(),
+  designerId: z.string().uuid().optional(),
   copiedFromJobId: z.string().uuid().optional(),
   quotedPrice: z.number().optional(),
   // Extended fields
@@ -226,6 +237,7 @@ router.post("/", requirePermission("jobs.create"), async (req, res) => {
       binding_operator_id: data.bindingOperatorId ?? null,
       packing_operator_id: data.packingOperatorId ?? null,
       qc_operator_id: data.qcOperatorId ?? null,
+      designer_id: data.designerId ?? null,
       created_by: req.user.id,
       title: data.title,
       job_type: data.jobType ?? null,
@@ -322,7 +334,7 @@ router.patch("/:id", requirePermission("jobs.edit"), async (req, res) => {
     "post_print_date", "binding_operator", "packing_operator",
     "advance_amount", "quotation_ref", "indent_number",
     "delivery_quantity", "challan_number", "challan_date",
-    "print_operator_id", "binding_operator_id", "packing_operator_id", "qc_operator_id"];
+    "print_operator_id", "binding_operator_id", "packing_operator_id", "qc_operator_id", "designer_id"];
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
