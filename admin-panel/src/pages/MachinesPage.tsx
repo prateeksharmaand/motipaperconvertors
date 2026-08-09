@@ -40,10 +40,11 @@ export default function MachinesPage() {
   const [editing, setEditing] = useState<Machine | null>(null);
   const qc = useQueryClient();
 
-  const { data: machines = [], isLoading } = useQuery<Machine[]>({
+  const { data: machinesResult, isLoading } = useQuery<{ data: Machine[] }>({
     queryKey: ["machines"],
     queryFn: () => api.get("/admin/machines").then(r => r.data),
   });
+  const machines = machinesResult?.data ?? [];
 
   const create = useMutation({
     mutationFn: (d: Record<string, string>) => api.post("/admin/machines", { name: d.name, type: d.type, model: d.model, maxColors: Number(d.max_colors) || undefined, status: d.status, notes: d.notes }),
