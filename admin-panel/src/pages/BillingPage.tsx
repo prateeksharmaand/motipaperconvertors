@@ -27,8 +27,8 @@ function NewInvoiceForm({ clients, onClose }: { clients: Client[]; onClose: () =
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const { data: jobs = [] } = useQuery<JobMini[]>({
-    queryKey: ["jobs-ready"],
-    queryFn: () => api.get("/admin/jobs", { params: { status: "ready", limit: "200" } }).then(r => r.data.data ?? []),
+    queryKey: ["jobs-all"],
+    queryFn: () => api.get("/admin/jobs", { params: { limit: "200" } }).then(r => r.data.data ?? []),
   });
 
   const updateLine = (i: number, k: keyof LineItem, v: string | number) => {
