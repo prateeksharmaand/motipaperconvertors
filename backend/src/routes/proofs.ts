@@ -38,7 +38,7 @@ router.get("/", requirePermission("jobs.view"), async (req, res) => {
   if (!jobId) { res.status(400).json({ error: "jobId required" }); return; }
 
   const proofs = await db("proofs")
-    .where({ job_id: jobId, tenant_id: req.user.tenantId! })
+    .where({ "proofs.job_id": jobId, "proofs.tenant_id": req.user.tenantId! })
     .leftJoin("users as actioned_user", "proofs.actioned_by", "actioned_user.id")
     .select("proofs.*", "actioned_user.name as actioned_by_name")
     .orderBy("proofs.created_at", "desc");
