@@ -89,8 +89,8 @@ router.get("/machine-utilization", requirePermission("production.view"), async (
 router.get("/outstanding-payments", requirePermission("billing.view"), async (req, res) => {
   const tenantId = req.user.tenantId!;
   const invoices = await db("invoices")
-    .where({ tenant_id: tenantId })
-    .whereIn("status", ["issued", "partially_paid"])
+    .where({ "invoices.tenant_id": tenantId })
+    .whereIn("invoices.status", ["issued", "partially_paid"])
     .leftJoin("clients", "invoices.client_id", "clients.id")
     .select(
       "invoices.id",
