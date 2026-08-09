@@ -41,7 +41,7 @@ function InvoiceForm({ clients, initial, onClose }: { clients: Client[]; initial
 
   const { data: jobs = [] } = useQuery<JobMini[]>({
     queryKey: ["jobs-all"],
-    queryFn: () => api.get("/admin/jobs", { params: { limit: "200" } }).then(r => r.data.data ?? []),
+    queryFn: () => api.get("/admin/jobs", { params: { limit: "200", status: "ready" } }).then(r => r.data.data ?? []),
   });
 
   const updateLine = (i: number, k: keyof LineItem, v: string | number) => {
