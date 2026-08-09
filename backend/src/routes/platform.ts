@@ -59,6 +59,8 @@ router.post("/tenants", async (req, res) => {
       password_hash: passwordHash, role: "owner", status: "active",
     }).returning("*");
 
+    await trx("tenant_job_counters").insert({ tenant_id: tenant.id });
+
     return { tenant, owner };
   });
 
