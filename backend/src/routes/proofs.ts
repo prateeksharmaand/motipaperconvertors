@@ -153,6 +153,24 @@ router.patch("/:id/action", requirePermission("jobs.edit"), async (req, res) => 
     .returning("*");
 
   await writeAuditLog(req, "proof.actioned", "proof", req.params.id, existing, updated);
+
+  // Auto-update job card status when proof is approved
+  if (parsed.data.action === "approved") {
+    const job = await db("job_cards").where({ id: existing.job_id }).first();
+    if (job) {
+      await db("job_cards")
+        .where({ id: existing.job_id })
+        .update({ status: "approval", updated_at: new Date() });
+      await db("job_status_history").insert({
+        job_id: existing.job_id,
+        changed_by: req.user.id,
+        from_status: job.status,
+        to_status: "approval",
+        notes: "Proof approved — status auto-updated",
+      });
+    }
+  }
+
   res.json(updated);
 });
 
