@@ -1,0 +1,93 @@
+import type { Knex } from "knex";
+
+export async function up(knex: Knex): Promise<void> {
+  await knex.schema.alterTable("job_cards", (t) => {
+    t.string("order_type").nullable().defaultTo("in_house");
+    t.string("sheet_size").nullable();
+    t.integer("sheet_count").nullable();
+    t.integer("paper_gsm").nullable();
+    t.date("composing_date").nullable();
+    t.decimal("composing_amount", 12, 2).nullable();
+    t.decimal("plate_cost", 12, 2).nullable();
+    t.decimal("die_cost", 12, 2).nullable();
+    t.string("plate_source").nullable();
+    t.decimal("approved_rate", 12, 2).nullable();
+    t.decimal("hela_cost", 12, 2).nullable();
+    t.decimal("other_cost", 12, 2).nullable();
+    t.boolean("proof_required").nullable().defaultTo(false);
+    t.boolean("is_offset").nullable().defaultTo(false);
+    t.boolean("is_digital").nullable().defaultTo(false);
+    t.boolean("is_screen").nullable().defaultTo(false);
+    t.string("print_colors").nullable();
+    t.string("print_operator").nullable();
+    t.timestamp("print_date").nullable();
+    t.boolean("is_numbering").nullable().defaultTo(false);
+    t.integer("numbering_from").nullable();
+    t.integer("numbering_to").nullable();
+    t.boolean("is_binding").nullable().defaultTo(false);
+    t.boolean("is_uv").nullable().defaultTo(false);
+    t.boolean("is_foil").nullable().defaultTo(false);
+    t.boolean("is_die_cutting").nullable().defaultTo(false);
+    t.boolean("is_half_cutting").nullable().defaultTo(false);
+    t.boolean("is_creasing").nullable().defaultTo(false);
+    t.boolean("is_pasting").nullable().defaultTo(false);
+    t.boolean("is_lamination").nullable().defaultTo(false);
+    t.boolean("is_folding").nullable().defaultTo(false);
+    t.boolean("is_gumming").nullable().defaultTo(false);
+    t.timestamp("post_print_date").nullable();
+    t.string("binding_operator").nullable();
+    t.string("packing_operator").nullable();
+    t.decimal("advance_amount", 12, 2).nullable().defaultTo(0);
+    t.string("quotation_ref").nullable();
+    t.string("indent_number").nullable();
+    t.integer("delivery_quantity").nullable();
+    t.string("challan_number").nullable();
+    t.date("challan_date").nullable();
+  });
+}
+
+export async function down(knex: Knex): Promise<void> {
+  await knex.schema.alterTable("job_cards", (t) => {
+    t.dropColumn("order_type");
+    t.dropColumn("sheet_size");
+    t.dropColumn("sheet_count");
+    t.dropColumn("paper_gsm");
+    t.dropColumn("composing_date");
+    t.dropColumn("composing_amount");
+    t.dropColumn("plate_cost");
+    t.dropColumn("die_cost");
+    t.dropColumn("plate_source");
+    t.dropColumn("approved_rate");
+    t.dropColumn("hela_cost");
+    t.dropColumn("other_cost");
+    t.dropColumn("proof_required");
+    t.dropColumn("is_offset");
+    t.dropColumn("is_digital");
+    t.dropColumn("is_screen");
+    t.dropColumn("print_colors");
+    t.dropColumn("print_operator");
+    t.dropColumn("print_date");
+    t.dropColumn("is_numbering");
+    t.dropColumn("numbering_from");
+    t.dropColumn("numbering_to");
+    t.dropColumn("is_binding");
+    t.dropColumn("is_uv");
+    t.dropColumn("is_foil");
+    t.dropColumn("is_die_cutting");
+    t.dropColumn("is_half_cutting");
+    t.dropColumn("is_creasing");
+    t.dropColumn("is_pasting");
+    t.dropColumn("is_lamination");
+    t.dropColumn("is_folding");
+    t.dropColumn("is_gumming");
+    t.dropColumn("post_print_date");
+    t.dropColumn("binding_operator");
+    t.dropColumn("packing_operator");
+    t.dropColumn("advance_amount");
+    t.dropColumn("quotation_ref");
+    t.dropColumn("indent_number");
+    t.dropColumn("delivery_quantity");
+    t.dropColumn("challan_number");
+    t.dropColumn("challan_date");
+  });
+}
