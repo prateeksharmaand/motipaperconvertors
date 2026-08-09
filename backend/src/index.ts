@@ -20,6 +20,7 @@ import reportsRouter from "./routes/reports.js";
 import platformRouter from "./routes/platform.js";
 import publicRouter from "./routes/public.js";
 import settingsRouter from "./routes/settings.js";
+import proofsRouter from "./routes/proofs.js";
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use("/api/v1/admin/inventory", inventoryRouter);
 app.use("/api/v1/admin/billing", billingRouter);
 app.use("/api/v1/admin/reports", reportsRouter);
 app.use("/api/v1/admin/settings", settingsRouter);
+app.use("/api/v1/admin/proofs", proofsRouter);
 
 // Super Admin platform namespace
 app.use("/api/v1/platform", platformRouter);
