@@ -122,7 +122,7 @@ export default function ProofsPage() {
   // ── Fetch jobs for dropdown ──────────────────────────────
   const { data: jobsResult } = useQuery<PagedResult<Job>>({
     queryKey: ["jobs-list"],
-    queryFn: () => api.get("/admin/jobs?limit=200").then((r) => r.data),
+    queryFn: () => api.get("/admin/jobs", { params: { limit: 200 } }).then((r) => r.data),
   });
   const jobs: Job[] = jobsResult?.data ?? [];
 
