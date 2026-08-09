@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import db from "../db/knex.js";
 import { requirePermission, requireRole } from "../middleware/requirePermission.js";
 import { requireTenant } from "../middleware/tenantScope.js";
@@ -21,7 +22,7 @@ router.get("/", requirePermission("staff.view"), async (req, res) => {
 
   let base = db("users")
     .where({ tenant_id: tenantId })
-    .select("id", "name", "email", "phone", "role", "status", "last_login_at", "created_at");
+    .select("id", "name", "email", "phone", "role", "status", "staff_type", "last_login_at", "created_at");
   let countQ = db("users").where({ tenant_id: tenantId });
 
   if (role) { base = base.where({ role }); countQ = countQ.where({ role }); }
@@ -68,6 +69,65 @@ router.post("/invite", requirePermission("staff.manage"), async (req, res) => {
 
   await writeAuditLog(req, "user.invited", "user", user.id, null, { role, email, phone });
   res.status(201).json({ userId: user.id, inviteToken });
+});
+
+const CreateStaffSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().min(6),
+  staffType: z.string().optional(),
+  status: z.enum(["active", "inactive"]).optional().default("active"),
+});
+
+// POST /users — direct create with password (for operator/staff accounts)
+router.post("/", requirePermission("staff.manage"), async (req, res) => {
+  const parsed = CreateStaffSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+  const { name, email, password, staffType, status } = parsed.data;
+  const tenantId = req.user.tenantId!;
+
+  const existing = await db("users").where({ tenant_id: tenantId, email }).first();
+  if (existing) { res.status(409).json({ error: "A user with this email already exists" }); return; }
+
+  const password_hash = await bcrypt.hash(password, 10);
+  const [user] = await db("users").insert({
+    tenant_id: tenantId,
+    name,
+    email,
+    password_hash,
+    role: "operator",
+    status,
+    staff_type: staffType ?? null,
+  }).returning("id", "name", "email", "role", "status", "staff_type");
+
+  await writeAuditLog(req, "user.created", "user", user.id, null, { role: "operator", email });
+  res.status(201).json(user);
+});
+
+const UpdateStaffSchema = z.object({
+  name: z.string().min(2).optional(),
+  email: z.string().email().optional(),
+  staff_type: z.string().nullable().optional(),
+  status: z.enum(["active", "inactive", "invited"]).optional(),
+});
+
+// PATCH /users/:id — general update for staff/operator fields
+router.patch("/:id", requirePermission("staff.manage"), async (req, res) => {
+  const parsed = UpdateStaffSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+  const tenantId = req.user.tenantId!;
+  const target = await db("users").where({ id: req.params.id, tenant_id: tenantId }).first();
+  if (!target) { res.status(404).json({ error: "User not found" }); return; }
+
+  const updates: Record<string, unknown> = { updated_at: new Date() };
+  if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+  if (parsed.data.email !== undefined) updates.email = parsed.data.email;
+  if (parsed.data.staff_type !== undefined) updates.staff_type = parsed.data.staff_type;
+  if (parsed.data.status !== undefined) updates.status = parsed.data.status;
+
+  const [updated] = await db("users").where({ id: req.params.id }).update(updates).returning("id", "name", "email", "role", "status", "staff_type");
+  await writeAuditLog(req, "user.updated", "user", req.params.id, target, updated);
+  res.json(updated);
 });
 
 router.patch("/:id/permissions", requireRole("owner", "super_admin"), async (req, res) => {

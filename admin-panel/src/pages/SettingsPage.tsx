@@ -124,7 +124,7 @@ function SettingsList({ label, queryKey, endpoint }: { label: string; queryKey: 
 
 export default function SettingsPage() {
   const role = useAuthStore(s => s.role);
-  const [tab, setTab] = useState<"job_types" | "print_colors" | "plate_sources">("job_types");
+  const [tab, setTab] = useState<"job_types" | "print_colors" | "plate_sources" | "staff_types">("job_types");
 
   if (role === "staff" || role === "operator") return null;
 
@@ -147,6 +147,7 @@ export default function SettingsPage() {
           <button style={tabStyle(tab === "job_types")} onClick={() => setTab("job_types")}>Job Types</button>
           <button style={tabStyle(tab === "print_colors")} onClick={() => setTab("print_colors")}>Print Colors</button>
           <button style={tabStyle(tab === "plate_sources")} onClick={() => setTab("plate_sources")}>Plate Sources</button>
+          <button style={tabStyle(tab === "staff_types")} onClick={() => setTab("staff_types")}>Staff Types</button>
         </div>
         <div style={{ padding: 20 }}>
           {tab === "job_types" && (
@@ -168,6 +169,13 @@ export default function SettingsPage() {
               label="Plate Source"
               queryKey="settings-plate-sources"
               endpoint="/admin/settings/plate-sources"
+            />
+          )}
+          {tab === "staff_types" && (
+            <SettingsList
+              label="Staff Type"
+              queryKey="settings-staff-types"
+              endpoint="/admin/settings/staff-types"
             />
           )}
         </div>

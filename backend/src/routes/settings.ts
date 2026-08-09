@@ -87,4 +87,30 @@ router.delete("/plate-sources/:id", requirePermission("settings.edit"), async (r
   res.json({ ok: true });
 });
 
+// ── Staff Types ───────────────────────────────────────────────────────────────
+
+router.get("/staff-types", requirePermission("settings.edit"), async (req, res) => {
+  const rows = await db("tenant_settings")
+    .where({ tenant_id: req.user.tenantId!, key: "staff_type" })
+    .orderBy("created_at", "asc")
+    .select("id", "value as name", "tenant_id");
+  res.json(rows);
+});
+
+router.post("/staff-types", requirePermission("settings.edit"), async (req, res) => {
+  const parsed = NameSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+  const [row] = await db("tenant_settings")
+    .insert({ tenant_id: req.user.tenantId!, key: "staff_type", value: parsed.data.name })
+    .returning(["id", "value as name", "tenant_id"]);
+  res.status(201).json(row);
+});
+
+router.delete("/staff-types/:id", requirePermission("settings.edit"), async (req, res) => {
+  await db("tenant_settings")
+    .where({ id: req.params.id, tenant_id: req.user.tenantId!, key: "staff_type" })
+    .delete();
+  res.json({ ok: true });
+});
+
 export default router;

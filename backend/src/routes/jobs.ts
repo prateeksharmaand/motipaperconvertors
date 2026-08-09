@@ -24,10 +24,18 @@ router.get("/", requirePermission("jobs.view"), async (req, res) => {
     .where("job_cards.tenant_id", tenantId)
     .leftJoin("clients", "job_cards.client_id", "clients.id")
     .leftJoin("users as operator", "job_cards.assigned_operator_id", "operator.id")
+    .leftJoin("users as print_op", "job_cards.print_operator_id", "print_op.id")
+    .leftJoin("users as binding_op", "job_cards.binding_operator_id", "binding_op.id")
+    .leftJoin("users as packing_op", "job_cards.packing_operator_id", "packing_op.id")
+    .leftJoin("users as qc_op", "job_cards.qc_operator_id", "qc_op.id")
     .select(
       "job_cards.*",
       "clients.name as client_name",
       "operator.name as operator_name",
+      "print_op.name as print_operator_name",
+      "binding_op.name as binding_operator_name",
+      "packing_op.name as packing_operator_name",
+      "qc_op.name as qc_operator_name",
     );
 
   // Staff/operators see only their assigned jobs
@@ -58,13 +66,70 @@ router.get("/", requirePermission("jobs.view"), async (req, res) => {
   res.json(result);
 });
 
+// ── GET /jobs/my-assigned ─────────────────────────────────
+// Returns jobs assigned to the logged-in operator (no permission check — operators have no permissions)
+router.get("/my-assigned", async (req, res) => {
+  const tenantId = req.user.tenantId!;
+  const userId = req.user.id;
+
+  const jobs = await db("job_cards")
+    .where("job_cards.tenant_id", tenantId)
+    .where((qb) => {
+      qb.where("job_cards.print_operator_id", userId)
+        .orWhere("job_cards.binding_operator_id", userId)
+        .orWhere("job_cards.packing_operator_id", userId)
+        .orWhere("job_cards.qc_operator_id", userId)
+        .orWhere("job_cards.assigned_operator_id", userId);
+    })
+    .leftJoin("clients", "job_cards.client_id", "clients.id")
+    .select(
+      "job_cards.id",
+      "job_cards.job_number",
+      "job_cards.title",
+      "job_cards.status",
+      "job_cards.due_date",
+      "job_cards.print_operator_id",
+      "job_cards.binding_operator_id",
+      "job_cards.packing_operator_id",
+      "job_cards.qc_operator_id",
+      "job_cards.assigned_operator_id",
+      "clients.name as client_name",
+    )
+    .orderBy("job_cards.due_date", "asc");
+
+  // Annotate each job with which role(s) the current user holds
+  const result = jobs.map((job) => {
+    const roles: string[] = [];
+    if (job.print_operator_id === userId) roles.push("print");
+    if (job.binding_operator_id === userId) roles.push("binding");
+    if (job.packing_operator_id === userId) roles.push("packing");
+    if (job.qc_operator_id === userId) roles.push("qc");
+    if (job.assigned_operator_id === userId) roles.push("assigned");
+    return { ...job, my_roles: roles };
+  });
+
+  res.json(result);
+});
+
 // ── GET /jobs/:id ─────────────────────────────────────────
 router.get("/:id", requirePermission("jobs.view"), async (req, res) => {
   const job = await db("job_cards")
     .where({ "job_cards.id": req.params.id, "job_cards.tenant_id": req.user.tenantId! })
     .leftJoin("clients", "job_cards.client_id", "clients.id")
     .leftJoin("users as operator", "job_cards.assigned_operator_id", "operator.id")
-    .select("job_cards.*", "clients.name as client_name", "operator.name as operator_name")
+    .leftJoin("users as print_op", "job_cards.print_operator_id", "print_op.id")
+    .leftJoin("users as binding_op", "job_cards.binding_operator_id", "binding_op.id")
+    .leftJoin("users as packing_op", "job_cards.packing_operator_id", "packing_op.id")
+    .leftJoin("users as qc_op", "job_cards.qc_operator_id", "qc_op.id")
+    .select(
+      "job_cards.*",
+      "clients.name as client_name",
+      "operator.name as operator_name",
+      "print_op.name as print_operator_name",
+      "binding_op.name as binding_operator_name",
+      "packing_op.name as packing_operator_name",
+      "qc_op.name as qc_operator_name",
+    )
     .first();
 
   if (!job) { res.status(404).json({ error: "Job not found" }); return; }
@@ -92,6 +157,10 @@ const CreateJobSchema = z.object({
   dueDate: z.string().optional(),
   machineId: z.string().uuid().optional(),
   assignedOperatorId: z.string().uuid().optional(),
+  printOperatorId: z.string().uuid().optional(),
+  bindingOperatorId: z.string().uuid().optional(),
+  packingOperatorId: z.string().uuid().optional(),
+  qcOperatorId: z.string().uuid().optional(),
   copiedFromJobId: z.string().uuid().optional(),
   quotedPrice: z.number().optional(),
   // Extended fields
@@ -153,6 +222,10 @@ router.post("/", requirePermission("jobs.create"), async (req, res) => {
       client_id: data.clientId ?? null,
       machine_id: data.machineId ?? null,
       assigned_operator_id: data.assignedOperatorId ?? null,
+      print_operator_id: data.printOperatorId ?? null,
+      binding_operator_id: data.bindingOperatorId ?? null,
+      packing_operator_id: data.packingOperatorId ?? null,
+      qc_operator_id: data.qcOperatorId ?? null,
       created_by: req.user.id,
       title: data.title,
       job_type: data.jobType ?? null,
@@ -248,7 +321,8 @@ router.patch("/:id", requirePermission("jobs.edit"), async (req, res) => {
     "is_creasing", "is_pasting", "is_lamination", "is_folding", "is_gumming",
     "post_print_date", "binding_operator", "packing_operator",
     "advance_amount", "quotation_ref", "indent_number",
-    "delivery_quantity", "challan_number", "challan_date"];
+    "delivery_quantity", "challan_number", "challan_date",
+    "print_operator_id", "binding_operator_id", "packing_operator_id", "qc_operator_id"];
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
@@ -298,6 +372,42 @@ router.delete("/:id", requirePermission("jobs.delete"), async (req, res) => {
   await db("job_cards").where({ id: req.params.id }).delete();
   await writeAuditLog(req, "job.deleted", "job_card", req.params.id, existing, null);
   res.status(204).send();
+});
+
+// ── PATCH /jobs/:id/operator-update ──────────────────────
+// Allows operator to add notes or mark their step as done (no permission check)
+router.patch("/:id/operator-update", async (req, res) => {
+  const { notes, stepDone } = req.body as { notes?: string; stepDone?: boolean };
+  const tenantId = req.user.tenantId!;
+  const userId = req.user.id;
+
+  const job = await db("job_cards")
+    .where({ id: req.params.id, tenant_id: tenantId })
+    .where((qb) => {
+      qb.where("print_operator_id", userId)
+        .orWhere("binding_operator_id", userId)
+        .orWhere("packing_operator_id", userId)
+        .orWhere("qc_operator_id", userId)
+        .orWhere("assigned_operator_id", userId);
+    })
+    .first();
+
+  if (!job) { res.status(404).json({ error: "Job not found or not assigned to you" }); return; }
+
+  const noteText = [
+    notes ? notes.trim() : null,
+    stepDone ? "[Step marked as done]" : null,
+  ].filter(Boolean).join(" — ");
+
+  await db("job_status_history").insert({
+    job_id: job.id,
+    changed_by: userId,
+    from_status: job.status,
+    to_status: job.status,
+    notes: noteText || null,
+  });
+
+  res.json({ ok: true });
 });
 
 export default router;

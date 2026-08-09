@@ -96,6 +96,10 @@ function buildApiPayload(form: FormState) {
     isScreen: bool("is_screen"),
     printColors: str("print_colors"),
     printOperator: str("print_operator"),
+    printOperatorId: str("print_operator_id") || undefined,
+    bindingOperatorId: str("binding_operator_id") || undefined,
+    packingOperatorId: str("packing_operator_id") || undefined,
+    qcOperatorId: str("qc_operator_id") || undefined,
     printDate: str("print_date") || undefined,
     isNumbering: bool("is_numbering"),
     numberingFrom: num("numbering_from"),
@@ -154,6 +158,10 @@ function buildPatchPayload(form: FormState) {
     is_screen: bool("is_screen"),
     print_colors: str("print_colors"),
     print_operator: str("print_operator"),
+    print_operator_id: str("print_operator_id") || null,
+    binding_operator_id: str("binding_operator_id") || null,
+    packing_operator_id: str("packing_operator_id") || null,
+    qc_operator_id: str("qc_operator_id") || null,
     print_date: str("print_date") || undefined,
     is_numbering: bool("is_numbering"),
     numbering_from: num("numbering_from"),
@@ -198,6 +206,7 @@ function initForm(initial?: Partial<Job>): FormState {
       post_print_date: "", binding_operator: "", packing_operator: "",
       advance_amount: "", quotation_ref: "", indent_number: "",
       delivery_quantity: "", challan_number: "", challan_date: "",
+      print_operator_id: "", binding_operator_id: "", packing_operator_id: "", qc_operator_id: "",
     };
   }
   const s = (v: unknown) => (v !== null && v !== undefined ? String(v) : "");
@@ -253,6 +262,10 @@ function initForm(initial?: Partial<Job>): FormState {
     delivery_quantity: s(initial.delivery_quantity),
     challan_number: initial.challan_number ?? "",
     challan_date: initial.challan_date ? initial.challan_date.slice(0, 10) : "",
+    print_operator_id: (initial as Record<string, unknown>).print_operator_id as string ?? "",
+    binding_operator_id: (initial as Record<string, unknown>).binding_operator_id as string ?? "",
+    packing_operator_id: (initial as Record<string, unknown>).packing_operator_id as string ?? "",
+    qc_operator_id: (initial as Record<string, unknown>).qc_operator_id as string ?? "",
   };
 }
 
@@ -427,10 +440,10 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
     queryFn: () => api.get("/admin/inventory/paper", { params: { limit: "200" } }).then(r => r.data.data ?? []),
   });
 
-  // Staff users
+  // Staff users (operators only)
   const { data: staffUsers = [] } = useQuery<StaffUser[]>({
     queryKey: ["staff-users"],
-    queryFn: () => api.get("/admin/users", { params: { limit: "200" } }).then(r => r.data.data ?? []),
+    queryFn: () => api.get("/admin/users", { params: { limit: "200", role: "operator" } }).then(r => r.data.data ?? []),
   });
 
   // Job types
@@ -452,7 +465,7 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
   const jobTypeOptions = jobTypes.map(jt => ({ value: jt.name, label: jt.name }));
   const printColorOptions = printColors.map(pc => ({ value: pc.name, label: pc.name }));
   const paperOptions = paperStocks.map(p => ({ value: p.id, label: `${p.name} ${p.gsm}gsm ${p.size}` }));
-  const staffOptions = staffUsers.map(u => ({ value: u.name, label: u.name }));
+  const staffOptions = staffUsers.map(u => ({ value: u.id, label: u.name }));
   const orderTypeOptions = [
     { value: "in_house", label: "In House" },
     { value: "external", label: "External" },
@@ -669,8 +682,11 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
             Print Operator
             <SearchableSelect
               options={staffOptions}
-              value={form.print_operator as string}
-              onChange={v => setVal("print_operator", v)}
+              value={form.print_operator_id as string}
+              onChange={v => {
+                const name = staffUsers.find(u => u.id === v)?.name ?? "";
+                setForm(f => ({ ...f, print_operator_id: v, print_operator: name }));
+              }}
               placeholder="— select operator —"
             />
           </label>
@@ -721,8 +737,11 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
             Binding Operator
             <SearchableSelect
               options={staffOptions}
-              value={form.binding_operator as string}
-              onChange={v => setVal("binding_operator", v)}
+              value={form.binding_operator_id as string}
+              onChange={v => {
+                const name = staffUsers.find(u => u.id === v)?.name ?? "";
+                setForm(f => ({ ...f, binding_operator_id: v, binding_operator: name }));
+              }}
               placeholder="— select operator —"
             />
           </label>
@@ -730,8 +749,11 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
             Packing Operator
             <SearchableSelect
               options={staffOptions}
-              value={form.packing_operator as string}
-              onChange={v => setVal("packing_operator", v)}
+              value={form.packing_operator_id as string}
+              onChange={v => {
+                const name = staffUsers.find(u => u.id === v)?.name ?? "";
+                setForm(f => ({ ...f, packing_operator_id: v, packing_operator: name }));
+              }}
               placeholder="— select operator —"
             />
           </label>
