@@ -16,7 +16,10 @@ const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 function NewTenantForm({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({ name: "", slug: "", email: "", phone: "", city: "", plan: "free", ownerName: "", ownerEmail: "", ownerPassword: "" });
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const val = k === "slug" ? e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") : e.target.value;
+    setForm(f => ({ ...f, [k]: val }));
+  };
   const save = useMutation({
     mutationFn: () => api.post("/platform/tenants", form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tenants"] }); onClose(); },
@@ -27,7 +30,7 @@ function NewTenantForm({ onClose }: { onClose: () => void }) {
       <div style={{ fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Press Details</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
         <label><span style={{ fontSize: 13 }}>Press Name *</span><input style={inputStyle} value={form.name} onChange={set("name")} /></label>
-        <label><span style={{ fontSize: 13 }}>Slug *</span><input style={inputStyle} placeholder="unique-id" value={form.slug} onChange={set("slug")} /></label>
+        <label><span style={{ fontSize: 13 }}>Slug *</span><input style={inputStyle} placeholder="e.g. sharma-printers" value={form.slug} onChange={set("slug")} /><span style={{ fontSize: 11, color: "#888" }}>lowercase letters, numbers, hyphens only</span></label>
         <label><span style={{ fontSize: 13 }}>Email</span><input style={inputStyle} type="email" value={form.email} onChange={set("email")} /></label>
         <label><span style={{ fontSize: 13 }}>Phone</span><input style={inputStyle} value={form.phone} onChange={set("phone")} /></label>
         <label><span style={{ fontSize: 13 }}>City</span><input style={inputStyle} value={form.city} onChange={set("city")} /></label>
