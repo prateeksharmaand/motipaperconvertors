@@ -11,6 +11,10 @@ const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
 function SettingsList({ label, queryKey, endpoint }: { label: string; queryKey: string; endpoint: string }) {
   const [newName, setNewName] = useState("");
+  const [search, setSearch] = useState("");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
   const qc = useQueryClient();
 
   const { data: items = [], isLoading } = useQuery<SettingItem[]>({
@@ -28,11 +32,17 @@ function SettingsList({ label, queryKey, endpoint }: { label: string; queryKey: 
     onSuccess: () => qc.invalidateQueries({ queryKey: [queryKey] }),
   });
 
+  const filtered = items
+    .filter(i => i.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => sortDir === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
-      <div style={{ padding: "16px 20px", borderBottom: "1px solid #eee", display: "flex", gap: 8, alignItems: "center" }}>
+      <div style={{ padding: "16px 20px", borderBottom: "1px solid #eee", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <input
-          style={{ ...inputStyle, flex: 1, maxWidth: 320 }}
+          style={{ ...inputStyle, flex: 1, minWidth: 180, maxWidth: 260 }}
           value={newName}
           onChange={e => setNewName(e.target.value)}
           placeholder={`Add new ${label}...`}
@@ -45,11 +55,30 @@ function SettingsList({ label, queryKey, endpoint }: { label: string; queryKey: 
         >
           {add.isPending ? "Adding..." : "Add"}
         </button>
+        <div style={{ flex: 1 }} />
+        <input
+          style={{ ...inputStyle, width: 200 }}
+          value={search}
+          onChange={e => { setSearch(e.target.value); setPage(1); }}
+          placeholder={`Search ${label.toLowerCase()}...`}
+        />
+        <button
+          onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+          title="Toggle sort order"
+          style={{ padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff", fontSize: 13, whiteSpace: "nowrap" }}
+        >
+          A–Z {sortDir === "asc" ? "↑" : "↓"}
+        </button>
+      </div>
+      <div style={{ padding: "8px 20px", borderBottom: "1px solid #eee", fontSize: 12, color: "#888" }}>
+        {filtered.length} of {items.length} {label.toLowerCase()}s
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
-            <th style={th}>{label}</th>
+            <th style={{ ...th, cursor: "pointer", userSelect: "none" }} onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}>
+              {label} {sortDir === "asc" ? "↑" : "↓"}
+            </th>
             <th style={{ ...th, width: 60 }} />
           </tr>
         </thead>
@@ -57,7 +86,7 @@ function SettingsList({ label, queryKey, endpoint }: { label: string; queryKey: 
           {isLoading && (
             <tr><td colSpan={2} style={{ ...td, textAlign: "center", color: "#888" }}>Loading...</td></tr>
           )}
-          {items.map(item => (
+          {paginated.map(item => (
             <tr key={item.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
               <td style={td}>{item.name}</td>
               <td style={td}>
@@ -71,11 +100,24 @@ function SettingsList({ label, queryKey, endpoint }: { label: string; queryKey: 
               </td>
             </tr>
           ))}
-          {!isLoading && items.length === 0 && (
-            <tr><td colSpan={2} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>No {label.toLowerCase()} added yet</td></tr>
+          {!isLoading && filtered.length === 0 && (
+            <tr><td colSpan={2} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>
+              {search ? `No results for "${search}"` : `No ${label.toLowerCase()} added yet`}
+            </td></tr>
           )}
         </tbody>
       </table>
+      {totalPages > 1 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", borderTop: "1px solid #eee", fontSize: 13 }}>
+          <span style={{ color: "#888" }}>Page {page} of {totalPages} · {filtered.length} total</span>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => setPage(1)} disabled={page === 1} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 5, cursor: "pointer", background: "#fff", fontSize: 12 }}>«</button>
+            <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 5, cursor: "pointer", background: "#fff", fontSize: 12 }}>‹ Prev</button>
+            <button onClick={() => setPage(p => p + 1)} disabled={page === totalPages} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 5, cursor: "pointer", background: "#fff", fontSize: 12 }}>Next ›</button>
+            <button onClick={() => setPage(totalPages)} disabled={page === totalPages} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 5, cursor: "pointer", background: "#fff", fontSize: 12 }}>»</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
