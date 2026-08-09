@@ -6,6 +6,7 @@ import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
+import { statusLabel } from "../theme.ts";
 import { exportToCsv } from "../lib/exportCsv.ts";
 
 interface Quotation { id: string; quotation_number: number; job_id: string; job_title: string; job_number: number; total: number; status: string; notes: string; paper_cost: number; plate_cost: number; printing_cost: number; gst_percent: number; discount_amount: number; margin_percent: number; }
@@ -168,7 +169,7 @@ export default function QuotationsPage() {
                 <td style={{ ...td, fontWeight: 500 }}>#{q.job_number} {q.job_title}</td>
                 <td style={{ ...td, fontWeight: 600 }}>{fmt(q.total)}</td>
                 <td style={td}>
-                  <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[q.status] ?? "#868e96") + "22", color: STATUS_COLOR[q.status] ?? "#868e96" }}>{q.status}</span>
+                  <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[q.status] ?? "#868e96") + "22", color: STATUS_COLOR[q.status] ?? "#868e96" }}>{statusLabel(q.status)}</span>
                 </td>
                 <td style={td}>
                   <button onClick={() => setEditing(q)} style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>Edit</button>

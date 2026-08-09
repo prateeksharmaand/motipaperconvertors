@@ -100,3 +100,9 @@ export const pageTitle: React.CSSProperties = {
   color: "#111827",
   marginBottom: 20,
 };
+
+/** Convert snake_case status to Title Case: "partially_paid" → "Partially Paid" */
+export function statusLabel(status: string | null | undefined): string {
+  if (!status) return "—";
+  return status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}

@@ -7,6 +7,7 @@ import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
+import { statusLabel } from "../theme.ts";
 import { exportToCsv } from "../lib/exportCsv.ts";
 
 type Tab = "invoices" | "payments" | "ledger";
@@ -259,7 +260,7 @@ export default function BillingPage() {
                     <td style={td}>{fmt(inv.total)}</td>
                     <td style={{ ...td, color: "#2b8a3e" }}>{fmt(inv.amount_paid)}</td>
                     <td style={{ ...td, fontWeight: 600, color: Number(inv.balance_due) > 0 ? "#c92a2a" : "#2b8a3e" }}>{fmt(inv.balance_due)}</td>
-                    <td style={td}><span style={{ padding: "2px 8px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[inv.status] ?? "#868e96") + "22", color: STATUS_COLOR[inv.status] ?? "#868e96" }}>{inv.status}</span></td>
+                    <td style={td}><span style={{ padding: "2px 8px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[inv.status] ?? "#868e96") + "22", color: STATUS_COLOR[inv.status] ?? "#868e96" }}>{statusLabel(inv.status)}</span></td>
                     <td style={td}>{inv.due_date || "—"}</td>
                     <td style={td}>
                       <div style={{ display: "flex", gap: 6 }}>
@@ -346,7 +347,7 @@ export default function BillingPage() {
                       <td style={td}>{fmt(i.total)}</td>
                       <td style={{ ...td, color: "#2b8a3e" }}>{fmt(i.amount_paid)}</td>
                       <td style={{ ...td, fontWeight: 600, color: Number(i.balance_due) > 0 ? "#c92a2a" : "#555" }}>{fmt(i.balance_due)}</td>
-                      <td style={td}><span style={{ padding: "2px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600, background: (STATUS_COLOR[i.status] ?? "#868e96") + "22", color: STATUS_COLOR[i.status] ?? "#868e96" }}>{i.status}</span></td>
+                      <td style={td}><span style={{ padding: "2px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600, background: (STATUS_COLOR[i.status] ?? "#868e96") + "22", color: STATUS_COLOR[i.status] ?? "#868e96" }}>{statusLabel(i.status)}</span></td>
                     </tr>
                   ))}
                 </tbody>

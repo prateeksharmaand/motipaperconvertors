@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../store/auth.ts";
 import { api } from "../lib/api.ts";
 import * as theme from "../theme.ts";
+import { statusLabel } from "../theme.ts";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell,
@@ -257,7 +258,7 @@ export default function DashboardPage() {
                   <td style={theme.td}>{job.client_name || "—"}</td>
                   <td style={theme.td}>
                     <span style={theme.badge(STATUS_COLOR[job.status] ?? "gray")}>
-                      {job.status}
+                      {statusLabel(job.status)}
                     </span>
                   </td>
                   <td style={{ ...theme.td, color: "#6b7280" }}>

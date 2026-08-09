@@ -7,6 +7,7 @@ import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
+import { statusLabel } from "../theme.ts";
 import { exportToCsv } from "../lib/exportCsv.ts";
 
 const STATUS_OPTIONS = [
@@ -1071,7 +1072,7 @@ export default function JobsPage() {
                 <td style={td}>{j.sheet_size ?? "—"}</td>
                 <td style={td}>{j.quantity ?? "—"}</td>
                 <td style={td}>
-                  <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[j.status] ?? "#868e96") + "22", color: STATUS_COLOR[j.status] ?? "#868e96" }}>{j.status}</span>
+                  <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[j.status] ?? "#868e96") + "22", color: STATUS_COLOR[j.status] ?? "#868e96" }}>{statusLabel(j.status)}</span>
                 </td>
                 <td style={td}>{j.due_date ? j.due_date.slice(0, 10) : "—"}</td>
                 <td style={td}>{j.advance_amount != null ? "Rs." + Number(j.advance_amount).toLocaleString("en-IN") : "—"}</td>

@@ -109,7 +109,7 @@ export default function SubAdminsPage() {
               <div onClick={() => setExpanded(expanded === u.id ? null : u.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", cursor: "pointer" }}>
                 <div><div style={{ fontWeight: 600 }}>{u.name}</div><div style={{ fontSize: 13, color: "#888" }}>{u.email}</div></div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 10, background: u.status === "active" ? "#d3f9d8" : "#fff3bf", color: u.status === "active" ? "#2b8a3e" : "#e67700" }}>{u.status}</span>
+                  <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 10, background: u.status === "active" ? "#d3f9d8" : "#fff3bf", color: u.status === "active" ? "#2b8a3e" : "#e67700" }}>{statusLabel(u.status)}</span>
                   <span style={{ color: "#aaa" }}>{expanded === u.id ? "▲" : "▼"}</span>
                 </div>
               </div>

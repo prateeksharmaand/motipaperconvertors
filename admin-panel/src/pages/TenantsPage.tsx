@@ -117,7 +117,7 @@ export default function TenantsPage() {
                 <td style={{ ...td, fontWeight: 500 }}>{t.name}</td>
                 <td style={{ ...td, color: "#888" }}>{t.slug}</td>
                 <td style={td}>{t.plan}</td>
-                <td style={td}><span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: t.status === "active" ? "#d3f9d8" : "#ffe3e3", color: t.status === "active" ? "#2b8a3e" : "#c92a2a" }}>{t.status}</span></td>
+                <td style={td}><span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: t.status === "active" ? "#d3f9d8" : "#ffe3e3", color: t.status === "active" ? "#2b8a3e" : "#c92a2a" }}>{statusLabel(t.status)}</span></td>
                 <td style={td}>{new Date(t.created_at).toLocaleDateString("en-IN")}</td>
                 <td style={td}><button onClick={() => toggleStatus.mutate({ id: t.id, status: t.status === "active" ? "suspended" : "active" })} style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>{t.status === "active" ? "Suspend" : "Activate"}</button></td>
               </tr>
