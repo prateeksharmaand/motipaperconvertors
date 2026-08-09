@@ -49,6 +49,7 @@ export default function Layout() {
             <span style={SECTION_LABEL}>Settings</span>
             <NavLink to="/machines" style={navStyle}>Machines</NavLink>
             <NavLink to="/sub-admins" style={navStyle}>Sub Admins</NavLink>
+            <NavLink to="/settings" style={navStyle}>Settings</NavLink>
           </>
         )}
 

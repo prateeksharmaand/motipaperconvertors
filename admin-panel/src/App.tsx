@@ -11,6 +11,7 @@ import ReportsPage from "./pages/ReportsPage.tsx";
 import SubAdminsPage from "./pages/SubAdminsPage.tsx";
 import TenantsPage from "./pages/TenantsPage.tsx";
 import QuotationsPage from "./pages/QuotationsPage.tsx";
+import SettingsPage from "./pages/SettingsPage.tsx";
 import Layout from "./components/Layout.tsx";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="machines" element={<MachinesPage />} />
         <Route path="sub-admins" element={<SubAdminsPage />} />
         <Route path="tenants" element={<TenantsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

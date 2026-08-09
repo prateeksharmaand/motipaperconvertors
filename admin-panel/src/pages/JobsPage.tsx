@@ -43,6 +43,9 @@ type Job = {
 
 interface Client { id: string; name: string; }
 interface Machine { id: string; name: string; }
+interface PaperStock { id: string; name: string; gsm: number; size: string; unit: string; }
+interface StaffUser { id: string; name: string; role: string; }
+interface SettingItem { id: string; name: string; }
 
 const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14, boxSizing: "border-box" };
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
@@ -57,6 +60,7 @@ const sectionHeaderStyle: React.CSSProperties = {
 const gridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
 const labelStyle: React.CSSProperties = { fontSize: 13, color: "#444", display: "flex", flexDirection: "column", gap: 4 };
 const checkRowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" };
+const reqMark: React.CSSProperties = { color: "#c92a2a", marginLeft: 2 };
 
 type FormState = Record<string, string | boolean>;
 
@@ -267,6 +271,7 @@ function JobForm({ initial, clients, machines, onSave, onCancel, isPending }: {
   isPending: boolean;
 }) {
   const [form, setForm] = useState<FormState>(() => initForm(initial));
+  const formEnabled = true;
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
@@ -276,6 +281,60 @@ function JobForm({ initial, clients, machines, onSave, onCancel, isPending }: {
 
   const isNumbering = boolField(form, "is_numbering");
 
+  // Paper stocks for dropdown (Task 2)
+  const { data: paperStocks = [] } = useQuery<PaperStock[]>({
+    queryKey: ["paper-stocks-mini"],
+    queryFn: () => api.get("/admin/inventory/paper", { params: { limit: "200" } }).then(r => r.data.data ?? []),
+    enabled: formEnabled,
+  });
+
+  // Staff users for operator dropdowns (Task 3)
+  const { data: staffUsers = [] } = useQuery<StaffUser[]>({
+    queryKey: ["staff-users"],
+    queryFn: () => api.get("/admin/users", { params: { limit: "200" } }).then(r => r.data.data ?? []),
+    enabled: formEnabled,
+  });
+
+  // Job types from settings (Task 6)
+  const { data: jobTypes = [] } = useQuery<SettingItem[]>({
+    queryKey: ["settings-job-types"],
+    queryFn: () => api.get("/admin/settings/job-types").then(r => r.data),
+    enabled: formEnabled,
+  });
+
+  // Print colors from settings (Task 6)
+  const { data: printColors = [] } = useQuery<SettingItem[]>({
+    queryKey: ["settings-print-colors"],
+    queryFn: () => api.get("/admin/settings/print-colors").then(r => r.data),
+    enabled: formEnabled,
+  });
+
+  function handlePaperSelect(e: React.ChangeEvent<HTMLSelectElement>) {
+    const paperId = e.target.value;
+    const paper = paperStocks.find(p => p.id === paperId);
+    if (paper) {
+      setForm(f => ({
+        ...f,
+        paper_type: paper.name,
+        paper_gsm: String(paper.gsm),
+        sheet_size: paper.size,
+      }));
+    }
+  }
+
+  // Detect "Other" for job type and print colors
+  const jobTypeIsOther = (form.job_type as string) !== "" && !jobTypes.some(jt => jt.name === (form.job_type as string));
+  const printColorsIsOther = (form.print_colors as string) !== "" && !printColors.some(pc => pc.name === (form.print_colors as string));
+
+  // Mandatory field check (Task 1)
+  const canSubmit =
+    (form.client_id as string).trim() !== "" &&
+    (form.title as string).trim() !== "" &&
+    (form.quantity as string).trim() !== "" &&
+    (form.machine_id as string).trim() !== "" &&
+    (form.due_date as string).trim() !== "" &&
+    !isPending;
+
   return (
     <div style={{ background: "#fff", padding: 28, borderRadius: 10, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,.10)", maxWidth: 900 }}>
       <h3 style={{ marginBottom: 20, fontSize: 17 }}>{initial?.id ? `Edit Job #${initial.job_number}` : "New Job Card"}</h3>
@@ -284,28 +343,50 @@ function JobForm({ initial, clients, machines, onSave, onCancel, isPending }: {
       <div style={sectionStyle}>
         <div style={sectionHeaderStyle}>1. Basic Information</div>
         <div style={gridStyle}>
-          <label style={labelStyle}>Client
+          <label style={labelStyle}>Client<span style={reqMark}>*</span>
             <select style={inputStyle} value={form.client_id as string} onChange={set("client_id")}>
               <option value="">— select client —</option>
               {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </label>
-          <label style={labelStyle}>Job Name / Title *
+          <label style={labelStyle}>Job Name / Title<span style={reqMark}>*</span>
             <input style={inputStyle} value={form.title as string} onChange={set("title")} placeholder="e.g. MARRIAGE CARD AND ENVELOPS" />
           </label>
           <label style={labelStyle}>Job Type
-            <input style={inputStyle} value={form.job_type as string} onChange={set("job_type")} placeholder="e.g. MARRIAGE CARD AND ENVELOPS" />
+            <select
+              style={inputStyle}
+              value={jobTypeIsOther ? "__other__" : (form.job_type as string)}
+              onChange={e => {
+                if (e.target.value === "__other__") {
+                  setForm(f => ({ ...f, job_type: "" }));
+                } else {
+                  setForm(f => ({ ...f, job_type: e.target.value }));
+                }
+              }}
+            >
+              <option value="">— select job type —</option>
+              {jobTypes.map(jt => <option key={jt.id} value={jt.name}>{jt.name}</option>)}
+              <option value="__other__">Other (custom)</option>
+            </select>
+            {jobTypeIsOther && (
+              <input
+                style={{ ...inputStyle, marginTop: 6 }}
+                value={form.job_type as string}
+                onChange={set("job_type")}
+                placeholder="Enter custom job type"
+              />
+            )}
           </label>
-          <label style={labelStyle}>Order Type
+          <label style={labelStyle}>Order Type<span style={reqMark}>*</span>
             <select style={inputStyle} value={form.order_type as string} onChange={set("order_type")}>
               <option value="in_house">In House</option>
               <option value="external">External</option>
             </select>
           </label>
-          <label style={labelStyle}>Quantity
+          <label style={labelStyle}>Quantity<span style={reqMark}>*</span>
             <input style={inputStyle} type="number" value={form.quantity as string} onChange={set("quantity")} />
           </label>
-          <label style={labelStyle}>Due Date
+          <label style={labelStyle}>Due Date<span style={reqMark}>*</span>
             <input style={inputStyle} type="date" value={form.due_date as string} onChange={set("due_date")} />
           </label>
         </div>
@@ -321,7 +402,18 @@ function JobForm({ initial, clients, machines, onSave, onCancel, isPending }: {
         <div style={sectionHeaderStyle}>2. Paper &amp; Machine</div>
         <div style={gridStyle}>
           <label style={labelStyle}>Paper Type
-            <input style={inputStyle} value={form.paper_type as string} onChange={set("paper_type")} placeholder="e.g. COSMO-NEEDLE-TEXTURE CREAM" />
+            <select style={inputStyle} onChange={handlePaperSelect} defaultValue="">
+              <option value="">— select from inventory —</option>
+              {paperStocks.map(p => (
+                <option key={p.id} value={p.id}>{p.name} {p.gsm}gsm {p.size}</option>
+              ))}
+            </select>
+            <input
+              style={{ ...inputStyle, marginTop: 6 }}
+              value={form.paper_type as string}
+              onChange={set("paper_type")}
+              placeholder="e.g. COSMO-NEEDLE-TEXTURE CREAM"
+            />
           </label>
           <label style={labelStyle}>Paper GSM
             <input style={inputStyle} type="number" value={form.paper_gsm as string} onChange={set("paper_gsm")} placeholder="e.g. 130" />
@@ -332,7 +424,7 @@ function JobForm({ initial, clients, machines, onSave, onCancel, isPending }: {
           <label style={labelStyle}>Sheet Count
             <input style={inputStyle} type="number" value={form.sheet_count as string} onChange={set("sheet_count")} />
           </label>
-          <label style={labelStyle}>Machine
+          <label style={labelStyle}>Machine<span style={reqMark}>*</span>
             <select style={inputStyle} value={form.machine_id as string} onChange={set("machine_id")}>
               <option value="">— select machine —</option>
               {machines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -388,10 +480,35 @@ function JobForm({ initial, clients, machines, onSave, onCancel, isPending }: {
         </div>
         <div style={gridStyle}>
           <label style={labelStyle}>Print Colors
-            <input style={inputStyle} value={form.print_colors as string} onChange={set("print_colors")} placeholder="e.g. MULTICOLOR, 1 COLOR, 4 COLOR" />
+            <select
+              style={inputStyle}
+              value={printColorsIsOther ? "__other__" : (form.print_colors as string)}
+              onChange={e => {
+                if (e.target.value === "__other__") {
+                  setForm(f => ({ ...f, print_colors: "" }));
+                } else {
+                  setForm(f => ({ ...f, print_colors: e.target.value }));
+                }
+              }}
+            >
+              <option value="">— select print colors —</option>
+              {printColors.map(pc => <option key={pc.id} value={pc.name}>{pc.name}</option>)}
+              <option value="__other__">Other (custom)</option>
+            </select>
+            {printColorsIsOther && (
+              <input
+                style={{ ...inputStyle, marginTop: 6 }}
+                value={form.print_colors as string}
+                onChange={set("print_colors")}
+                placeholder="e.g. MULTICOLOR, 1 COLOR, 4 COLOR"
+              />
+            )}
           </label>
           <label style={labelStyle}>Print Operator Name
-            <input style={inputStyle} value={form.print_operator as string} onChange={set("print_operator")} />
+            <select style={inputStyle} value={form.print_operator as string} onChange={set("print_operator")}>
+              <option value="">— select operator —</option>
+              {staffUsers.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+            </select>
           </label>
           <label style={labelStyle}>Print Date
             <input style={inputStyle} type="date" value={form.print_date as string} onChange={set("print_date")} />
@@ -427,10 +544,16 @@ function JobForm({ initial, clients, machines, onSave, onCancel, isPending }: {
         )}
         <div style={gridStyle}>
           <label style={labelStyle}>Binding Operator
-            <input style={inputStyle} value={form.binding_operator as string} onChange={set("binding_operator")} />
+            <select style={inputStyle} value={form.binding_operator as string} onChange={set("binding_operator")}>
+              <option value="">— select operator —</option>
+              {staffUsers.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+            </select>
           </label>
           <label style={labelStyle}>Packing Operator
-            <input style={inputStyle} value={form.packing_operator as string} onChange={set("packing_operator")} />
+            <select style={inputStyle} value={form.packing_operator as string} onChange={set("packing_operator")}>
+              <option value="">— select operator —</option>
+              {staffUsers.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+            </select>
           </label>
           <label style={labelStyle}>Post-Print Date
             <input style={inputStyle} type="date" value={form.post_print_date as string} onChange={set("post_print_date")} />
@@ -469,8 +592,8 @@ function JobForm({ initial, clients, machines, onSave, onCancel, isPending }: {
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
         <button
           onClick={() => onSave(form)}
-          disabled={!(form.title as string).trim() || isPending}
-          style={{ padding: "9px 24px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}
+          disabled={!canSubmit}
+          style={{ padding: "9px 24px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: canSubmit ? "pointer" : "not-allowed", fontWeight: 600, opacity: canSubmit ? 1 : 0.5 }}
         >
           {isPending ? "Saving..." : "Save Job Card"}
         </button>
