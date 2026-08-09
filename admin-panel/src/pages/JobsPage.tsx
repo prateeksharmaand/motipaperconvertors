@@ -310,13 +310,6 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
     enabled: formEnabled,
   });
 
-  // Plate sources from settings
-  const { data: plateSources = [] } = useQuery<SettingItem[]>({
-    queryKey: ["settings-plate-sources"],
-    queryFn: () => api.get("/admin/settings/plate-sources").then(r => r.data),
-    enabled: formEnabled,
-  });
-
   function handlePaperSelect(e: React.ChangeEvent<HTMLSelectElement>) {
     const paperId = e.target.value;
     const paper = paperStocks.find(p => p.id === paperId);
@@ -637,6 +630,12 @@ export default function JobsPage() {
     queryFn: () => api.get("/admin/machines", { params: { limit: "200" } }).then(r => r.data),
   });
   const machines = machinesResult?.data ?? [];
+
+  const { data: plateSources = [] } = useQuery<SettingItem[]>({
+    queryKey: ["settings-plate-sources"],
+    queryFn: () => api.get("/admin/settings/plate-sources").then(r => r.data),
+    enabled: showForm || !!editing,
+  });
 
   const create = useMutation({
     mutationFn: (form: FormState) => api.post("/admin/jobs", buildApiPayload(form)),
