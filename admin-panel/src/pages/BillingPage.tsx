@@ -161,6 +161,7 @@ export default function BillingPage() {
   const [ledgerClientId, setLedgerClientId] = useState("");
   const [exportingInvoices, setExportingInvoices] = useState(false);
   const [exportingPayments, setExportingPayments] = useState(false);
+  const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
 
   async function handleExportInvoices() {
     setExportingInvoices(true);
@@ -216,6 +217,12 @@ export default function BillingPage() {
     enabled: !!ledgerClientId,
   });
 
+  const { data: invoiceDetail } = useQuery({
+    queryKey: ["invoice-detail", expandedInvoice],
+    queryFn: () => api.get(`/admin/billing/invoices/${expandedInvoice}`).then(r => r.data),
+    enabled: !!expandedInvoice,
+  });
+
   const tabBtn = (t: Tab, label: string) => (
     <button onClick={() => setTab(t)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: tab === t ? "#3b5bdb" : "#eee", color: tab === t ? "#fff" : "#444", fontWeight: 600, cursor: "pointer" }}>{label}</button>
   );
@@ -254,22 +261,45 @@ export default function BillingPage() {
               <tbody>
                 {invLoading && <tr><td colSpan={8} style={{ ...td, textAlign: "center", color: "#888" }}>Loading…</td></tr>}
                 {invoices?.data?.map((inv) => (
-                  <tr key={inv.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                    <td style={{ ...td, color: "#888" }}>#{inv.invoice_number}</td>
-                    <td style={{ ...td, fontWeight: 500 }}>{inv.client_name}</td>
-                    <td style={td}>{fmt(inv.total)}</td>
-                    <td style={{ ...td, color: "#2b8a3e" }}>{fmt(inv.amount_paid)}</td>
-                    <td style={{ ...td, fontWeight: 600, color: Number(inv.balance_due) > 0 ? "#c92a2a" : "#2b8a3e" }}>{fmt(inv.balance_due)}</td>
-                    <td style={td}><span style={{ padding: "2px 8px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[inv.status] ?? "#868e96") + "22", color: STATUS_COLOR[inv.status] ?? "#868e96" }}>{statusLabel(inv.status)}</span></td>
-                    <td style={td}>{inv.due_date || "—"}</td>
-                    <td style={td}>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => setEditingInvoice(inv)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>Edit</button>
-                        {inv.status !== "paid" && inv.status !== "cancelled" && <button onClick={() => setPaymentFor({ invoiceId: inv.id, clientId: inv.client_id })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Pay</button>}
-                        <button onClick={() => setPrintInvoice(inv)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }} title="Print Invoice">Print</button>
-                      </div>
-                    </td>
-                  </tr>
+                  <>
+                    <tr key={inv.id} style={{ borderBottom: expandedInvoice === inv.id ? "none" : "1px solid #f0f0f0", background: expandedInvoice === inv.id ? "#fafafe" : "#fff" }}>
+                      <td style={{ ...td, color: "#888" }}>
+                        <span
+                          onClick={() => setExpandedInvoice(expandedInvoice === inv.id ? null : inv.id)}
+                          style={{ cursor: "pointer", marginRight: 6, fontSize: 11 }}
+                        >{expandedInvoice === inv.id ? "▾" : "▸"}</span>
+                        #{inv.invoice_number}
+                      </td>
+                      <td style={{ ...td, fontWeight: 500 }}>{inv.client_name}</td>
+                      <td style={td}>{fmt(inv.total)}</td>
+                      <td style={{ ...td, color: "#2b8a3e" }}>{fmt(inv.amount_paid)}</td>
+                      <td style={{ ...td, fontWeight: 600, color: Number(inv.balance_due) > 0 ? "#c92a2a" : "#2b8a3e" }}>{fmt(inv.balance_due)}</td>
+                      <td style={td}><span style={{ padding: "2px 8px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[inv.status] ?? "#868e96") + "22", color: STATUS_COLOR[inv.status] ?? "#868e96" }}>{statusLabel(inv.status)}</span></td>
+                      <td style={td}>{inv.due_date || "—"}</td>
+                      <td style={td}>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={() => setEditingInvoice(inv)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>Edit</button>
+                          {inv.status !== "paid" && inv.status !== "cancelled" && <button onClick={() => setPaymentFor({ invoiceId: inv.id, clientId: inv.client_id })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Pay</button>}
+                          <button onClick={() => setPrintInvoice(inv)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>Print</button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedInvoice === inv.id && invoiceDetail?.payments?.length > 0 && invoiceDetail.payments.map((p: Payment & { id: string }) => (
+                      <tr key={p.id} style={{ borderBottom: "1px solid #f0f0f0", background: "#f5f5ff" }}>
+                        <td style={{ ...td, paddingLeft: 32, color: "#7c3aed", fontSize: 12 }}>↳ Payment</td>
+                        <td style={{ ...td, fontSize: 12, color: "#555" }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString("en-IN") : "—"}</td>
+                        <td colSpan={2} style={{ ...td, fontSize: 12, color: "#2b8a3e", fontWeight: 600 }}>{fmt(p.amount)}</td>
+                        <td style={{ ...td, fontSize: 12 }}>{p.payment_mode?.toUpperCase()}</td>
+                        <td style={{ ...td, fontSize: 12, color: "#888" }}>{p.reference_number || "—"}</td>
+                        <td colSpan={2} style={{ ...td, fontSize: 12, color: "#888" }}>{p.notes || "—"}</td>
+                      </tr>
+                    ))}
+                    {expandedInvoice === inv.id && (!invoiceDetail?.payments?.length) && (
+                      <tr style={{ background: "#f5f5ff" }}>
+                        <td colSpan={8} style={{ ...td, paddingLeft: 32, fontSize: 12, color: "#888" }}>No payments recorded yet.</td>
+                      </tr>
+                    )}
+                  </>
                 ))}
                 {!invLoading && !invoices?.data?.length && <tr><td colSpan={8} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>No invoices</td></tr>}
               </tbody>
