@@ -6,6 +6,7 @@ import { requireTenant } from "../middleware/tenantScope.js";
 import { writeAuditLog } from "../middleware/auditLog.js";
 import { nextNumber } from "../lib/jobCounter.js";
 import { notifyPaymentFollowUp } from "../lib/notifications.js";
+import { sendPaymentReminderEmail } from "../lib/mailer.js";
 import { parseListParams, paginate, applySearch } from "../lib/queryBuilder.js";
 
 const router = Router();
@@ -42,7 +43,7 @@ router.get("/invoices", requirePermission("billing.view"), async (req, res) => {
   let base = db("invoices")
     .where({ "invoices.tenant_id": tenantId })
     .leftJoin("clients", "invoices.client_id", "clients.id")
-    .select("invoices.*", "clients.name as client_name", "clients.phone as client_phone");
+    .select("invoices.*", "clients.name as client_name", "clients.phone as client_phone", "clients.email as client_email", "clients.email_reminder as client_email_reminder");
 
   let countQ = db("invoices")
     .where({ "invoices.tenant_id": tenantId })
@@ -237,6 +238,30 @@ router.post("/payment-reminders", requirePermission("billing.view"), async (req,
 
   for (const inv of overdue) await notifyPaymentFollowUp(tenantId, inv.client_name, inv.balance_due, inv.id);
   res.json({ reminded: overdue.length });
+});
+
+// POST /billing/invoices/:id/send-reminder — manual email reminder for one invoice
+router.post("/invoices/:id/send-reminder", requirePermission("billing.view"), async (req, res) => {
+  const tenantId = req.user.tenantId!;
+  const inv = await db("invoices")
+    .where({ "invoices.id": req.params.id, "invoices.tenant_id": tenantId })
+    .leftJoin("clients", "invoices.client_id", "clients.id")
+    .leftJoin("tenants", "invoices.tenant_id", "tenants.id")
+    .select("invoices.*", "clients.name as client_name", "clients.email as client_email", "tenants.name as press_name")
+    .first();
+  if (!inv) { res.status(404).json({ error: "Invoice not found" }); return; }
+  if (!inv.client_email) { res.status(400).json({ error: "Client has no email address" }); return; }
+  await sendPaymentReminderEmail({
+    to: inv.client_email,
+    clientName: inv.client_name,
+    pressName: inv.press_name,
+    invoiceNumber: inv.invoice_number,
+    total: inv.total,
+    amountPaid: inv.amount_paid,
+    balanceDue: inv.balance_due,
+    dueDate: inv.due_date,
+  });
+  res.json({ ok: true, sentTo: inv.client_email });
 });
 
 export default router;

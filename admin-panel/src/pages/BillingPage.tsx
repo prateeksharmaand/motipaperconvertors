@@ -17,7 +17,7 @@ const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px soli
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
-interface Invoice { id: string; invoice_number: number; client_name: string; client_id: string; job_id: string; total: number; amount_paid: number; balance_due: number; status: string; due_date: string; issue_date: string; notes: string; gst_percent: number; discount_amount: number; line_items: LineItem[]; }
+interface Invoice { id: string; invoice_number: number; client_name: string; client_id: string; job_id: string; total: number; amount_paid: number; balance_due: number; status: string; due_date: string; issue_date: string; notes: string; gst_percent: number; discount_amount: number; line_items: LineItem[]; client_email_reminder?: boolean; }
 interface Payment { id: string; client_name: string; amount: number; payment_mode: string; type: string; payment_date: string; reference_number: string; }
 interface Client  { id: string; name: string; }
 interface JobMini { id: string; job_number: number; title: string; }
@@ -223,6 +223,18 @@ export default function BillingPage() {
     enabled: !!expandedInvoice,
   });
 
+  const [sendingReminder, setSendingReminder] = useState<string | null>(null);
+  const sendReminder = async (invoiceId: string) => {
+    setSendingReminder(invoiceId);
+    try {
+      await api.post(`/admin/billing/invoices/${invoiceId}/send-reminder`);
+      alert("Reminder email sent successfully!");
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to send reminder";
+      alert(msg);
+    } finally { setSendingReminder(null); }
+  };
+
   const tabBtn = (t: Tab, label: string) => (
     <button onClick={() => setTab(t)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: tab === t ? "#3b5bdb" : "#eee", color: tab === t ? "#fff" : "#444", fontWeight: 600, cursor: "pointer" }}>{label}</button>
   );
@@ -281,6 +293,16 @@ export default function BillingPage() {
                           <button onClick={() => setEditingInvoice(inv)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>Edit</button>
                           {inv.status !== "paid" && inv.status !== "cancelled" && <button onClick={() => setPaymentFor({ invoiceId: inv.id, clientId: inv.client_id })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Pay</button>}
                           <button onClick={() => setPrintInvoice(inv)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>Print</button>
+                        {inv.status !== "paid" && inv.status !== "cancelled" && !inv.client_email_reminder && (
+                          <button
+                            onClick={() => sendReminder(inv.id)}
+                            disabled={sendingReminder === inv.id}
+                            style={{ padding: "4px 10px", border: "1px solid #7c3aed", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#ede9fe", color: "#6d28d9", fontWeight: 600 }}
+                          >{sendingReminder === inv.id ? "Sending…" : "📧 Remind"}</button>
+                        )}
+                        {inv.status !== "paid" && inv.status !== "cancelled" && inv.client_email_reminder && (
+                          <span style={{ fontSize: 11, color: "#6b7280", padding: "2px 6px", background: "#f3f4f6", borderRadius: 4 }}>🔁 Auto</span>
+                        )}
                         </div>
                       </td>
                     </tr>

@@ -14,12 +14,13 @@ const ClientSchema = z.object({
   name: z.string().min(1),
   companyName: z.string().optional(),
   phone: z.string().optional(),
-  email: z.string().email().optional(),
+  email: z.string().email().optional().or(z.literal("")),
   address: z.string().optional(),
   city: z.string().optional(),
   gstin: z.string().optional(),
   creditLimit: z.number().min(0).optional(),
   notes: z.string().optional(),
+  emailReminder: z.boolean().optional(),
 });
 
 // GET /clients?page&limit&search&sortBy&sortDir&status&city
@@ -54,7 +55,7 @@ router.post("/", requirePermission("clients.edit"), async (req, res) => {
     tenant_id: req.user.tenantId!,
     name: d.name, company_name: d.companyName ?? null, phone: d.phone ?? null,
     email: d.email ?? null, address: d.address ?? null, city: d.city ?? null,
-    gstin: d.gstin ?? null, credit_limit: d.creditLimit ?? 0, notes: d.notes ?? null,
+    gstin: d.gstin ?? null, credit_limit: d.creditLimit ?? 0, notes: d.notes ?? null, email_reminder: d.emailReminder ?? false,
   }).returning("*");
   res.status(201).json(client);
 });
@@ -62,9 +63,16 @@ router.post("/", requirePermission("clients.edit"), async (req, res) => {
 router.patch("/:id", requirePermission("clients.edit"), async (req, res) => {
   const parsed = ClientSchema.partial().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+  const { emailReminder, creditLimit, companyName, ...rest } = parsed.data;
   const [updated] = await db("clients")
     .where({ id: req.params.id, tenant_id: req.user.tenantId! })
-    .update({ ...parsed.data, updated_at: new Date() })
+    .update({
+      ...rest,
+      ...(companyName !== undefined && { company_name: companyName }),
+      ...(creditLimit !== undefined && { credit_limit: creditLimit }),
+      ...(emailReminder !== undefined && { email_reminder: emailReminder }),
+      updated_at: new Date(),
+    })
     .returning("*");
   if (!updated) { res.status(404).json({ error: "Client not found" }); return; }
   res.json(updated);

@@ -46,6 +46,10 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379
       MINIO_ENDPOINT: minio
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
     depends_on:
       postgres:
         condition: service_healthy

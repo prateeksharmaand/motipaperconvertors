@@ -8,14 +8,14 @@ import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
 import { exportToCsv } from "../lib/exportCsv.ts";
 
-interface Client { id: string; name: string; company_name: string; phone: string; email: string; city: string; gstin: string; status: string; }
+interface Client { id: string; name: string; company_name: string; phone: string; email: string; city: string; gstin: string; status: string; email_reminder: boolean; }
 
 const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14 };
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
-function ClientForm({ initial, onSave, onCancel }: { initial?: Partial<Client>; onSave: (d: Record<string, string>) => void; onCancel: () => void }) {
-  const [form, setForm] = useState({ name: "", company_name: "", phone: "", email: "", city: "", gstin: "", ...initial });
+function ClientForm({ initial, onSave, onCancel }: { initial?: Partial<Client>; onSave: (d: Record<string, string | boolean>) => void; onCancel: () => void }) {
+  const [form, setForm] = useState({ name: "", company_name: "", phone: "", email: "", city: "", gstin: "", email_reminder: false, ...initial });
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 20, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
@@ -28,8 +28,15 @@ function ClientForm({ initial, onSave, onCancel }: { initial?: Partial<Client>; 
         <label><span style={{ fontSize: 13 }}>City</span><input style={inputStyle} value={form.city} onChange={set("city")} /></label>
         <label><span style={{ fontSize: 13 }}>GSTIN</span><input style={inputStyle} value={form.gstin} onChange={set("gstin")} /></label>
       </div>
+      <label style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, cursor: "pointer" }}>
+        <input type="checkbox" checked={!!form.email_reminder} onChange={e => setForm(f => ({ ...f, email_reminder: e.target.checked }))}
+          style={{ width: 16, height: 16, accentColor: "#7c3aed" }} />
+        <span style={{ fontSize: 13, color: "#374151" }}>
+          <strong>Auto Email Reminder</strong> — send daily payment reminder at 9 AM automatically
+        </span>
+      </label>
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => onSave(form as Record<string, string>)} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>Save</button>
+        <button onClick={() => onSave(form as Record<string, string | boolean>)} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>Save</button>
         <button onClick={onCancel} style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
       </div>
     </div>
@@ -67,11 +74,11 @@ export default function ClientsPage() {
   });
 
   const create = useMutation({
-    mutationFn: (d: Record<string, string>) => api.post("/admin/clients", { name: d.name, companyName: d.company_name, phone: d.phone, email: d.email, city: d.city, gstin: d.gstin }),
+    mutationFn: (d: Record<string, string | boolean>) => api.post("/admin/clients", { name: d.name, companyName: d.company_name, phone: d.phone, email: d.email, city: d.city, gstin: d.gstin, emailReminder: d.email_reminder }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setShowForm(false); },
   });
   const update = useMutation({
-    mutationFn: ({ id, ...d }: Record<string, string>) => api.patch(`/admin/clients/${id}`, { name: d.name, companyName: d.company_name, phone: d.phone, email: d.email, city: d.city, gstin: d.gstin }),
+    mutationFn: ({ id, ...d }: Record<string, string | boolean>) => api.patch(`/admin/clients/${id as string}`, { name: d.name, companyName: d.company_name, phone: d.phone, email: d.email, city: d.city, gstin: d.gstin, emailReminder: d.email_reminder }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setEditing(null); },
   });
   const remove = useMutation({
