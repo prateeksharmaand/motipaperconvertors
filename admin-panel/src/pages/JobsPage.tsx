@@ -26,7 +26,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 type Job = {
-  id: string; job_number: number; title: string; client_name: string; client_id: string;
+  id: string; job_number: number; title: string; client_name: string; client_company_name: string; client_phone: string; client_id: string;
   machine_id: string; status: string; due_date: string; quoted_price: number;
   print_operator_id: string; binding_operator_id: string; packing_operator_id: string; qc_operator_id: string; designer_id: string;
   operator_name: string; description: string; job_type: string; size: string; quantity: number;
