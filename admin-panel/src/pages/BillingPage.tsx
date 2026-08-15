@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
 import InvoicePrintView from "./InvoicePrintView.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
+import IconButton from "../components/IconButton.tsx";
 import { api } from "../lib/api.ts";
 import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
@@ -291,7 +292,7 @@ export default function BillingPage() {
                       <td style={td}>{inv.due_date || "—"}</td>
                       <td style={td}>
                         <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => setEditingInvoice(inv)} title="Edit" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
+                          <IconButton icon="✏️" tooltip="Edit Invoice" onClick={() => setEditingInvoice(inv)} />
                           {inv.status !== "paid" && inv.status !== "cancelled" && <button onClick={() => setPaymentFor({ invoiceId: inv.id, clientId: inv.client_id })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Pay</button>}
                           <button onClick={() => setPrintInvoice(inv)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>Print</button>
                         {inv.status !== "paid" && inv.status !== "cancelled" && !inv.client_email_reminder && (

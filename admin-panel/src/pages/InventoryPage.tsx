@@ -5,6 +5,7 @@ import { api } from "../lib/api.ts";
 import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
+import IconButton from "../components/IconButton.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
 import { exportToCsv } from "../lib/exportCsv.ts";
@@ -242,7 +243,7 @@ export default function InventoryPage() {
                     <td style={td}><StockBadge isLow={p.is_low} qty={p.quantity} unit={p.unit} /></td>
                     <td style={td}>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => setEditingPaper(p)} title="Edit" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
+                        <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditingPaper(p)} />
                         <button onClick={() => setTxnTarget({ id: p.id, isPaper: true, name: p.name })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Stock</button>
                       </div>
                     </td>
@@ -277,7 +278,7 @@ export default function InventoryPage() {
                     <td style={td}><StockBadge isLow={i.is_low} qty={i.quantity} unit={i.unit} /></td>
                     <td style={td}>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => setEditingItem(i)} title="Edit" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
+                        <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditingItem(i)} />
                         <button onClick={() => setTxnTarget({ id: i.id, isPaper: false, name: i.name })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Stock</button>
                       </div>
                     </td>

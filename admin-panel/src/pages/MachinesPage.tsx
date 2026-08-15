@@ -1,4 +1,5 @@
 import PrintListButton from "../components/PrintListButton.tsx";
+import IconButton from "../components/IconButton.tsx";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
@@ -109,8 +110,8 @@ export default function MachinesPage() {
             {m.max_colors && <div style={{ fontSize: 13, color: "#555", marginTop: 8 }}>{m.max_colors} color{m.max_colors !== 1 ? "s" : ""}</div>}
             {m.notes && <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>{m.notes}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button onClick={() => setEditing(m)} title="Edit" style={{ flex: 1, padding: "6px 0", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
-              <button onClick={() => remove.mutate(m.id)} title="Delete" style={{ flex: 1, padding: "6px 0", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>🗑️</button>
+              <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(m)} style={{ flex: 1, padding: "6px 0" }} />
+              <IconButton icon="🗑️" tooltip="Delete" onClick={() => remove.mutate(m.id)} danger style={{ flex: 1, padding: "6px 0" }} />
             </div>
           </div>
         ))}

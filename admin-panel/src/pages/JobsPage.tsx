@@ -7,6 +7,7 @@ import { api } from "../lib/api.ts";
 import { useListState } from "../hooks/useListState.ts";
 import TableControls, { SortIcon } from "../components/TableControls.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
+import IconButton from "../components/IconButton.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
 import { statusLabel } from "../theme.ts";
@@ -1356,9 +1357,9 @@ export default function JobsPage() {
                     )}
                     {currentRole !== "operator" && currentRole !== "staff" && (
                       <>
-                        <button onClick={() => setPrintJob(j)} title="Print Job Card" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>🖨️</button>
-                        <button onClick={() => setEditing(j)} title="Edit" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
-                        <button onClick={() => setDeleteConfirm(j.id)} title="Delete" style={{ padding: "4px 8px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>🗑️</button>
+                        <IconButton icon="🖨️" tooltip="Print Job Card" onClick={() => setPrintJob(j)} />
+                        <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(j)} />
+                        <IconButton icon="🗑️" tooltip="Delete" onClick={() => setDeleteConfirm(j.id)} danger />
                       </>
                     )}
                   </div>

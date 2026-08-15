@@ -1,4 +1,5 @@
 import PrintListButton from "../components/PrintListButton.tsx";
+import IconButton from "../components/IconButton.tsx";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
@@ -132,8 +133,8 @@ export default function ClientsPage() {
                 <td style={td}>{c.gstin || "—"}</td>
                 <td style={td}>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setEditing(c)} title="Edit" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
-                    <button onClick={() => setDeleteConfirm(c.id)} title="Delete" style={{ padding: "4px 8px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>🗑️</button>
+                    <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(c)} />
+                    <IconButton icon="🗑️" tooltip="Delete" onClick={() => setDeleteConfirm(c.id)} danger />
                   </div>
                 </td>
               </tr>

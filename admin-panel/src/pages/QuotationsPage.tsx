@@ -1,4 +1,5 @@
 import PrintListButton from "../components/PrintListButton.tsx";
+import IconButton from "../components/IconButton.tsx";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
@@ -173,7 +174,7 @@ export default function QuotationsPage() {
                   <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[q.status] ?? "#868e96") + "22", color: STATUS_COLOR[q.status] ?? "#868e96" }}>{statusLabel(q.status)}</span>
                 </td>
                 <td style={td}>
-                  <button onClick={() => setEditing(q)} title="Edit" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
+                  <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(q)} />
                 </td>
               </tr>
             ))}

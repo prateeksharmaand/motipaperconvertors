@@ -1,4 +1,5 @@
 import { statusLabel } from "../theme.ts";
+import IconButton from "../components/IconButton.tsx";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
@@ -121,10 +122,7 @@ export default function TenantsPage() {
                 <td style={td}><span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: t.status === "active" ? "#d3f9d8" : "#ffe3e3", color: t.status === "active" ? "#2b8a3e" : "#c92a2a" }}>{statusLabel(t.status)}</span></td>
                 <td style={td}>{new Date(t.created_at).toLocaleDateString("en-IN")}</td>
                 <td style={td}>
-                  <button onClick={() => toggleStatus.mutate({ id: t.id, status: t.status === "active" ? "suspended" : "active" })} title={t.status === "active" ? "Suspend" : "Activate"}
-                    style={{ padding: "4px 8px", border: `1px solid ${t.status === "active" ? "#fdd" : "#d3f9d8"}`, borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>
-                    {t.status === "active" ? "🔴" : "🟢"}
-                  </button>
+                  <IconButton icon={t.status === "active" ? "🔴" : "🟢"} tooltip={t.status === "active" ? "Suspend" : "Activate"} onClick={() => toggleStatus.mutate({ id: t.id, status: t.status === "active" ? "suspended" : "active" })} danger={t.status === "active"} success={t.status !== "active"} />
                 </td>
               </tr>
             ))}
