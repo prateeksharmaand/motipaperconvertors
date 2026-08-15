@@ -1304,11 +1304,11 @@ export default function JobsPage() {
             {data?.data?.map((j) => (
               <tr key={j.id} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer", background: (STATUS_COLOR[j.status] ?? "#868e96") + "12", borderLeft: `3px solid ${STATUS_COLOR[j.status] ?? "#868e96"}` }}
                 onClick={() => setViewJob(j)}>
-                <td style={{ ...td, color: "#888" }}>{j.job_number}</td>
-                <td style={{ ...td, fontWeight: 500 }}>{j.job_type ?? "—"}</td>
-                <td style={td}>{j.client_name ?? "—"}</td>
-                <td style={td}>{j.sheet_size ?? "—"}</td>
-                <td style={td}>{j.quantity ?? "—"}</td>
+                <td style={{ ...td, color: STATUS_COLOR[j.status] ?? "#868e96", fontWeight: 700 }}>{j.job_number}</td>
+                <td style={{ ...td, fontWeight: 600, color: "#111827" }}>{j.job_type ?? "—"}</td>
+                <td style={{ ...td, color: "#374151" }}>{j.client_name ?? "—"}</td>
+                <td style={{ ...td, color: "#374151" }}>{j.sheet_size ?? "—"}</td>
+                <td style={{ ...td, color: "#374151" }}>{j.quantity ?? "—"}</td>
                 <td style={td} onClick={e => e.stopPropagation()}>
                   {currentRole === "operator" || currentRole === "staff" ? (
                     <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[j.status] ?? "#868e96") + "22", color: STATUS_COLOR[j.status] ?? "#868e96" }}>
@@ -1324,10 +1324,10 @@ export default function JobsPage() {
                     </select>
                   )}
                 </td>
-                <td style={td}>{j.created_at ? j.created_at.slice(0, 10) : "—"}</td>
-                <td style={td}>{j.due_date ? j.due_date.slice(0, 10) : "—"}</td>
-                <td style={td}>{j.advance_amount != null ? "Rs." + Number(j.advance_amount).toLocaleString("en-IN") : "—"}</td>
-                <td style={td}>{j.quoted_price ? "Rs." + Number(j.quoted_price).toLocaleString("en-IN") : "—"}</td>
+                <td style={{ ...td, color: "#374151" }}>{j.created_at ? j.created_at.slice(0, 10) : "—"}</td>
+                <td style={{ ...td, color: "#374151" }}>{j.due_date ? j.due_date.slice(0, 10) : "—"}</td>
+                <td style={{ ...td, color: "#1f2937", fontWeight: 500 }}>{j.advance_amount != null ? "Rs." + Number(j.advance_amount).toLocaleString("en-IN") : "—"}</td>
+                <td style={{ ...td, color: "#1f2937", fontWeight: 600 }}>{j.quoted_price ? "Rs." + Number(j.quoted_price).toLocaleString("en-IN") : "—"}</td>
                 <td style={td} onClick={e => e.stopPropagation()}>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {/* ── Print Operator ── */}
