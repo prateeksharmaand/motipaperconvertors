@@ -195,6 +195,7 @@ export default function InventoryPage() {
   const updatePaper = useMutation({
     mutationFn: ({ id, ...d }: Record<string, string>) => api.patch(`/admin/inventory/paper/${id}`, { name: d.name, brand: d.brand || undefined, gsm: d.gsm ? Number(d.gsm) : undefined, size: d.size || undefined, unit: d.unit || undefined, quantity: d.quantity ? Number(d.quantity) : undefined, lowStockThreshold: d.low_stock_threshold ? Number(d.low_stock_threshold) : undefined, costPerUnit: d.cost_per_unit ? Number(d.cost_per_unit) : undefined }),
     onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["paper"] }); setEditingPaper(null); },
+    onError: () => alert("Failed to update paper stock. Please try again."),
   });
   const createItem = useMutation({
     mutationFn: (d: Record<string, string>) => api.post("/admin/inventory/items", { name: d.name, category: d.category, unit: d.unit || "pcs", quantity: d.quantity ? Number(d.quantity) : 0, lowStockThreshold: d.low_stock_threshold ? Number(d.low_stock_threshold) : 10, costPerUnit: d.cost_per_unit ? Number(d.cost_per_unit) : undefined }),
@@ -203,6 +204,7 @@ export default function InventoryPage() {
   const updateItem = useMutation({
     mutationFn: ({ id, ...d }: Record<string, string>) => api.patch(`/admin/inventory/items/${id}`, { name: d.name, category: d.category, unit: d.unit || undefined, quantity: d.quantity ? Number(d.quantity) : undefined, lowStockThreshold: d.low_stock_threshold ? Number(d.low_stock_threshold) : undefined, costPerUnit: d.cost_per_unit ? Number(d.cost_per_unit) : undefined }),
     onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["inv-items"] }); setEditingItem(null); },
+    onError: () => alert("Failed to update inventory item. Please try again."),
   });
 
   const tabBtn = (t: Tab, label: string) => (
