@@ -78,8 +78,8 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ background: "#f9fafb", borderRadius: 8, padding: "12px 14px" }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", marginBottom: 4 }}>Client</div>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>{job.client_name || "—"}</div>
-              {job.client_company_name && <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{job.client_company_name}</div>}
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{job.client_company_name || job.client_name || "—"}</div>
+              {job.client_name && <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{job.client_name}</div>}
               {job.client_phone && <div style={{ fontSize: 12, color: "#6b7280", marginTop: 1 }}>📞 {job.client_phone}</div>}
             </div>
             <div style={{ background: "#f9fafb", borderRadius: 8, padding: "12px 14px" }}>
