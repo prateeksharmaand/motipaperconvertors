@@ -173,7 +173,7 @@ export default function QuotationsPage() {
                   <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[q.status] ?? "#868e96") + "22", color: STATUS_COLOR[q.status] ?? "#868e96" }}>{statusLabel(q.status)}</span>
                 </td>
                 <td style={td}>
-                  <button onClick={() => setEditing(q)} style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>Edit</button>
+                  <button onClick={() => setEditing(q)} title="Edit" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
                 </td>
               </tr>
             ))}

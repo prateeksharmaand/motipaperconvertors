@@ -109,8 +109,8 @@ export default function MachinesPage() {
             {m.max_colors && <div style={{ fontSize: 13, color: "#555", marginTop: 8 }}>{m.max_colors} color{m.max_colors !== 1 ? "s" : ""}</div>}
             {m.notes && <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>{m.notes}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button onClick={() => setEditing(m)} style={{ flex: 1, padding: "6px 0", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>Edit</button>
-              <button onClick={() => remove.mutate(m.id)} style={{ flex: 1, padding: "6px 0", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff", color: "#c92a2a" }}>Delete</button>
+              <button onClick={() => setEditing(m)} title="Edit" style={{ flex: 1, padding: "6px 0", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
+              <button onClick={() => remove.mutate(m.id)} title="Delete" style={{ flex: 1, padding: "6px 0", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>🗑️</button>
             </div>
           </div>
         ))}

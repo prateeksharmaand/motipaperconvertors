@@ -303,30 +303,13 @@ export default function StaffPage() {
                 </td>
                 <td style={td}>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button
-                      onClick={() => setEditing(u)}
-                      style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => toggleStatus.mutate({ id: u.id, status: u.status })}
-                      disabled={toggleStatus.isPending}
-                      style={{
-                        padding: "4px 10px", fontSize: 13, borderRadius: 6, cursor: "pointer", background: "#fff",
-                        border: `1px solid ${u.status === "active" ? "#fdd" : "#d3f9d8"}`,
-                        color: u.status === "active" ? "#c92a2a" : "#2b8a3e",
-                      }}
-                    >
-                      {u.status === "active" ? "Deactivate" : "Activate"}
+                    <button onClick={() => setEditing(u)} title="Edit" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
+                    <button onClick={() => toggleStatus.mutate({ id: u.id, status: u.status })} disabled={toggleStatus.isPending} title={u.status === "active" ? "Deactivate" : "Activate"}
+                      style={{ padding: "4px 8px", fontSize: 15, borderRadius: 6, cursor: "pointer", background: "#fff", border: `1px solid ${u.status === "active" ? "#fdd" : "#d3f9d8"}` }}>
+                      {u.status === "active" ? "🔴" : "🟢"}
                     </button>
                     {u.status === "inactive" && (
-                      <button
-                        onClick={() => setDeleteConfirm(u.id)}
-                        style={{ padding: "4px 10px", fontSize: 13, borderRadius: 6, cursor: "pointer", background: "#fff", border: "1px solid #fdd", color: "#c92a2a" }}
-                      >
-                        Delete
-                      </button>
+                      <button onClick={() => setDeleteConfirm(u.id)} title="Delete" style={{ padding: "4px 8px", fontSize: 15, borderRadius: 6, cursor: "pointer", background: "#fff", border: "1px solid #fdd" }}>🗑️</button>
                     )}
                   </div>
                 </td>

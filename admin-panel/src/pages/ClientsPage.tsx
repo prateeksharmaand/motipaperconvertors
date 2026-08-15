@@ -132,8 +132,8 @@ export default function ClientsPage() {
                 <td style={td}>{c.gstin || "—"}</td>
                 <td style={td}>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setEditing(c)} style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>Edit</button>
-                    <button onClick={() => setDeleteConfirm(c.id)} style={{ padding: "4px 10px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff", color: "#c92a2a" }}>Del</button>
+                    <button onClick={() => setEditing(c)} title="Edit" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
+                    <button onClick={() => setDeleteConfirm(c.id)} title="Delete" style={{ padding: "4px 8px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>🗑️</button>
                   </div>
                 </td>
               </tr>

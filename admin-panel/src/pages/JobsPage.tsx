@@ -1356,9 +1356,9 @@ export default function JobsPage() {
                     )}
                     {currentRole !== "operator" && currentRole !== "staff" && (
                       <>
-                        <button onClick={() => setPrintJob(j)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }} title="Print Job Card">🖨</button>
-                        <button onClick={() => setEditing(j)} style={{ padding: "4px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff" }}>Edit</button>
-                        <button onClick={() => setDeleteConfirm(j.id)} style={{ padding: "4px 10px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff", color: "#c92a2a" }}>Del</button>
+                        <button onClick={() => setPrintJob(j)} title="Print Job Card" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>🖨️</button>
+                        <button onClick={() => setEditing(j)} title="Edit" style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>✏️</button>
+                        <button onClick={() => setDeleteConfirm(j.id)} title="Delete" style={{ padding: "4px 8px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 15, background: "#fff" }}>🗑️</button>
                       </>
                     )}
                   </div>
