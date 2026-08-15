@@ -91,7 +91,6 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <tbody>
               {section("Basic Information")}
-              {row("Job Title", job.title)}
               {row("Created Date", fmtDate(job.created_at))}
               {row("Job Type", job.job_type)}
               {row("Order Type", job.order_type)}

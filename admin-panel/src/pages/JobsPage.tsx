@@ -75,7 +75,7 @@ function buildApiPayload(form: FormState, papers: PaperLine[]) {
   return {
     papers,
     clientId: str("client_id"),
-    title: form.title as string,
+    title: (form.job_type as string) || "—",
     jobType: str("job_type"),
     description: str("description"),
     quantity: num("quantity"),
@@ -139,7 +139,7 @@ function buildPatchPayload(form: FormState, papers: PaperLine[]) {
   const bool = (k: string) => boolField(form, k);
   return {
     papers,
-    title: form.title as string,
+    title: (form.job_type as string) || "—",
     description: str("description"),
     job_type: str("job_type"),
     size: str("size"),
@@ -492,7 +492,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
       const dueDate = (form.due_date as string).trim();
       return (
         (form.client_id as string).trim() !== "" &&
-        (form.title as string).trim() !== "" &&
+        (form.job_type as string).trim() !== "" &&
         (form.quantity as string).trim() !== "" &&
         dueDate !== "" &&
         dueDate >= today
@@ -538,10 +538,6 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
               onChange={v => setVal("client_id", v)}
               placeholder="— select client —"
             />
-          </label>
-          <label style={labelStyle}>
-            Job Name / Title
-            <input style={inputStyle} value={form.title as string} onChange={set("title")} placeholder="e.g. MARRIAGE CARD AND ENVELOPS" />
           </label>
           <label style={labelStyle}>
             Job Type
@@ -866,7 +862,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             {([
               ["Client", clientName],
-              ["Job Title", (form.title as string) || "—"],
+              ["Job Type", (form.job_type as string) || "—"],
               ["Quantity", (form.quantity as string) || "—"],
               ["Machine", machineName],
               ["Due Date", (form.due_date as string) || "—"],
@@ -1031,7 +1027,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit }:
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
           <div>
             <div style={{ fontSize: 11, color: "#868e96", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Job #{job.job_number}</div>
-            <h2 style={{ margin: "4px 0 6px", fontSize: 20, color: "#212529" }}>{job.title}</h2>
+            <h2 style={{ margin: "4px 0 6px", fontSize: 20, color: "#212529" }}>{job.job_type ?? "—"}</h2>
             <span style={{
               padding: "3px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700,
               background: (STATUS_COLOR[job.status] ?? "#868e96") + "22",
@@ -1289,9 +1285,8 @@ export default function JobsPage() {
           <thead>
             <tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
               {col("#", "job_number")}
-              {col("Title", "title")}
+              {col("Job Type", "job_type")}
               <th style={th}>Client</th>
-              <th style={th}>Type</th>
               <th style={th}>Sheet Size</th>
               {col("Qty", "quantity")}
               {col("Status", "status")}
@@ -1303,14 +1298,13 @@ export default function JobsPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={11} style={{ ...td, textAlign: "center", color: "#888" }}>Loading...</td></tr>}
+            {isLoading && <tr><td colSpan={10} style={{ ...td, textAlign: "center", color: "#888" }}>Loading...</td></tr>}
             {data?.data?.map((j) => (
               <tr key={j.id} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer" }}
                 onClick={() => setViewJob(j)}>
                 <td style={{ ...td, color: "#888" }}>{j.job_number}</td>
-                <td style={{ ...td, fontWeight: 500 }}>{j.title}</td>
+                <td style={{ ...td, fontWeight: 500 }}>{j.job_type ?? "—"}</td>
                 <td style={td}>{j.client_name ?? "—"}</td>
-                <td style={td}>{j.job_type ?? "—"}</td>
                 <td style={td}>{j.sheet_size ?? "—"}</td>
                 <td style={td}>{j.quantity ?? "—"}</td>
                 <td style={td} onClick={e => e.stopPropagation()}>
@@ -1370,7 +1364,7 @@ export default function JobsPage() {
                 </td>
               </tr>
             ))}
-            {!isLoading && !data?.data?.length && <tr><td colSpan={11} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>No jobs found</td></tr>}
+            {!isLoading && !data?.data?.length && <tr><td colSpan={10} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>No jobs found</td></tr>}
           </tbody>
         </table>
       </div>
