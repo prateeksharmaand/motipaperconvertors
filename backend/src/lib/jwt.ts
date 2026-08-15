@@ -3,7 +3,7 @@ import type { JwtPayload } from "../types/index.js";
 
 const ACCESS_SECRET = process.env.JWT_SECRET!;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
-const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES ?? "15m";
+const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES ?? "30m";
 const REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES ?? "30d";
 
 export function signAccess(payload: Omit<JwtPayload, "iat" | "exp">): string {

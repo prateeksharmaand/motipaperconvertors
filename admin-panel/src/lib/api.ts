@@ -9,6 +9,9 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Single in-flight refresh promise — all concurrent 401s wait on the same one
+let refreshPromise: Promise<string> | null = null;
+
 api.interceptors.response.use(
   (r) => r,
   async (error) => {
@@ -17,10 +20,21 @@ api.interceptors.response.use(
       original._retry = true;
       const { refreshToken, setTokens, clear, role, tenantId, userId } = useAuthStore.getState();
       if (!refreshToken) { clear(); return Promise.reject(error); }
+
       try {
-        const { data } = await axios.post("/api/v1/auth/refresh", { refreshToken });
-        setTokens(data.accessToken, data.refreshToken, role!, tenantId, userId!);
-        original.headers.Authorization = `Bearer ${data.accessToken}`;
+        // If a refresh is already in flight, wait for it rather than firing a second one
+        if (!refreshPromise) {
+          refreshPromise = axios
+            .post("/api/v1/auth/refresh", { refreshToken })
+            .then(({ data }) => {
+              setTokens(data.accessToken, data.refreshToken, role!, tenantId, userId!);
+              return data.accessToken;
+            })
+            .finally(() => { refreshPromise = null; });
+        }
+
+        const newAccessToken = await refreshPromise;
+        original.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(original);
       } catch {
         clear();
