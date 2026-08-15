@@ -18,7 +18,7 @@ const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontS
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
 interface Invoice { id: string; invoice_number: number; client_name: string; client_id: string; job_id: string; total: number; amount_paid: number; balance_due: number; status: string; due_date: string; issue_date: string; notes: string; gst_percent: number; discount_amount: number; line_items: LineItem[]; client_email_reminder?: boolean; }
-interface Payment { id: string; client_name: string; amount: number; payment_mode: string; type: string; payment_date: string; reference_number: string; }
+interface Payment { id: string; client_name: string; amount: number; payment_mode: string; type: string; payment_date: string; reference_number: string; notes?: string; }
 interface Client  { id: string; name: string; }
 interface JobMini { id: string; job_number: number; title: string; }
 interface LineItem { description: string; qty: number; rate: number; amount: number; }
