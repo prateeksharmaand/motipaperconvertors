@@ -1302,7 +1302,7 @@ export default function JobsPage() {
           <tbody>
             {isLoading && <tr><td colSpan={10} style={{ ...td, textAlign: "center", color: "#888" }}>Loading...</td></tr>}
             {data?.data?.map((j) => (
-              <tr key={j.id} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer" }}
+              <tr key={j.id} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer", background: (STATUS_COLOR[j.status] ?? "#868e96") + "12", borderLeft: `3px solid ${STATUS_COLOR[j.status] ?? "#868e96"}` }}
                 onClick={() => setViewJob(j)}>
                 <td style={{ ...td, color: "#888" }}>{j.job_number}</td>
                 <td style={{ ...td, fontWeight: 500 }}>{j.job_type ?? "—"}</td>
