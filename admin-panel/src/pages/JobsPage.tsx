@@ -546,7 +546,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
               options={jobTypeOptions}
               value={form.job_type as string}
               onChange={v => setVal("job_type", v)}
-              placeholder="— select job type —"
+              placeholder="— select job title —"
             />
           </label>
           <label style={labelStyle}>
