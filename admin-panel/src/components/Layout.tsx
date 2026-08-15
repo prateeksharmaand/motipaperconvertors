@@ -1,6 +1,8 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/auth.ts";
 import { api } from "../lib/api.ts";
+import PaperRateModal, { shouldShowPaperRateToday } from "./PaperRateModal.tsx";
 
 const SIDEBAR_W = 220;
 
@@ -46,6 +48,14 @@ export default function Layout() {
   const clear = useAuthStore((s) => s.clear);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const navigate = useNavigate();
+  const [showPaperRate, setShowPaperRate] = useState(false);
+
+  // Show paper rate modal once per day on first load for owner/sub_admin
+  useEffect(() => {
+    if ((role === "owner" || role === "sub_admin") && shouldShowPaperRateToday()) {
+      setShowPaperRate(true);
+    }
+  }, [role]);
 
   async function logout() {
     try { await api.post("/auth/logout", { refreshToken }); } catch { /* ignore */ }
@@ -55,6 +65,7 @@ export default function Layout() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
+      {showPaperRate && <PaperRateModal onClose={() => setShowPaperRate(false)} />}
       {/* ── Sidebar ── */}
       <aside style={{
         width: SIDEBAR_W,

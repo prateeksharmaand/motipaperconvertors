@@ -51,6 +51,22 @@ router.get("/paper", requirePermission("inventory.view"), async (req, res) => {
   res.json(result);
 });
 
+// ── POST /inventory/paper-rates — bulk update daily paper rates ───────────────
+router.post("/paper-rates", requirePermission("inventory.edit"), async (req, res) => {
+  const { rates } = req.body as { rates: { id: string; costPerUnit: number; ratePerReem?: number }[] };
+  if (!Array.isArray(rates) || rates.length === 0) {
+    res.status(400).json({ error: "rates array required" }); return;
+  }
+  const tenantId = req.user.tenantId!;
+  await Promise.all(rates.map(r =>
+    db("paper_stock")
+      .where({ id: r.id, tenant_id: tenantId })
+      .update({ cost_per_unit: r.costPerUnit, updated_at: new Date() })
+  ));
+  await writeAuditLog(req, "inventory.paper_rates_updated", "paper_stock", "bulk", null, { count: rates.length });
+  res.json({ updated: rates.length });
+});
+
 router.post("/paper", requirePermission("inventory.edit"), async (req, res) => {
   const parsed = PaperStockSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }

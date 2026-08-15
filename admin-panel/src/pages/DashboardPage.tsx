@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../store/auth.ts";
+import PaperRateModal from "../components/PaperRateModal.tsx";
 import { api } from "../lib/api.ts";
 import * as theme from "../theme.ts";
 import { statusLabel } from "../theme.ts";
@@ -69,6 +71,7 @@ interface PagedJobs {
 export default function DashboardPage() {
   const role = useAuthStore((s) => s.role);
   const navigate = useNavigate();
+  const [showPaperRate, setShowPaperRate] = useState(false);
 
   const { data: jobsResult } = useQuery<PagedJobs>({
     queryKey: ["dashboard-jobs"],
@@ -140,6 +143,7 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {showPaperRate && <PaperRateModal onClose={() => setShowPaperRate(false)} />}
       {/* Welcome banner */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
@@ -152,6 +156,11 @@ export default function DashboardPage() {
           </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          {(role === "owner" || role === "sub_admin") && (
+            <button onClick={() => setShowPaperRate(true)} style={{ padding: "8px 16px", border: "1px solid #ddd5fe", borderRadius: 7, cursor: "pointer", background: "#f5f3ff", fontSize: 13, fontWeight: 600, color: "#7c3aed", display: "flex", alignItems: "center", gap: 6 }}>
+              📋 Paper Rates
+            </button>
+          )}
           <button style={theme.btnPrimary} onClick={() => navigate("/jobs")}>+ New Job</button>
           <button style={theme.btnSecondary} onClick={() => navigate("/clients")}>+ New Client</button>
           <button style={theme.btnSecondary} onClick={() => navigate("/billing")}>+ New Invoice</button>
