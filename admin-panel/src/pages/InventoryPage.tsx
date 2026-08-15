@@ -118,7 +118,6 @@ function ItemForm({ initial, onSave, onCancel, isPending }: { initial?: Partial<
         </label>
         <label><span style={{ fontSize: 13 }}>Unit</span><input style={inputStyle} value={form.unit} onChange={set("unit")} /></label>
         <label><span style={{ fontSize: 13 }}>Quantity</span><input style={inputStyle} type="number" value={form.quantity} onChange={set("quantity")} /></label>
-        <label><span style={{ fontSize: 13 }}>Reorder Level</span><input style={inputStyle} type="number" value={form.low_stock_threshold} onChange={set("low_stock_threshold")} /></label>
         <label><span style={{ fontSize: 13 }}>Cost/Unit (₹)</span><input style={inputStyle} type="number" value={form.cost_per_unit} onChange={set("cost_per_unit")} /></label>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
