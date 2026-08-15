@@ -149,6 +149,20 @@ router.patch("/:id/permissions", requireRole("owner", "super_admin"), async (req
   res.status(204).send();
 });
 
+// DELETE /users/:id — only allowed if user is inactive
+router.delete("/:id", requirePermission("staff.manage"), async (req, res) => {
+  const tenantId = req.user.tenantId!;
+  const target = await db("users").where({ id: req.params.id, tenant_id: tenantId }).first();
+  if (!target) { res.status(404).json({ error: "User not found" }); return; }
+  if (target.status !== "inactive") {
+    res.status(400).json({ error: "Only inactive staff members can be deleted. Deactivate first." });
+    return;
+  }
+  await db("users").where({ id: req.params.id, tenant_id: tenantId }).delete();
+  await writeAuditLog(req, "user.deleted", "user", req.params.id, target, null);
+  res.status(204).send();
+});
+
 router.patch("/:id/status", requireRole("owner", "super_admin"), async (req, res) => {
   const { status } = req.body as { status: "active" | "inactive" };
   const tenantId = req.user.tenantId!;

@@ -137,6 +137,7 @@ function StaffModal({
 export default function StaffPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<StaffMember | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const qc = useQueryClient();
 
@@ -198,6 +199,11 @@ export default function StaffPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["staff"] }),
   });
 
+  const remove = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/users/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["staff"] }); setDeleteConfirm(null); },
+  });
+
   return (
     <div>
       <h1 style={{ marginBottom: 20 }}>Staff Management</h1>
@@ -221,6 +227,17 @@ export default function StaffPage() {
           isPending={update.isPending}
           isEdit={true}
         />
+      )}
+
+      {deleteConfirm && (
+        <div style={{ background: "#fff3f3", border: "1px solid #fdd", borderRadius: 8, padding: 16, marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 14 }}>Permanently delete this staff member? This cannot be undone.</span>
+          <button onClick={() => remove.mutate(deleteConfirm)} disabled={remove.isPending}
+            style={{ padding: "6px 16px", background: "#c92a2a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13 }}>
+            {remove.isPending ? "Deleting..." : "Confirm Delete"}
+          </button>
+          <button onClick={() => setDeleteConfirm(null)} style={{ padding: "6px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff", fontSize: 13 }}>Cancel</button>
+        </div>
       )}
 
       <TableControls
@@ -303,6 +320,14 @@ export default function StaffPage() {
                     >
                       {u.status === "active" ? "Deactivate" : "Activate"}
                     </button>
+                    {u.status === "inactive" && (
+                      <button
+                        onClick={() => setDeleteConfirm(u.id)}
+                        style={{ padding: "4px 10px", fontSize: 13, borderRadius: 6, cursor: "pointer", background: "#fff", border: "1px solid #fdd", color: "#c92a2a" }}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
