@@ -27,7 +27,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 type Job = {
   id: string; job_number: number; title: string; client_name: string; client_company_name: string; client_phone: string; client_id: string;
-  machine_id: string; status: string; due_date: string; quoted_price: number;
+  machine_id: string; status: string; due_date: string; created_at: string; quoted_price: number;
   print_operator_id: string; binding_operator_id: string; packing_operator_id: string; qc_operator_id: string; designer_id: string;
   operator_name: string; description: string; job_type: string; size: string; quantity: number;
   order_type: string; sheet_size: string; sheet_count: number; paper_gsm: number;
@@ -1049,6 +1049,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit }:
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
           {sectionTitle("Basic Info")}
           {row("Client", clientName)}
+          {row("Created Date", job.created_at ? job.created_at.slice(0, 10) : "—")}
           {row("Job Type", job.job_type)}
           {row("Order Type", job.order_type === "in_house" ? "In House" : job.order_type)}
           {row("Quantity", job.quantity)}
@@ -1294,6 +1295,7 @@ export default function JobsPage() {
               <th style={th}>Sheet Size</th>
               {col("Qty", "quantity")}
               {col("Status", "status")}
+              {col("Created", "created_at")}
               {col("Due", "due_date")}
               <th style={th}>Advance</th>
               {col("Quoted", "quoted_price")}
@@ -1326,6 +1328,7 @@ export default function JobsPage() {
                     </select>
                   )}
                 </td>
+                <td style={td}>{j.created_at ? j.created_at.slice(0, 10) : "—"}</td>
                 <td style={td}>{j.due_date ? j.due_date.slice(0, 10) : "—"}</td>
                 <td style={td}>{j.advance_amount != null ? "Rs." + Number(j.advance_amount).toLocaleString("en-IN") : "—"}</td>
                 <td style={td}>{j.quoted_price ? "Rs." + Number(j.quoted_price).toLocaleString("en-IN") : "—"}</td>

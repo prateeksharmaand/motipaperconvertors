@@ -1,7 +1,7 @@
 ﻿import { useEffect } from "react";
 
 interface Job {
-  id: string; job_number: number; title: string; client_name: string; client_company_name?: string; client_phone?: string; machine_id: string;
+  id: string; job_number: number; title: string; client_name: string; client_company_name?: string; client_phone?: string; created_at?: string; machine_id: string;
   status: string; quantity: number; due_date: string; order_type: string; job_type: string;
   paper_type: string; paper_gsm: number; sheet_size: string; sheet_count: number;
   composing_date: string; composing_amount: number; plate_cost: number; die_cost: number;
@@ -67,7 +67,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, paddingBottom: 12, borderBottom: "2px solid #7c3aed" }}>
             <div>
               <div style={{ fontSize: 22, fontWeight: 900, color: "#7c3aed", letterSpacing: "-0.5px" }}>JOB CARD</div>
-              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Date: {fmtDate(new Date().toISOString())}</div>
+              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Created: {fmtDate(job.created_at ?? new Date().toISOString())}</div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 28, fontWeight: 900, color: "#1f2937" }}>#{job.job_number}</div>
@@ -92,6 +92,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
             <tbody>
               {section("Basic Information")}
               {row("Job Title", job.title)}
+              {row("Created Date", fmtDate(job.created_at))}
               {row("Job Type", job.job_type)}
               {row("Order Type", job.order_type)}
               {row("Quantity", job.quantity ? (job.quantity + " PCS") : "—")}
