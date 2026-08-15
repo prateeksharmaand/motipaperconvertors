@@ -1,4 +1,5 @@
 import { statusLabel } from "../theme.ts";
+import "../components/TableSkeleton.tsx";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
@@ -103,7 +104,20 @@ export default function SubAdminsPage() {
         filters={[{ key: "status", label: "Status", options: [{ label: "Active", value: "active" }, { label: "Invited", value: "invited" }, { label: "Inactive", value: "inactive" }] }]}
         rightSlot={<button onClick={() => setShowInvite(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ Invite</button>}
       />
-      {isLoading ? <p>Loading…</p> : (
+      {isLoading && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div className="shimmer-cell" style={{ width: 160, height: 14 }} />
+                <div className="shimmer-cell" style={{ width: 220, height: 12 }} />
+              </div>
+              <div className="shimmer-cell" style={{ width: 56, height: 22, borderRadius: 10 }} />
+            </div>
+          ))}
+        </div>
+      )}
+      {!isLoading && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {data?.data?.map((u) => (
             <div key={u.id} style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>

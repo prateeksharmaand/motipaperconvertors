@@ -1,5 +1,6 @@
 import PrintListButton from "../components/PrintListButton.tsx";
 import IconButton from "../components/IconButton.tsx";
+import "../components/TableSkeleton.tsx";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
@@ -81,7 +82,6 @@ export default function MachinesPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["machines"] }),
   });
 
-  if (isLoading) return <p>Loading…</p>;
 
   return (
     <div>
@@ -96,6 +96,16 @@ export default function MachinesPage() {
       {showForm && <MachineForm onSave={(d) => create.mutate(d)} onCancel={() => setShowForm(false)} />}
       {editing && <MachineForm initial={editing} onSave={(d) => update.mutate({ id: editing.id, ...d })} onCancel={() => setEditing(null)} />}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
+        {isLoading && Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} style={{ background: "#fff", borderRadius: 10, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,.06)", border: "1px solid #eee" }}>
+            <div className="shimmer-cell" style={{ width: "60%", height: 18, marginBottom: 8 }} />
+            <div className="shimmer-cell" style={{ width: "40%", height: 13 }} />
+            <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+              <div className="shimmer-cell" style={{ flex: 1, height: 32 }} />
+              <div className="shimmer-cell" style={{ flex: 1, height: 32 }} />
+            </div>
+          </div>
+        ))}
         {machines.map(m => (
           <div key={m.id} style={{ background: "#fff", borderRadius: 10, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,.06)", border: "1px solid #eee" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>

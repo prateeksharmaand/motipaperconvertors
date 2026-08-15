@@ -1,3 +1,4 @@
+import TableSkeleton from "../components/TableSkeleton.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
 import IconButton from "../components/IconButton.tsx";
 import { useState } from "react";
@@ -123,7 +124,7 @@ export default function ClientsPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={6} style={{ ...td, textAlign: "center", color: "#888" }}>Loading…</td></tr>}
+            {isLoading && <TableSkeleton cols={6} />}
             {data?.data?.map((c) => (
               <tr key={c.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
                 <td style={{ ...td, fontWeight: 500 }}>{c.name}</td>

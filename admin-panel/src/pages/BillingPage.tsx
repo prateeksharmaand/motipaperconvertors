@@ -1,3 +1,4 @@
+import TableSkeleton from "../components/TableSkeleton.tsx";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
@@ -273,7 +274,7 @@ export default function BillingPage() {
                 {invCol("Due", "due_date")} <th style={th} />
               </tr></thead>
               <tbody>
-                {invLoading && <tr><td colSpan={8} style={{ ...td, textAlign: "center", color: "#888" }}>Loading…</td></tr>}
+                {invLoading && <TableSkeleton cols={8} />}
                 {invoices?.data?.map((inv) => (
                   <>
                     <tr key={inv.id} style={{ borderBottom: expandedInvoice === inv.id ? "none" : "1px solid #f0f0f0", background: expandedInvoice === inv.id ? "#fafafe" : "#fff" }}>

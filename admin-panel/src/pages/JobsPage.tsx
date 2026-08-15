@@ -1,3 +1,4 @@
+import TableSkeleton from "../components/TableSkeleton.tsx";
 import { useAuthStore } from "../store/auth.ts";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1300,7 +1301,7 @@ export default function JobsPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={10} style={{ ...td, textAlign: "center", color: "#888" }}>Loading...</td></tr>}
+            {isLoading && <TableSkeleton cols={10} />}
             {data?.data?.map((j) => (
               <tr key={j.id} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer", background: (STATUS_COLOR[j.status] ?? "#868e96") + "4D", borderLeft: `3px solid ${STATUS_COLOR[j.status] ?? "#868e96"}` }}
                 onClick={() => setViewJob(j)}>

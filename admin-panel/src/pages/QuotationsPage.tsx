@@ -1,3 +1,4 @@
+import TableSkeleton from "../components/TableSkeleton.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
 import IconButton from "../components/IconButton.tsx";
 import { useState } from "react";
@@ -164,7 +165,7 @@ export default function QuotationsPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={5} style={{ ...td, textAlign: "center", color: "#888" }}>Loading…</td></tr>}
+            {isLoading && <TableSkeleton cols={5} />}
             {data?.data?.map((q) => (
               <tr key={q.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
                 <td style={{ ...td, color: "#888" }}>Q-{q.quotation_number}</td>

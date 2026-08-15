@@ -1,3 +1,4 @@
+import TableSkeleton from "../components/TableSkeleton.tsx";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
@@ -250,7 +251,8 @@ export default function InventoryPage() {
                     </td>
                   </tr>
                 ))}
-                {!paper?.data?.length && <tr><td colSpan={6} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>No paper stock</td></tr>}
+                {!paper && <TableSkeleton cols={6} />}
+                {paper && !paper.data?.length && <tr><td colSpan={6} style={{ ...td, textAlign: "center", color: "#888", padding: 24 }}>No paper stock</td></tr>}
               </tbody>
             </table>
           </div>
@@ -272,6 +274,7 @@ export default function InventoryPage() {
                 {col("Stock", "quantity", itemActions, itemList)} <th style={th} />
               </tr></thead>
               <tbody>
+                {!items && <TableSkeleton cols={4} />}
                 {items?.data?.map((i) => (
                   <tr key={i.id} style={{ borderBottom: "1px solid #f0f0f0", background: i.is_low ? "#fff9f9" : "#fff" }}>
                     <td style={{ ...td, fontWeight: 500 }}>{i.name}</td>

@@ -1,3 +1,4 @@
+import TableSkeleton from "../components/TableSkeleton.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
 import IconButton from "../components/IconButton.tsx";
 import { useState } from "react";
@@ -285,7 +286,7 @@ export default function StaffPage() {
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={5} style={{ ...td, textAlign: "center", color: "#888" }}>Loading...</td></tr>
+              <TableSkeleton cols={5} />
             )}
             {data?.data?.map((u) => (
               <tr key={u.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
