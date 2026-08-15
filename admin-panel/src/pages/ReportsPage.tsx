@@ -63,8 +63,20 @@ function StatCard({ label, value, color }: { label: string; value: string; color
   );
 }
 
+const TABS = [
+  { key: "monthly",     label: "Monthly Revenue" },
+  { key: "pipeline",    label: "Job Pipeline" },
+  { key: "clients",     label: "Revenue by Client" },
+  { key: "outstanding", label: "Outstanding" },
+  { key: "profitability", label: "Profitability" },
+  { key: "paper",       label: "Paper Usage" },
+  { key: "machines",    label: "Machines" },
+  { key: "staff",       label: "Staff Output" },
+];
+
 // ── main ──────────────────────────────────────────────────
 export default function ReportsPage() {
+  const [activeTab, setActiveTab] = useState("monthly");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const dateParams = { ...(from && { from }), ...(to && { to }) };
@@ -87,15 +99,33 @@ export default function ReportsPage() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h1 style={{ margin: 0 }}>Reports</h1>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }} className="no-print">
           <PrintListButton label="Print Report" />
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="no-print" style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 0, borderBottom: "2px solid #e5e7eb" }}>
+        {TABS.map(t => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            style={{
+              padding: "9px 16px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
+              background: "transparent", borderBottom: activeTab === t.key ? "2px solid #7c3aed" : "2px solid transparent",
+              color: activeTab === t.key ? "#7c3aed" : "#6b7280", marginBottom: -2, borderRadius: "4px 4px 0 0",
+              transition: "color 0.15s",
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Global date range filter */}
-      <div className="no-print" style={{ background: "#fff", borderRadius: 10, border: "1px solid #e5e7eb", padding: "14px 20px", marginBottom: 24, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+      <div className="no-print" style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e5e7eb", borderTop: "none", padding: "12px 20px", marginBottom: 24, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
         <span style={{ fontWeight: 600, fontSize: 13, color: "#374151" }}>Date Range</span>
         <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>
           From <input type="date" value={from} onChange={e => setFrom(e.target.value)} style={{ padding: "5px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} />
@@ -112,7 +142,7 @@ export default function ReportsPage() {
       </div>
 
       {/* 1. Monthly Revenue Trend */}
-      {monthlyRevenue && monthlyRevenue.length > 0 && (
+      {activeTab === "monthly" && monthlyRevenue && monthlyRevenue.length > 0 && (
         <div style={{ marginBottom: 32 }}>
           {sectionHead("Monthly Revenue Trend",
             <button className="no-print" onClick={() => exportCsv("monthly-revenue", monthlyRevenue)} style={exportBtnStyle}>⬇ Export</button>
@@ -140,7 +170,7 @@ export default function ReportsPage() {
       )}
 
       {/* 2. Jobs by Status (Pipeline) */}
-      {jobsByStatus && jobsByStatus.length > 0 && (
+      {activeTab === "pipeline" && jobsByStatus && jobsByStatus.length > 0 && (
         <div style={{ marginBottom: 32 }}>
           {sectionHead("Job Pipeline by Status",
             <button className="no-print" onClick={() => exportCsv("jobs-by-status", jobsByStatus)} style={exportBtnStyle}>⬇ Export</button>
@@ -178,7 +208,7 @@ export default function ReportsPage() {
       )}
 
       {/* 3. Revenue by Client */}
-      {clientRevenue && clientRevenue.length > 0 && (
+      {activeTab === "clients" && clientRevenue && clientRevenue.length > 0 && (
         <div style={{ marginBottom: 32 }}>
           {sectionHead("Revenue by Client",
             <button className="no-print" onClick={() => exportCsv("revenue-by-client", clientRevenue)} style={exportBtnStyle}>⬇ Export</button>
@@ -219,7 +249,7 @@ export default function ReportsPage() {
       )}
 
       {/* 4. Outstanding Payments */}
-      {outstanding && (
+      {activeTab === "outstanding" && outstanding && (
         <div style={{ marginBottom: 32 }}>
           {sectionHead("Outstanding Payments",
             <button className="no-print" onClick={() => exportCsv("outstanding-payments", outstanding.invoices)} style={exportBtnStyle}>⬇ Export</button>
@@ -285,7 +315,7 @@ export default function ReportsPage() {
       )}
 
       {/* 5. Job Profitability */}
-      {profitability && (
+      {activeTab === "profitability" && profitability && (
         <div style={{ marginBottom: 32 }}>
           {sectionHead("Job Profitability",
             <button className="no-print" onClick={() => exportCsv("job-profitability", profitability.jobs)} style={exportBtnStyle}>⬇ Export</button>
@@ -335,7 +365,7 @@ export default function ReportsPage() {
       )}
 
       {/* 6. Paper Consumption */}
-      {paperConsumption && paperConsumption.length > 0 && (
+      {activeTab === "paper" && paperConsumption && paperConsumption.length > 0 && (
         <div style={{ marginBottom: 32 }}>
           {sectionHead("Paper Consumption",
             <button className="no-print" onClick={() => exportCsv("paper-consumption", paperConsumption)} style={exportBtnStyle}>⬇ Export</button>
@@ -378,7 +408,7 @@ export default function ReportsPage() {
       )}
 
       {/* 7. Machine Utilization */}
-      {machines && machines.length > 0 && (
+      {activeTab === "machines" && machines && machines.length > 0 && (
         <div style={{ marginBottom: 32 }}>
           {sectionHead("Machine Utilization")}
           <div style={cardStyle}>
@@ -407,7 +437,7 @@ export default function ReportsPage() {
       )}
 
       {/* 8. Staff Output */}
-      {staff && staff.length > 0 && (
+      {activeTab === "staff" && staff && staff.length > 0 && (
         <div style={{ marginBottom: 32 }}>
           {sectionHead("Staff Output",
             <button className="no-print" onClick={() => exportCsv("staff-output", staff)} style={exportBtnStyle}>⬇ Export</button>
