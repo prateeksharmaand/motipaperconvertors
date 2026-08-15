@@ -48,7 +48,7 @@ type Job = {
 
 interface Client { id: string; name: string; }
 interface Machine { id: string; name: string; }
-interface PaperStock { id: string; name: string; gsm: number; size: string; unit: string; }
+interface PaperStock { id: string; name: string; gsm: number; size: string; unit: string; quantity: number; }
 interface StaffUser { id: string; name: string; role: string; }
 interface SettingItem { id: string; name: string; }
 
@@ -61,17 +61,19 @@ const labelStyle: React.CSSProperties = { fontSize: 13, color: "#444", display: 
 const checkRowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" };
 
 type FormState = Record<string, string | boolean>;
+type PaperLine = { paperStockId: string; sheetCount: number };
 
 function boolField(form: FormState, key: string): boolean {
   const v = form[key];
   return v === true || v === "true";
 }
 
-function buildApiPayload(form: FormState) {
+function buildApiPayload(form: FormState, papers: PaperLine[]) {
   const num = (k: string) => form[k] !== "" && form[k] !== undefined ? Number(form[k]) : undefined;
   const str = (k: string) => (form[k] as string) || undefined;
   const bool = (k: string) => boolField(form, k);
   return {
+    papers,
     clientId: str("client_id"),
     title: form.title as string,
     jobType: str("job_type"),
@@ -131,11 +133,12 @@ function buildApiPayload(form: FormState) {
   };
 }
 
-function buildPatchPayload(form: FormState) {
+function buildPatchPayload(form: FormState, papers: PaperLine[]) {
   const num = (k: string) => form[k] !== "" && form[k] !== undefined ? Number(form[k]) : undefined;
   const str = (k: string) => (form[k] as string) || undefined;
   const bool = (k: string) => boolField(form, k);
   return {
+    papers,
     title: form.title as string,
     description: str("description"),
     job_type: str("job_type"),
@@ -199,7 +202,7 @@ function initForm(initial?: Partial<Job>): FormState {
     return {
       client_id: "", title: "", job_type: "", description: "", size: "",
       quantity: "", due_date: "", paper_type: "", machine_id: "", quoted_price: "",
-      order_type: "in_house", sheet_size: "", sheet_count: "", paper_gsm: "",
+      order_type: "in_house", sheet_size: "", sheet_count: "", paper_gsm: "", paper_stock_id: "",
       composing_date: "", composing_amount: "", plate_cost: "", die_cost: "",
       plate_source: "", approved_rate: "", hela_cost: "", other_cost: "",
       proof_required: false,
@@ -231,6 +234,7 @@ function initForm(initial?: Partial<Job>): FormState {
     sheet_size: initial.sheet_size ?? "",
     sheet_count: s(initial.sheet_count),
     paper_gsm: s(initial.paper_gsm),
+    paper_stock_id: (initial as Record<string, unknown>).paper_stock_id as string ?? "",
     composing_date: initial.composing_date ? initial.composing_date.slice(0, 10) : "",
     composing_amount: s(initial.composing_amount),
     plate_cost: s(initial.plate_cost),
@@ -417,16 +421,18 @@ function Stepper({ current }: { current: number }) {
 
 // ─── JobForm ──────────────────────────────────────────────────────────────────
 
-function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, isPending }: {
+function JobForm({ initial, initialPapers, clients, machines, plateSources, onSave, onCancel, isPending }: {
   initial?: Partial<Job>;
+  initialPapers?: PaperLine[];
   clients: Client[];
   machines: Machine[];
   plateSources: SettingItem[];
-  onSave: (d: FormState) => void;
+  onSave: (d: FormState, papers: PaperLine[]) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
   const [form, setForm] = useState<FormState>(() => initForm(initial));
+  const [papers, setPapers] = useState<PaperLine[]>(initialPapers ?? []);
   const [step, setStep] = useState(1);
   const [stepError, setStepError] = useState(false);
 
@@ -478,19 +484,6 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
     { value: "external", label: "External" },
   ];
 
-  function handlePaperSelect(paperId: string) {
-    const paper = paperStocks.find(p => p.id === paperId);
-    if (paper) {
-      setForm(f => ({
-        ...f,
-        paper_type: paper.name,
-        paper_gsm: String(paper.gsm),
-        sheet_size: paper.size,
-      }));
-    } else {
-      setVal("paper_type", "");
-    }
-  }
 
   // Per-step validation
   function validateStep(s: number): boolean {
@@ -523,7 +516,7 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
   }
 
   function handleSave() {
-    onSave(form);
+    onSave(form, papers);
   }
 
   // Display names for summary
@@ -584,37 +577,82 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
     ),
 
     2: (
-      <div style={gridStyle}>
-        <label style={labelStyle}>
-          Machine
-          <SearchableSelect
-            options={machineOptions}
-            value={form.machine_id as string}
-            onChange={v => setVal("machine_id", v)}
-            placeholder="— select machine —"
-          />
-        </label>
-        <label style={labelStyle}>
-          Paper Type
-          <SearchableSelect
-            options={paperOptions}
-            value={paperStocks.find(p => p.name === (form.paper_type as string))?.id ?? ""}
-            onChange={handlePaperSelect}
-            placeholder="— select from inventory —"
-          />
-        </label>
-        <label style={labelStyle}>
-          Paper GSM
-          <input style={inputStyle} type="number" value={form.paper_gsm as string} onChange={set("paper_gsm")} placeholder="e.g. 130" />
-        </label>
-        <label style={labelStyle}>
-          Sheet Size
-          <input style={inputStyle} value={form.sheet_size as string} onChange={set("sheet_size")} placeholder="e.g. 12X18" />
-        </label>
-        <label style={labelStyle}>
-          Sheet Count
-          <input style={inputStyle} type="number" value={form.sheet_count as string} onChange={set("sheet_count")} />
-        </label>
+      <div>
+        <div style={gridStyle}>
+          <label style={labelStyle}>
+            Machine
+            <SearchableSelect
+              options={machineOptions}
+              value={form.machine_id as string}
+              onChange={v => setVal("machine_id", v)}
+              placeholder="— select machine —"
+            />
+          </label>
+          <label style={labelStyle}>
+            Sheet Size
+            <input style={inputStyle} value={form.sheet_size as string} onChange={set("sheet_size")} placeholder="e.g. 12X18" />
+          </label>
+        </div>
+
+        {/* Multi-paper section */}
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: "#3b5bdb", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Paper Used
+          </div>
+          {papers.map((p, i) => {
+            const stock = paperStocks.find(s => s.id === p.paperStockId);
+            return (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 160px 36px", gap: 10, marginBottom: 10, alignItems: "end" }}>
+                <label style={labelStyle}>
+                  {i === 0 ? "Paper" : ""}
+                  <SearchableSelect
+                    options={paperOptions}
+                    value={p.paperStockId}
+                    onChange={v => {
+                      const s = paperStocks.find(ps => ps.id === v);
+                      setPapers(prev => prev.map((pp, j) => j === i ? { ...pp, paperStockId: v } : pp));
+                      if (s && i === 0) setForm(f => ({ ...f, paper_type: s.name, paper_gsm: String(s.gsm), paper_stock_id: s.id }));
+                    }}
+                    placeholder="— select paper —"
+                  />
+                </label>
+                <label style={labelStyle}>
+                  {i === 0 ? "Sheets" : ""}
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    min={1}
+                    value={p.sheetCount || ""}
+                    onChange={e => setPapers(prev => prev.map((pp, j) => j === i ? { ...pp, sheetCount: Number(e.target.value) } : pp))}
+                    placeholder="No. of sheets"
+                  />
+                </label>
+                <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: 2 }}>
+                  <button
+                    type="button"
+                    onClick={() => setPapers(prev => prev.filter((_, j) => j !== i))}
+                    style={{ width: 32, height: 36, border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", background: "#fff", color: "#c92a2a", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >×</button>
+                </div>
+                {stock && (
+                  <div style={{ gridColumn: "1 / -1", fontSize: 12, color: "#868e96", marginTop: -6 }}>
+                    Available: <strong>{Number(stock.quantity).toLocaleString("en-IN")} {stock.unit}</strong>
+                    {p.sheetCount > 0 && Number(stock.quantity) < p.sheetCount && (
+                      <span style={{ color: "#c92a2a", marginLeft: 8, fontWeight: 600 }}>⚠ Insufficient stock</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setPapers(prev => [...prev, { paperStockId: "", sheetCount: 0 }])}
+            style={{ padding: "6px 16px", border: "1px dashed #3b5bdb", borderRadius: 6, cursor: "pointer", background: "#f5f7ff", color: "#3b5bdb", fontSize: 13, fontWeight: 600, marginTop: 4 }}
+          >
+            + Add Paper
+          </button>
+        </div>
       </div>
     ),
 
@@ -912,9 +950,168 @@ function JobForm({ initial, clients, machines, plateSources, onSave, onCancel, i
   );
 }
 
+// ─── EditingJobFormWrapper ────────────────────────────────────────────────────
+
+function EditingJobFormWrapper({ job, clients, machines, plateSources, isPending, onSave, onCancel }: {
+  job: Job;
+  clients: Client[];
+  machines: Machine[];
+  plateSources: SettingItem[];
+  isPending: boolean;
+  onSave: (form: FormState, papers: PaperLine[]) => void;
+  onCancel: () => void;
+}) {
+  const { data: jobDetail, isLoading } = useQuery<{ papers: PaperLine[] }>({
+    queryKey: ["job-detail", job.id],
+    queryFn: () => api.get(`/admin/jobs/${job.id}`).then(r => r.data),
+  });
+
+  if (isLoading) return <div style={{ padding: 32, textAlign: "center", color: "#888" }}>Loading job details...</div>;
+
+  return (
+    <JobForm
+      initial={job}
+      initialPapers={jobDetail?.papers ?? []}
+      clients={clients}
+      machines={machines}
+      plateSources={plateSources}
+      isPending={isPending}
+      onSave={onSave}
+      onCancel={onCancel}
+    />
+  );
+}
+
+// ─── JobDetailModal ───────────────────────────────────────────────────────────
+
+function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit }: {
+  job: Job;
+  clients: Client[];
+  machines: Machine[];
+  staffUsers: StaffUser[];
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  const clientName = clients.find(c => c.id === job.client_id)?.name ?? job.client_name ?? "—";
+  const machineName = machines.find(m => m.id === job.machine_id)?.name ?? "—";
+  const printOpName = staffUsers.find(u => u.id === job.print_operator_id)?.name ?? job.print_operator ?? "—";
+  const bindOpName = staffUsers.find(u => u.id === job.binding_operator_id)?.name ?? job.binding_operator ?? "—";
+  const packOpName = staffUsers.find(u => u.id === job.packing_operator_id)?.name ?? job.packing_operator ?? "—";
+  const designerName = staffUsers.find(u => u.id === job.designer_id)?.name ?? "—";
+
+  const row = (label: string, value: unknown) => (
+    <div key={label} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <div style={{ fontSize: 11, color: "#868e96", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>
+      <div style={{ fontSize: 14, color: "#212529", fontWeight: 500 }}>{value != null && value !== "" ? String(value) : "—"}</div>
+    </div>
+  );
+
+  const bool = (v: boolean | undefined) => v ? "Yes" : "No";
+
+  const sectionTitle = (t: string) => (
+    <div style={{ gridColumn: "1 / -1", fontWeight: 700, fontSize: 13, color: "#3b5bdb", borderBottom: "1px solid #e7ecff", paddingBottom: 6, marginTop: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>{t}</div>
+  );
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 2000,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+    }} onClick={onClose}>
+      <div style={{
+        background: "#fff", borderRadius: 12, width: "100%", maxWidth: 820,
+        maxHeight: "90vh", overflowY: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+        padding: 32,
+      }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+          <div>
+            <div style={{ fontSize: 11, color: "#868e96", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Job #{job.job_number}</div>
+            <h2 style={{ margin: "4px 0 6px", fontSize: 20, color: "#212529" }}>{job.title}</h2>
+            <span style={{
+              padding: "3px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700,
+              background: (STATUS_COLOR[job.status] ?? "#868e96") + "22",
+              color: STATUS_COLOR[job.status] ?? "#868e96",
+            }}>
+              {statusLabel(job.status)}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={onEdit} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Edit</button>
+            <button onClick={onClose} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13 }}>Close</button>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+          {sectionTitle("Basic Info")}
+          {row("Client", clientName)}
+          {row("Job Type", job.job_type)}
+          {row("Order Type", job.order_type === "in_house" ? "In House" : job.order_type)}
+          {row("Quantity", job.quantity)}
+          {row("Due Date", job.due_date ? job.due_date.slice(0, 10) : "")}
+          {row("Description", job.description)}
+
+          {sectionTitle("Paper & Machine")}
+          {row("Machine", machineName)}
+          {row("Paper Type", job.paper_type)}
+          {row("Paper GSM", job.paper_gsm)}
+          {row("Sheet Size", job.sheet_size)}
+          {row("Sheet Count", job.sheet_count)}
+
+          {sectionTitle("Pre-Print")}
+          {row("Designer", designerName)}
+          {row("Composing Date", job.composing_date ? job.composing_date.slice(0, 10) : "")}
+          {row("Composing Amount", job.composing_amount != null ? `Rs.${Number(job.composing_amount).toLocaleString("en-IN")}` : "")}
+          {row("Plate Cost", job.plate_cost != null ? `Rs.${Number(job.plate_cost).toLocaleString("en-IN")}` : "")}
+          {row("Die Cost", job.die_cost != null ? `Rs.${Number(job.die_cost).toLocaleString("en-IN")}` : "")}
+          {row("Plate Source", job.plate_source)}
+          {row("Approved Rate", job.approved_rate != null ? `Rs.${Number(job.approved_rate).toLocaleString("en-IN")}` : "")}
+          {row("Hela Cost", job.hela_cost != null ? `Rs.${Number(job.hela_cost).toLocaleString("en-IN")}` : "")}
+          {row("Other Cost", job.other_cost != null ? `Rs.${Number(job.other_cost).toLocaleString("en-IN")}` : "")}
+          {row("Proof Required", bool(job.proof_required))}
+
+          {sectionTitle("Print Process")}
+          {row("Offset", bool(job.is_offset))}
+          {row("Digital", bool(job.is_digital))}
+          {row("Screen", bool(job.is_screen))}
+          {row("Print Colors", job.print_colors)}
+          {row("Print Operator", printOpName)}
+          {row("Print Date", job.print_date ? job.print_date.slice(0, 10) : "")}
+
+          {sectionTitle("Post-Print")}
+          {row("Numbering", bool(job.is_numbering))}
+          {job.is_numbering && row("Numbering From–To", `${job.numbering_from ?? "—"} – ${job.numbering_to ?? "—"}`)}
+          {row("Binding", bool(job.is_binding))}
+          {row("UV", bool(job.is_uv))}
+          {row("Foil", bool(job.is_foil))}
+          {row("Die Cutting", bool(job.is_die_cutting))}
+          {row("Half Cutting", bool(job.is_half_cutting))}
+          {row("Creasing", bool(job.is_creasing))}
+          {row("Pasting", bool(job.is_pasting))}
+          {row("Lamination", bool(job.is_lamination))}
+          {row("Folding", bool(job.is_folding))}
+          {row("Gumming", bool(job.is_gumming))}
+          {row("Binding Operator", bindOpName)}
+          {row("Packing Operator", packOpName)}
+          {row("Post-Print Date", job.post_print_date ? job.post_print_date.slice(0, 10) : "")}
+
+          {sectionTitle("Financial & Delivery")}
+          {row("Quoted Price", job.quoted_price != null ? `Rs.${Number(job.quoted_price).toLocaleString("en-IN")}` : "")}
+          {row("Advance Amount", job.advance_amount != null ? `Rs.${Number(job.advance_amount).toLocaleString("en-IN")}` : "")}
+          {row("Quotation Ref", job.quotation_ref)}
+          {row("Indent Number", job.indent_number)}
+          {row("Delivery Quantity", job.delivery_quantity)}
+          {row("Challan Number", job.challan_number)}
+          {row("Challan Date", job.challan_date ? job.challan_date.slice(0, 10) : "")}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function JobsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Job | null>(null);
+  const [viewJob, setViewJob] = useState<Job | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [printJob, setPrintJob] = useState<Job | null>(null);
@@ -967,19 +1164,25 @@ export default function JobsPage() {
     enabled: showForm || !!editing,
   });
 
+  const { data: staffUsersMain = [] } = useQuery<StaffUser[]>({
+    queryKey: ["staff-users"],
+    queryFn: () => api.get("/admin/users", { params: { limit: "200", role: "operator" } }).then(r => r.data.data ?? []),
+  });
+
   const { data: printTemplate } = useQuery<{ header: string; footer: string; signature: string }>({
     queryKey: ["print-template"],
     queryFn: () => api.get("/admin/settings/print-template").then(r => r.data),
   });
 
   const create = useMutation({
-    mutationFn: (form: FormState) => api.post("/admin/jobs", buildApiPayload(form)),
+    mutationFn: ({ form, papers }: { form: FormState; papers: PaperLine[] }) =>
+      api.post("/admin/jobs", buildApiPayload(form, papers)),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setShowForm(false); },
   });
 
   const update = useMutation({
-    mutationFn: ({ id, form }: { id: string; form: FormState }) =>
-      api.patch(`/admin/jobs/${id}`, buildPatchPayload(form)),
+    mutationFn: ({ id, form, papers }: { id: string; form: FormState; papers: PaperLine[] }) =>
+      api.patch(`/admin/jobs/${id}`, buildPatchPayload(form, papers)),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setEditing(null); },
   });
 
@@ -1019,6 +1222,16 @@ export default function JobsPage() {
           onClose={() => setPrintJob(null)}
         />
       )}
+      {viewJob && (
+        <JobDetailModal
+          job={viewJob}
+          clients={clients}
+          machines={machines}
+          staffUsers={staffUsersMain}
+          onClose={() => setViewJob(null)}
+          onEdit={() => { setEditing(viewJob); setViewJob(null); }}
+        />
+      )}
       <h1 style={{ marginBottom: 20 }}>Job Cards</h1>
       {showForm && (
         <JobForm
@@ -1026,18 +1239,18 @@ export default function JobsPage() {
           machines={machines}
           plateSources={plateSources}
           isPending={create.isPending}
-          onSave={(form) => create.mutate(form)}
+          onSave={(form, papers) => create.mutate({ form, papers })}
           onCancel={() => setShowForm(false)}
         />
       )}
       {editing && (
-        <JobForm
-          initial={editing}
+        <EditingJobFormWrapper
+          job={editing}
           clients={clients}
           machines={machines}
           plateSources={plateSources}
           isPending={update.isPending}
-          onSave={(form) => update.mutate({ id: editing.id, form })}
+          onSave={(form, papers) => update.mutate({ id: editing.id, form, papers })}
           onCancel={() => setEditing(null)}
         />
       )}
@@ -1085,14 +1298,15 @@ export default function JobsPage() {
           <tbody>
             {isLoading && <tr><td colSpan={11} style={{ ...td, textAlign: "center", color: "#888" }}>Loading...</td></tr>}
             {data?.data?.map((j) => (
-              <tr key={j.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
+              <tr key={j.id} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer" }}
+                onClick={() => setViewJob(j)}>
                 <td style={{ ...td, color: "#888" }}>{j.job_number}</td>
                 <td style={{ ...td, fontWeight: 500 }}>{j.title}</td>
                 <td style={td}>{j.client_name ?? "—"}</td>
                 <td style={td}>{j.job_type ?? "—"}</td>
                 <td style={td}>{j.sheet_size ?? "—"}</td>
                 <td style={td}>{j.quantity ?? "—"}</td>
-                <td style={td}>
+                <td style={td} onClick={e => e.stopPropagation()}>
                   {currentRole === "operator" || currentRole === "staff" ? (
                     <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[j.status] ?? "#868e96") + "22", color: STATUS_COLOR[j.status] ?? "#868e96" }}>
                       {statusLabel(j.status)}
@@ -1110,7 +1324,7 @@ export default function JobsPage() {
                 <td style={td}>{j.due_date ? j.due_date.slice(0, 10) : "—"}</td>
                 <td style={td}>{j.advance_amount != null ? "Rs." + Number(j.advance_amount).toLocaleString("en-IN") : "—"}</td>
                 <td style={td}>{j.quoted_price ? "Rs." + Number(j.quoted_price).toLocaleString("en-IN") : "—"}</td>
-                <td style={td}>
+                <td style={td} onClick={e => e.stopPropagation()}>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {/* ── Print Operator ── */}
                     {j.print_operator_id === currentUserId && j.status === "approval" && (

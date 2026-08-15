@@ -150,7 +150,12 @@ router.get("/:id", requirePermission("jobs.view"), async (req, res) => {
     .select("job_status_history.*", "users.name as changed_by_name")
     .orderBy("changed_at", "asc");
 
-  res.json({ ...job, statusHistory });
+  const papers = await db("job_papers")
+    .where({ job_id: job.id })
+    .leftJoin("paper_stock", "job_papers.paper_stock_id", "paper_stock.id")
+    .select("job_papers.*", "paper_stock.name as paper_name", "paper_stock.gsm", "paper_stock.size", "paper_stock.unit");
+
+  res.json({ ...job, statusHistory, papers });
 });
 
 const CreateJobSchema = z.object({
@@ -216,6 +221,10 @@ const CreateJobSchema = z.object({
   deliveryQuantity: z.number().int().optional(),
   challanNumber: z.string().optional(),
   challanDate: z.string().optional(),
+  papers: z.array(z.object({
+    paperStockId: z.string().uuid(),
+    sheetCount: z.number().int().positive(),
+  })).optional(),
 });
 
 // ── POST /jobs ────────────────────────────────────────────
@@ -303,6 +312,24 @@ router.post("/", requirePermission("jobs.create"), async (req, res) => {
       to_status: "enquiry",
     });
 
+    // Insert job_papers and auto-deduct from inventory
+    if (data.papers && data.papers.length > 0) {
+      await trx("job_papers").insert(
+        data.papers.map(p => ({ job_id: inserted.id, paper_stock_id: p.paperStockId, sheet_count: p.sheetCount }))
+      );
+      for (const p of data.papers) {
+        await trx("inventory_transactions").insert({
+          tenant_id: tenantId, paper_stock_id: p.paperStockId,
+          job_id: inserted.id, performed_by: req.user.id,
+          type: "out", quantity: p.sheetCount,
+          notes: `Auto-deducted for Job #${jobNumber}: ${data.title}`,
+        });
+        await trx("paper_stock")
+          .where({ id: p.paperStockId, tenant_id: tenantId })
+          .decrement("quantity", p.sheetCount);
+      }
+    }
+
     return inserted;
   });
 
@@ -341,7 +368,47 @@ router.patch("/:id", requirePermission("jobs.edit"), async (req, res) => {
   }
   updates.updated_at = new Date();
 
-  const [updated] = await db("job_cards").where({ id: req.params.id }).update(updates).returning("*");
+  const [updated] = await db.transaction(async (trx) => {
+    const [upd] = await trx("job_cards").where({ id: req.params.id }).update(updates).returning("*");
+
+    // If papers array provided, replace all job_papers and re-sync inventory
+    if (req.body.papers !== undefined) {
+      const newPapers: { paperStockId: string; sheetCount: number }[] = req.body.papers ?? [];
+
+      // Reverse all old deductions
+      const oldPapers = await trx("job_papers").where({ job_id: req.params.id });
+      for (const op of oldPapers) {
+        await trx("inventory_transactions").insert({
+          tenant_id: tenantId, paper_stock_id: op.paper_stock_id,
+          job_id: req.params.id, performed_by: req.user.id,
+          type: "in", quantity: op.sheet_count,
+          notes: `Reversal for Job #${existing.job_number} edit`,
+        });
+        await trx("paper_stock").where({ id: op.paper_stock_id, tenant_id: tenantId }).increment("quantity", op.sheet_count);
+      }
+
+      // Delete old job_papers
+      await trx("job_papers").where({ job_id: req.params.id }).delete();
+
+      // Insert new job_papers and deduct
+      if (newPapers.length > 0) {
+        await trx("job_papers").insert(
+          newPapers.map(p => ({ job_id: req.params.id, paper_stock_id: p.paperStockId, sheet_count: p.sheetCount }))
+        );
+        for (const p of newPapers) {
+          await trx("inventory_transactions").insert({
+            tenant_id: tenantId, paper_stock_id: p.paperStockId,
+            job_id: req.params.id, performed_by: req.user.id,
+            type: "out", quantity: p.sheetCount,
+            notes: `Auto-deducted for Job #${existing.job_number}: ${existing.title} (updated)`,
+          });
+          await trx("paper_stock").where({ id: p.paperStockId, tenant_id: tenantId }).decrement("quantity", p.sheetCount);
+        }
+      }
+    }
+
+    return [upd];
+  });
 
   if (req.body.assigned_operator_id && req.body.assigned_operator_id !== existing.assigned_operator_id) {
     await notifyJobAssigned(tenantId, req.body.assigned_operator_id, updated.job_number, updated.title, updated.id);
