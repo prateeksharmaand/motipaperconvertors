@@ -67,9 +67,20 @@ router.post("/paper", requirePermission("inventory.edit"), async (req, res) => {
 router.patch("/paper/:id", requirePermission("inventory.edit"), async (req, res) => {
   const parsed = PaperStockSchema.partial().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+  const d = parsed.data;
+  const updates: Record<string, unknown> = { updated_at: new Date() };
+  if (d.name !== undefined) updates.name = d.name;
+  if (d.brand !== undefined) updates.brand = d.brand ?? null;
+  if (d.type !== undefined) updates.type = d.type ?? null;
+  if (d.gsm !== undefined) updates.gsm = d.gsm ?? null;
+  if (d.size !== undefined) updates.size = d.size ?? null;
+  if (d.unit !== undefined) updates.unit = d.unit;
+  if (d.quantity !== undefined) updates.quantity = d.quantity;
+  if (d.lowStockThreshold !== undefined) updates.low_stock_threshold = d.lowStockThreshold;
+  if (d.costPerUnit !== undefined) updates.cost_per_unit = d.costPerUnit ?? null;
   const [updated] = await db("paper_stock")
     .where({ id: req.params.id, tenant_id: req.user.tenantId! })
-    .update({ ...parsed.data, updated_at: new Date() }).returning("*");
+    .update(updates).returning("*");
   if (!updated) { res.status(404).json({ error: "Item not found" }); return; }
   res.json(updated);
 });
@@ -123,9 +134,17 @@ router.post("/items", requirePermission("inventory.edit"), async (req, res) => {
 router.patch("/items/:id", requirePermission("inventory.edit"), async (req, res) => {
   const parsed = InventoryItemSchema.partial().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+  const d = parsed.data;
+  const updates: Record<string, unknown> = { updated_at: new Date() };
+  if (d.name !== undefined) updates.name = d.name;
+  if (d.category !== undefined) updates.category = d.category;
+  if (d.unit !== undefined) updates.unit = d.unit;
+  if (d.quantity !== undefined) updates.quantity = d.quantity;
+  if (d.lowStockThreshold !== undefined) updates.low_stock_threshold = d.lowStockThreshold;
+  if (d.costPerUnit !== undefined) updates.cost_per_unit = d.costPerUnit ?? null;
   const [updated] = await db("inventory_items")
     .where({ id: req.params.id, tenant_id: req.user.tenantId! })
-    .update({ ...parsed.data, updated_at: new Date() }).returning("*");
+    .update(updates).returning("*");
   if (!updated) { res.status(404).json({ error: "Item not found" }); return; }
   res.json(updated);
 });
