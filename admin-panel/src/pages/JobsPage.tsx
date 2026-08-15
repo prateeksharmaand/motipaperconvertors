@@ -488,11 +488,14 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
   // Per-step validation
   function validateStep(s: number): boolean {
     if (s === 1) {
+      const today = new Date().toISOString().slice(0, 10);
+      const dueDate = (form.due_date as string).trim();
       return (
         (form.client_id as string).trim() !== "" &&
         (form.title as string).trim() !== "" &&
         (form.quantity as string).trim() !== "" &&
-        (form.due_date as string).trim() !== ""
+        dueDate !== "" &&
+        dueDate >= today
       );
     }
     if (s === 2) {
@@ -564,7 +567,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
           </label>
           <label style={labelStyle}>
             Due Date
-            <input style={inputStyle} type="date" value={form.due_date as string} onChange={set("due_date")} />
+            <input style={inputStyle} type="date" value={form.due_date as string} onChange={set("due_date")} min={new Date().toISOString().slice(0, 10)} />
           </label>
         </div>
         <div style={{ marginTop: 16 }}>
@@ -905,7 +908,9 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
 
       {stepError && (
         <div style={{ color: "#c92a2a", fontSize: 13, marginBottom: 12, fontWeight: 500 }}>
-          Please fill all required fields before proceeding.
+          {step === 1 && (form.due_date as string) && (form.due_date as string) < new Date().toISOString().slice(0, 10)
+            ? "Due date cannot be earlier than today."
+            : "Please fill all required fields before proceeding."}
         </div>
       )}
 
