@@ -22,8 +22,9 @@ router.get("/", requirePermission("staff.view"), async (req, res) => {
 
   let base = db("users")
     .where({ tenant_id: tenantId })
+    .whereNull("deleted_at")
     .select("id", "name", "email", "phone", "role", "status", "staff_type", "last_login_at", "created_at");
-  let countQ = db("users").where({ tenant_id: tenantId });
+  let countQ = db("users").where({ tenant_id: tenantId }).whereNull("deleted_at");
 
   if (role) { base = base.where({ role }); countQ = countQ.where({ role }); }
   if (status) { base = base.where({ status }); countQ = countQ.where({ status }); }
@@ -149,16 +150,16 @@ router.patch("/:id/permissions", requireRole("owner", "super_admin"), async (req
   res.status(204).send();
 });
 
-// DELETE /users/:id — only allowed if user is inactive
+// DELETE /users/:id — soft delete (only allowed if user is inactive)
 router.delete("/:id", requirePermission("staff.manage"), async (req, res) => {
   const tenantId = req.user.tenantId!;
-  const target = await db("users").where({ id: req.params.id, tenant_id: tenantId }).first();
+  const target = await db("users").where({ id: req.params.id, tenant_id: tenantId }).whereNull("deleted_at").first();
   if (!target) { res.status(404).json({ error: "User not found" }); return; }
   if (target.status !== "inactive") {
     res.status(400).json({ error: "Only inactive staff members can be deleted. Deactivate first." });
     return;
   }
-  await db("users").where({ id: req.params.id, tenant_id: tenantId }).delete();
+  await db("users").where({ id: req.params.id, tenant_id: tenantId }).update({ deleted_at: new Date() });
   await writeAuditLog(req, "user.deleted", "user", req.params.id, target, null);
   res.status(204).send();
 });

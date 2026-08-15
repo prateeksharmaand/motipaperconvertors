@@ -86,7 +86,7 @@ router.post("/login", async (req, res) => {
   }
   const { email, password } = parsed.data;
 
-  const user = await db("users").where({ email }).first();
+  const user = await db("users").where({ email }).whereNull("deleted_at").first();
   if (!user || !user.password_hash) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
