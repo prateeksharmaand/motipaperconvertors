@@ -541,7 +541,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
             />
           </label>
           <label style={labelStyle}>
-            Job Type
+            Job Title
             <SearchableSelect
               options={jobTypeOptions}
               value={form.job_type as string}
@@ -863,7 +863,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             {([
               ["Client", clientName],
-              ["Job Type", (form.job_type as string) || "—"],
+              ["Job Title", (form.job_type as string) || "—"],
               ["Quantity", (form.quantity as string) || "—"],
               ["Machine", machineName],
               ["Due Date", (form.due_date as string) || "—"],
@@ -1047,7 +1047,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit }:
           {sectionTitle("Basic Info")}
           {row("Client", clientName)}
           {row("Created Date", job.created_at ? job.created_at.slice(0, 10) : "—")}
-          {row("Job Type", job.job_type)}
+          {row("Job Title", job.job_type)}
           {row("Order Type", job.order_type === "in_house" ? "In House" : job.order_type)}
           {row("Quantity", job.quantity)}
           {row("Due Date", job.due_date ? job.due_date.slice(0, 10) : "")}
@@ -1286,7 +1286,7 @@ export default function JobsPage() {
           <thead>
             <tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
               {col("#", "job_number")}
-              {col("Job Type", "job_type")}
+              {col("Job Title", "job_type")}
               <th style={th}>Client</th>
               <th style={th}>Sheet Size</th>
               {col("Qty", "quantity")}

@@ -92,7 +92,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
             <tbody>
               {section("Basic Information")}
               {row("Created Date", fmtDate(job.created_at))}
-              {row("Job Type", job.job_type)}
+              {row("Job Title", job.job_type)}
               {row("Order Type", job.order_type)}
               {row("Quantity", job.quantity ? (job.quantity + " PCS") : "—")}
               {section("Paper & Machine")}
