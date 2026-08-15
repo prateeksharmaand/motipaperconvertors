@@ -457,7 +457,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
   // Staff users (operators only)
   const { data: staffUsers = [] } = useQuery<StaffUser[]>({
     queryKey: ["staff-users"],
-    queryFn: () => api.get("/admin/users", { params: { limit: "200", role: "operator" } }).then(r => r.data.data ?? []),
+    queryFn: () => api.get("/admin/users", { params: { limit: "200", role: "operator", status: "active" } }).then(r => r.data.data ?? []),
   });
 
   // Job types
@@ -1169,7 +1169,7 @@ export default function JobsPage() {
 
   const { data: staffUsersMain = [] } = useQuery<StaffUser[]>({
     queryKey: ["staff-users"],
-    queryFn: () => api.get("/admin/users", { params: { limit: "200", role: "operator" } }).then(r => r.data.data ?? []),
+    queryFn: () => api.get("/admin/users", { params: { limit: "200", role: "operator", status: "active" } }).then(r => r.data.data ?? []),
   });
 
   const { data: printTemplate } = useQuery<{ header: string; footer: string; signature: string }>({

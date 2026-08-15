@@ -236,6 +236,16 @@ router.post("/", requirePermission("jobs.create"), async (req, res) => {
   const tenantId = req.user.tenantId!;
   const data = parsed.data;
 
+  // Reject assignment to inactive users
+  const assigneeIds = [data.printOperatorId, data.bindingOperatorId, data.packingOperatorId, data.qcOperatorId, data.designerId, data.assignedOperatorId].filter(Boolean) as string[];
+  if (assigneeIds.length > 0) {
+    const inactive = await db("users").whereIn("id", assigneeIds).where("status", "!=", "active").select("name");
+    if (inactive.length > 0) {
+      res.status(400).json({ error: `Cannot assign job to inactive staff: ${inactive.map((u: { name: string }) => u.name).join(", ")}` });
+      return;
+    }
+  }
+
   const job = await db.transaction(async (trx) => {
     const jobNumber = await nextNumber(trx, tenantId, "last_job_number");
     const [inserted] = await trx("job_cards").insert({
