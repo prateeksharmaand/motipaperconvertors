@@ -165,6 +165,100 @@ router.get("/staff-output", requirePermission("production.view"), async (req, re
   res.json(await query);
 });
 
+// ── GET /reports/revenue-by-client ───────────────────────
+router.get("/revenue-by-client", requirePermission("reports.view_financial"), async (req, res) => {
+  const tenantId = req.user.tenantId!;
+  const { from, to } = req.query as Record<string, string>;
+
+  let query = db("invoices")
+    .where({ "invoices.tenant_id": tenantId })
+    .leftJoin("clients", "invoices.client_id", "clients.id")
+    .groupBy("clients.id", "clients.name")
+    .select(
+      "clients.id as client_id",
+      "clients.name as client_name",
+      db.raw("COUNT(invoices.id) as total_invoices"),
+      db.raw("COALESCE(SUM(invoices.total), 0) as total_billed"),
+      db.raw("COALESCE(SUM(invoices.amount_paid), 0) as total_paid"),
+      db.raw("COALESCE(SUM(invoices.balance_due), 0) as total_outstanding"),
+    )
+    .orderByRaw("SUM(invoices.total) DESC")
+    .limit(20);
+
+  if (from) query = query.where("invoices.issue_date", ">=", from);
+  if (to)   query = query.where("invoices.issue_date", "<=", to);
+
+  res.json(await query);
+});
+
+// ── GET /reports/jobs-by-status ───────────────────────────
+router.get("/jobs-by-status", requirePermission("jobs.view"), async (req, res) => {
+  const tenantId = req.user.tenantId!;
+  const { from, to } = req.query as Record<string, string>;
+
+  let query = db("job_cards")
+    .where({ tenant_id: tenantId })
+    .groupBy("status")
+    .select(
+      "status",
+      db.raw("COUNT(*) as count"),
+      db.raw("COALESCE(SUM(quoted_price), 0) as total_value"),
+    )
+    .orderBy("count", "desc");
+
+  if (from) query = query.where("created_at", ">=", from);
+  if (to)   query = query.where("created_at", "<=", to);
+
+  res.json(await query);
+});
+
+// ── GET /reports/paper-consumption ───────────────────────
+router.get("/paper-consumption", requirePermission("inventory.view"), async (req, res) => {
+  const tenantId = req.user.tenantId!;
+  const { from, to } = req.query as Record<string, string>;
+
+  let query = db("inventory_transactions")
+    .where({ "inventory_transactions.tenant_id": tenantId, "inventory_transactions.type": "out" })
+    .whereNotNull("inventory_transactions.paper_stock_id")
+    .leftJoin("paper_stock", "inventory_transactions.paper_stock_id", "paper_stock.id")
+    .groupBy("paper_stock.id", "paper_stock.name", "paper_stock.gsm", "paper_stock.size", "paper_stock.unit")
+    .select(
+      "paper_stock.id as paper_stock_id",
+      "paper_stock.name as paper_name",
+      "paper_stock.gsm",
+      "paper_stock.size",
+      "paper_stock.unit",
+      db.raw("COUNT(inventory_transactions.id) as usage_count"),
+      db.raw("COALESCE(SUM(inventory_transactions.quantity), 0) as total_sheets"),
+    )
+    .orderByRaw("SUM(inventory_transactions.quantity) DESC");
+
+  if (from) query = query.where("inventory_transactions.transacted_at", ">=", from);
+  if (to)   query = query.where("inventory_transactions.transacted_at", "<=", to);
+
+  res.json(await query);
+});
+
+// ── GET /reports/monthly-revenue ─────────────────────────
+router.get("/monthly-revenue", requirePermission("reports.view_financial"), async (req, res) => {
+  const tenantId = req.user.tenantId!;
+  const { months = "12" } = req.query as Record<string, string>;
+
+  const rows = await db("invoices")
+    .where({ tenant_id: tenantId })
+    .where("issue_date", ">=", db.raw(`CURRENT_DATE - INTERVAL '${parseInt(months)} months'`))
+    .groupByRaw("TO_CHAR(issue_date, 'YYYY-MM')")
+    .select(
+      db.raw("TO_CHAR(issue_date, 'YYYY-MM') as month"),
+      db.raw("COALESCE(SUM(total), 0) as revenue"),
+      db.raw("COALESCE(SUM(amount_paid), 0) as collected"),
+      db.raw("COUNT(*) as invoice_count"),
+    )
+    .orderBy("month");
+
+  res.json(rows);
+});
+
 // ── GET /reports/summary — dashboard numbers ──────────────
 router.get("/summary", requirePermission("jobs.view"), async (req, res) => {
   const tenantId = req.user.tenantId!;
