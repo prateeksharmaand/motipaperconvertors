@@ -426,19 +426,21 @@ function Stepper({ current }: { current: number }) {
 
 // ─── JobForm ──────────────────────────────────────────────────────────────────
 
-function JobForm({ initial, initialPapers, clients, machines, plateSources, onSave, onPublish, onCancel, isPending }: {
+function JobForm({ initial, initialPapers, clients, machines, plateSources, onCreateDraft, onUpdateDraft, onPublish, onCancel, isSaving }: {
   initial?: Partial<Job>;
   initialPapers?: PaperLine[];
   clients: Client[];
   machines: Machine[];
   plateSources: SettingItem[];
-  onSave: (d: FormState, papers: PaperLine[]) => void;
-  onPublish?: (d: FormState, papers: PaperLine[]) => void;
+  onCreateDraft: (d: FormState, papers: PaperLine[]) => Promise<string>;
+  onUpdateDraft: (id: string, d: FormState, papers: PaperLine[]) => Promise<void>;
+  onPublish: (id: string, d: FormState, papers: PaperLine[]) => Promise<void>;
   onCancel: () => void;
-  isPending: boolean;
+  isSaving: boolean;
 }) {
   const [form, setForm] = useState<FormState>(() => initForm(initial));
   const [papers, setPapers] = useState<PaperLine[]>(initialPapers ?? []);
+  const [draftJobId, setDraftJobId] = useState<string | null>(initial?.id ?? null);
   const [step, setStep] = useState(1);
   const [stepError, setStepError] = useState(false);
 
@@ -510,12 +512,19 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
     return true;
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (!validateStep(step)) {
       setStepError(true);
       return;
     }
     setStepError(false);
+    // Save as draft on every Next
+    if (!draftJobId) {
+      const id = await onCreateDraft(form, papers);
+      setDraftJobId(id);
+    } else {
+      await onUpdateDraft(draftJobId, form, papers);
+    }
     if (step < 6) setStep(s => s + 1);
   }
 
@@ -524,8 +533,13 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
     if (step > 1) setStep(s => s - 1);
   }
 
-  function handleSave() {
-    onSave(form, papers);
+  async function handlePublish() {
+    if (!draftJobId) {
+      const id = await onCreateDraft(form, papers);
+      await onPublish(id, form, papers);
+    } else {
+      await onPublish(draftJobId, form, papers);
+    }
   }
 
   // Display names for summary
@@ -936,47 +950,31 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
           &larr; Previous
         </button>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {/* Save as Draft — always visible on every step */}
+        {step < 6 ? (
           <button
-            onClick={handleSave}
-            disabled={isPending || !(form.job_type as string)?.trim()}
-            title={!(form.job_type as string)?.trim() ? "Select a Job Title first" : "Save progress as draft"}
+            onClick={handleNext}
+            disabled={isSaving}
             style={{
-              padding: "9px 18px", border: "1px solid #ced4da", borderRadius: 6,
-              cursor: isPending || !(form.job_type as string)?.trim() ? "not-allowed" : "pointer",
-              background: "#f8f9fa", color: "#495057",
-              fontWeight: 600, fontSize: 13,
-              opacity: !(form.job_type as string)?.trim() ? 0.45 : 1,
+              padding: "9px 22px", background: "#3b5bdb", color: "#fff",
+              border: "none", borderRadius: 6, cursor: isSaving ? "not-allowed" : "pointer",
+              fontWeight: 600, fontSize: 14, opacity: isSaving ? 0.6 : 1,
             }}
           >
-            {isPending ? "Saving..." : "💾 Save Draft"}
+            {isSaving ? "Saving…" : "Next →"}
           </button>
-
-          {step < 6 ? (
-            <button
-              onClick={handleNext}
-              style={{
-                padding: "9px 22px", background: "#3b5bdb", color: "#fff",
-                border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 14,
-              }}
-            >
-              Next &rarr;
-            </button>
-          ) : (
-            <button
-              onClick={() => onPublish ? onPublish(form, papers) : handleSave()}
-              disabled={isPending}
-              style={{
-                padding: "9px 24px", background: "#2f9e44", color: "#fff",
-                border: "none", borderRadius: 6, cursor: isPending ? "not-allowed" : "pointer",
-                fontWeight: 700, fontSize: 14, opacity: isPending ? 0.6 : 1,
-              }}
-            >
-              {isPending ? "Saving..." : "✓ Save & Publish"}
-            </button>
-          )}
-        </div>
+        ) : (
+          <button
+            onClick={handlePublish}
+            disabled={isSaving}
+            style={{
+              padding: "9px 24px", background: "#2f9e44", color: "#fff",
+              border: "none", borderRadius: 6, cursor: isSaving ? "not-allowed" : "pointer",
+              fontWeight: 700, fontSize: 14, opacity: isSaving ? 0.6 : 1,
+            }}
+          >
+            {isSaving ? "Saving..." : "✓ Save & Publish"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -984,14 +982,14 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
 
 // ─── EditingJobFormWrapper ────────────────────────────────────────────────────
 
-function EditingJobFormWrapper({ job, clients, machines, plateSources, isPending, onSave, onPublish, onCancel }: {
+function EditingJobFormWrapper({ job, clients, machines, plateSources, isSaving, onUpdateDraft, onPublish, onCancel }: {
   job: Job;
   clients: Client[];
   machines: Machine[];
   plateSources: SettingItem[];
-  isPending: boolean;
-  onSave: (form: FormState, papers: PaperLine[]) => void;
-  onPublish?: (form: FormState, papers: PaperLine[]) => void;
+  isSaving: boolean;
+  onUpdateDraft: (id: string, form: FormState, papers: PaperLine[]) => Promise<void>;
+  onPublish: (id: string, form: FormState, papers: PaperLine[]) => Promise<void>;
   onCancel: () => void;
 }) {
   const { data: jobDetail, isLoading } = useQuery<{ papers: PaperLine[] }>({
@@ -1008,8 +1006,9 @@ function EditingJobFormWrapper({ job, clients, machines, plateSources, isPending
       clients={clients}
       machines={machines}
       plateSources={plateSources}
-      isPending={isPending}
-      onSave={onSave}
+      isSaving={isSaving}
+      onCreateDraft={async (_form, _papers) => job.id}
+      onUpdateDraft={onUpdateDraft}
       onPublish={onPublish}
       onCancel={onCancel}
     />
@@ -1289,9 +1288,16 @@ export default function JobsPage() {
           clients={clients}
           machines={machines}
           plateSources={plateSources}
-          isPending={create.isPending || createAndPublish.isPending}
-          onSave={(form, papers) => create.mutate({ form, papers })}
-          onPublish={(form, papers) => createAndPublish.mutate({ form, papers })}
+          isSaving={create.isPending || createAndPublish.isPending}
+          onCreateDraft={(form, papers) =>
+            api.post("/admin/jobs", buildApiPayload(form, papers)).then(r => { qc.invalidateQueries({ queryKey: ["jobs"] }); return r.data.id as string; })
+          }
+          onUpdateDraft={(id, form, papers) =>
+            api.patch(`/admin/jobs/${id}`, buildPatchPayload(form, papers)).then(() => { qc.invalidateQueries({ queryKey: ["jobs"] }); })
+          }
+          onPublish={(id, _form, _papers) =>
+            api.patch(`/admin/jobs/${id}/status`, { status: "enquiry" }).then(() => { qc.invalidateQueries({ queryKey: ["jobs"] }); setShowForm(false); })
+          }
           onCancel={() => setShowForm(false)}
         />
       )}
@@ -1301,22 +1307,24 @@ export default function JobsPage() {
           clients={clients}
           machines={machines}
           plateSources={plateSources}
-          isPending={update.isPending || publish.isPending}
-          onSave={(form, papers) => update.mutate({ id: editing.id, form, papers })}
-          onPublish={editing.status === "draft" ? (form, papers) => publish.mutate({ id: editing.id, form, papers }) : undefined}
+          isSaving={update.isPending || publish.isPending}
+          onUpdateDraft={(id, form, papers) =>
+            api.patch(`/admin/jobs/${id}`, buildPatchPayload(form, papers)).then(() => { qc.invalidateQueries({ queryKey: ["jobs"] }); })
+          }
+          onPublish={(id, form, papers) =>
+            api.patch(`/admin/jobs/${id}`, buildPatchPayload(form, papers))
+              .then(() => api.patch(`/admin/jobs/${id}/status`, { status: editing.status === "draft" ? "enquiry" : editing.status }))
+              .then(() => { qc.invalidateQueries({ queryKey: ["jobs"] }); setEditing(null); })
+          }
           onCancel={() => setEditing(null)}
         />
       )}
       {deleteConfirm && (
         <div style={{ background: "#fff3f3", border: "1px solid #fdd", borderRadius: 8, padding: 16, marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 14 }}>
-            {data?.data?.find(j => j.id === deleteConfirm)?.status === "draft"
-              ? "Discard this draft job? It will be permanently deleted."
-              : "Delete this job? This cannot be undone."}
-          </span>
+          <span style={{ fontSize: 14 }}>Delete this job? This cannot be undone.</span>
           <button onClick={() => remove.mutate(deleteConfirm)} disabled={remove.isPending}
             style={{ padding: "6px 16px", background: "#c92a2a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13 }}>
-            {remove.isPending ? "Deleting..." : data?.data?.find(j => j.id === deleteConfirm)?.status === "draft" ? "Discard Draft" : "Confirm Delete"}
+            {remove.isPending ? "Deleting..." : "Confirm Delete"}
           </button>
           <button onClick={() => setDeleteConfirm(null)} style={{ padding: "6px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff", fontSize: 13 }}>Cancel</button>
         </div>
@@ -1410,9 +1418,6 @@ export default function JobsPage() {
                     )}
                     {currentRole !== "operator" && currentRole !== "staff" && (
                       <>
-                        {j.status === "draft" && (
-                          <IconButton icon="🗑️" tooltip="Discard Draft" onClick={() => setDeleteConfirm(j.id)} danger />
-                        )}
                         <IconButton icon="🖨️" tooltip="Print Job Card" onClick={() => setPrintJob(j)} />
                         <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(j)} />
                         <IconButton icon="🗑️" tooltip="Delete" onClick={() => setDeleteConfirm(j.id)} danger />
