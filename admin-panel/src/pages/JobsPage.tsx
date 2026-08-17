@@ -1349,7 +1349,7 @@ export default function JobsPage() {
             <tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
               {col("#", "job_number")}
               {col("Job Title", "job_type")}
-              <th style={th}>Client</th>
+              <th style={th}>Company</th>
               <th style={th}>Sheet Size</th>
               {col("Qty", "quantity")}
               {col("Status", "status")}
@@ -1367,7 +1367,7 @@ export default function JobsPage() {
                 onClick={() => setViewJob(j)}>
                 <td style={{ ...td, color: STATUS_COLOR[j.status] ?? "#868e96", fontWeight: 700 }}>{j.job_number}</td>
                 <td style={{ ...td, fontWeight: 600, color: "#111827" }}>{j.job_type ?? "—"}</td>
-                <td style={{ ...td, color: "#374151" }}>{j.client_name ?? "—"}</td>
+                <td style={{ ...td, color: "#374151" }}>{j.client_company_name || j.client_name || "—"}</td>
                 <td style={{ ...td, color: "#374151" }}>{j.sheet_size ?? "—"}</td>
                 <td style={{ ...td, color: "#374151" }}>{j.quantity ?? "—"}</td>
                 <td style={td} onClick={e => e.stopPropagation()}>
