@@ -78,16 +78,22 @@ const CreateStaffSchema = z.object({
   password: z.string().min(6),
   staffType: z.string().optional(),
   status: z.enum(["active", "inactive"]).optional().default("active"),
+  role: z.enum(["operator", "sub_admin"]).optional().default("operator"),
 });
 
 // POST /users — direct create with password (for operator/staff accounts)
 router.post("/", requirePermission("staff.manage"), async (req, res) => {
   const parsed = CreateStaffSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
-  const { name, email, password, staffType, status } = parsed.data;
+  const { name, email, password, staffType, status, role } = parsed.data;
   const tenantId = req.user.tenantId!;
 
-  const existing = await db("users").where({ tenant_id: tenantId, email }).first();
+  // Only owner can create sub_admins
+  if (role === "sub_admin" && req.user.role !== "owner" && req.user.role !== "super_admin") {
+    res.status(403).json({ error: "Only the Owner can create sub-admins" }); return;
+  }
+
+  const existing = await db("users").where({ tenant_id: tenantId, email }).whereNull("deleted_at").first();
   if (existing) { res.status(409).json({ error: "A user with this email already exists" }); return; }
 
   const password_hash = await bcrypt.hash(password, 10);
@@ -96,12 +102,12 @@ router.post("/", requirePermission("staff.manage"), async (req, res) => {
     name,
     email,
     password_hash,
-    role: "operator",
+    role: role ?? "operator",
     status,
     staff_type: staffType ?? null,
   }).returning(["id", "name", "email", "role", "status", "staff_type"]);
 
-  await writeAuditLog(req, "user.created", "user", user.id, null, { role: "operator", email });
+  await writeAuditLog(req, "user.created", "user", user.id, null, { role, email });
   res.status(201).json(user);
 });
 

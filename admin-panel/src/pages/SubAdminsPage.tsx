@@ -74,9 +74,9 @@ function PermissionMatrix({ userId }: { userId: string }) {
 
 export default function SubAdminsPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [showInvite, setShowInvite] = useState(false);
-  const [inviteName, setInviteName] = useState("");
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [createError, setCreateError] = useState("");
   const qc = useQueryClient();
   const [list, actions] = useListState({ sortBy: "created_at", filters: {} });
 
@@ -86,31 +86,36 @@ export default function SubAdminsPage() {
     placeholderData: keepPreviousData,
   });
 
-  const invite = useMutation({
-    mutationFn: () => api.post("/admin/users/invite", { name: inviteName, email: inviteEmail, role: "sub_admin" }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["sub-admins"] }); setShowInvite(false); setInviteName(""); setInviteEmail(""); },
+  const inputStyle: React.CSSProperties = { flex: 1, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, fontSize: 14, width: "100%" };
+
+  const create = useMutation({
+    mutationFn: () => api.post("/admin/users", { name: form.name, email: form.email, password: form.password, staffType: undefined, status: "active", role: "sub_admin" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["sub-admins"] }); setShowCreate(false); setForm({ name: "", email: "", password: "" }); setCreateError(""); },
+    onError: (e: unknown) => setCreateError((e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to create sub admin."),
   });
 
   return (
     <div>
       <h1 style={{ marginBottom: 20 }}>Sub Admins</h1>
-      {showInvite && (
+      {showCreate && (
         <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 20, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
-          <h3 style={{ marginBottom: 16 }}>Invite Sub Admin</h3>
-          <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-            <input placeholder="Name" value={inviteName} onChange={e => setInviteName(e.target.value)} style={{ flex: 1, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6 }} />
-            <input placeholder="Email" type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} style={{ flex: 1, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6 }} />
+          <h3 style={{ marginBottom: 16 }}>Create Sub Admin</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
+            <label style={{ fontSize: 13 }}>Name *<input placeholder="Full name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={inputStyle} /></label>
+            <label style={{ fontSize: 13 }}>Email *<input placeholder="email@example.com" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={inputStyle} /></label>
+            <label style={{ fontSize: 13 }}>Password *<input placeholder="Min 6 characters" type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} style={inputStyle} /></label>
           </div>
+          {createError && <div style={{ color: "#c92a2a", fontSize: 13, marginBottom: 10 }}>{createError}</div>}
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => invite.mutate()} disabled={invite.isPending || !inviteName || !inviteEmail} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{invite.isPending ? "Inviting…" : "Send Invite"}</button>
-            <button onClick={() => setShowInvite(false)} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
+            <button onClick={() => create.mutate()} disabled={create.isPending || !form.name || !form.email || form.password.length < 6} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{create.isPending ? "Creating…" : "Create Sub Admin"}</button>
+            <button onClick={() => { setShowCreate(false); setCreateError(""); }} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
           </div>
         </div>
       )}
       <TableControls search={list.search} onSearch={actions.setSearch} placeholder="Search name, email…"
         activeFilters={list.filters} onFilter={actions.setFilter} onReset={actions.resetFilters}
         filters={[{ key: "status", label: "Status", options: [{ label: "Active", value: "active" }, { label: "Invited", value: "invited" }, { label: "Inactive", value: "inactive" }] }]}
-        rightSlot={<button onClick={() => setShowInvite(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ Invite</button>}
+        rightSlot={<button onClick={() => setShowCreate(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Sub Admin</button>}
       />
       {isLoading && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
