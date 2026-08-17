@@ -1292,10 +1292,14 @@ export default function JobsPage() {
       )}
       {deleteConfirm && (
         <div style={{ background: "#fff3f3", border: "1px solid #fdd", borderRadius: 8, padding: 16, marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 14 }}>Delete this job? This cannot be undone.</span>
+          <span style={{ fontSize: 14 }}>
+            {data?.data?.find(j => j.id === deleteConfirm)?.status === "draft"
+              ? "Discard this draft job? It will be permanently deleted."
+              : "Delete this job? This cannot be undone."}
+          </span>
           <button onClick={() => remove.mutate(deleteConfirm)} disabled={remove.isPending}
             style={{ padding: "6px 16px", background: "#c92a2a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13 }}>
-            {remove.isPending ? "Deleting..." : "Confirm Delete"}
+            {remove.isPending ? "Deleting..." : data?.data?.find(j => j.id === deleteConfirm)?.status === "draft" ? "Discard Draft" : "Confirm Delete"}
           </button>
           <button onClick={() => setDeleteConfirm(null)} style={{ padding: "6px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff", fontSize: 13 }}>Cancel</button>
         </div>
@@ -1390,12 +1394,20 @@ export default function JobsPage() {
                     {currentRole !== "operator" && currentRole !== "staff" && (
                       <>
                         {j.status === "draft" && (
-                          <button
-                            onClick={e => { e.stopPropagation(); changeStatus.mutate({ id: j.id, status: "enquiry" }); }}
-                            style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700, background: "#2f9e44", color: "#fff" }}
-                          >
-                            ✓ Publish
-                          </button>
+                          <>
+                            <button
+                              onClick={e => { e.stopPropagation(); changeStatus.mutate({ id: j.id, status: "enquiry" }); }}
+                              style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700, background: "#2f9e44", color: "#fff" }}
+                            >
+                              ✓ Publish
+                            </button>
+                            <button
+                              onClick={e => { e.stopPropagation(); setDeleteConfirm(j.id); }}
+                              style={{ padding: "4px 10px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#fff", color: "#c92a2a" }}
+                            >
+                              🗑 Discard
+                            </button>
+                          </>
                         )}
                         <IconButton icon="🖨️" tooltip="Print Job Card" onClick={() => setPrintJob(j)} />
                         <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(j)} />
