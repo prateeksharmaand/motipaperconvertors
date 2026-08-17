@@ -2,6 +2,7 @@ import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
 import IconButton from "../components/IconButton.tsx";
+import ChangePasswordModal from "../components/ChangePasswordModal.tsx";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
@@ -140,6 +141,7 @@ function StaffModal({
 export default function StaffPage() {
   const canManage = useHasPerm("staff.manage");
   const [showAdd, setShowAdd] = useState(false);
+  const [changePwUser, setChangePwUser] = useState<{ id: string; name: string } | null>(null);
   const [editing, setEditing] = useState<StaffMember | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -211,6 +213,7 @@ export default function StaffPage() {
   return (
     <div>
       <h1 style={{ marginBottom: 20 }}>Staff Management</h1>
+      {changePwUser && <ChangePasswordModal userId={changePwUser.id} userName={changePwUser.name} onClose={() => setChangePwUser(null)} />}
 
       {showAdd && (
         <StaffModal
@@ -308,6 +311,7 @@ export default function StaffPage() {
                 <td style={td}>
                   <div style={{ display: "flex", gap: 6 }}>
                     {canManage && <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(u)} />}
+                    {canManage && <IconButton icon="🔑" tooltip="Change Password" onClick={() => setChangePwUser({ id: u.id, name: u.name })} />}
                     {canManage && <IconButton icon={u.status === "active" ? "🔴" : "🟢"} tooltip={u.status === "active" ? "Deactivate" : "Activate"} onClick={() => toggleStatus.mutate({ id: u.id, status: u.status })} disabled={toggleStatus.isPending} danger={u.status === "active"} success={u.status !== "active"} />}
                     {canManage && u.status === "inactive" && (
                       <IconButton icon="🗑️" tooltip="Delete" onClick={() => setDeleteConfirm(u.id)} danger />

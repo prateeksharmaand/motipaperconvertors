@@ -1,5 +1,6 @@
 import { statusLabel } from "../theme.ts";
 import "../components/TableSkeleton.tsx";
+import ChangePasswordModal from "../components/ChangePasswordModal.tsx";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
@@ -74,6 +75,7 @@ function PermissionMatrix({ userId }: { userId: string }) {
 
 export default function SubAdminsPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [changePwUser, setChangePwUser] = useState<{ id: string; name: string } | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [createError, setCreateError] = useState("");
@@ -97,6 +99,7 @@ export default function SubAdminsPage() {
   return (
     <div>
       <h1 style={{ marginBottom: 20 }}>Sub Admins</h1>
+      {changePwUser && <ChangePasswordModal userId={changePwUser.id} userName={changePwUser.name} onClose={() => setChangePwUser(null)} />}
       {showCreate && (
         <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 20, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
           <h3 style={{ marginBottom: 16 }}>Create Sub Admin</h3>
@@ -141,7 +144,15 @@ export default function SubAdminsPage() {
                   <span style={{ color: "#aaa" }}>{expanded === u.id ? "▲" : "▼"}</span>
                 </div>
               </div>
-              {expanded === u.id && <div style={{ padding: "0 18px 18px" }}><PermissionMatrix userId={u.id} /></div>}
+              {expanded === u.id && (
+                <div style={{ padding: "0 18px 18px" }}>
+                  <PermissionMatrix userId={u.id} />
+                  <button onClick={() => setChangePwUser({ id: u.id, name: u.name })}
+                    style={{ marginTop: 12, padding: "7px 16px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                    🔑 Change Password
+                  </button>
+                </div>
+              )}
             </div>
           ))}
           {!data?.data?.length && <p style={{ color: "#888" }}>No sub-admins yet.</p>}

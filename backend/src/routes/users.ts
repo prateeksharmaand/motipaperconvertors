@@ -162,6 +162,21 @@ router.patch("/:id/permissions", requireRole("owner", "super_admin"), async (req
   res.status(204).send();
 });
 
+// PATCH /users/:id/password — owner changes any user's password
+router.patch("/:id/password", requireRole("owner", "super_admin"), async (req, res) => {
+  const { password } = req.body as { password: string };
+  if (!password || password.length < 6) {
+    res.status(400).json({ error: "Password must be at least 6 characters" }); return;
+  }
+  const tenantId = req.user.tenantId!;
+  const target = await db("users").where({ id: req.params.id, tenant_id: tenantId }).whereNull("deleted_at").first();
+  if (!target) { res.status(404).json({ error: "User not found" }); return; }
+  const password_hash = await bcrypt.hash(password, 10);
+  await db("users").where({ id: req.params.id }).update({ password_hash, updated_at: new Date() });
+  await writeAuditLog(req, "user.password_changed", "user", req.params.id, null, { changed_by: req.user.id });
+  res.status(204).send();
+});
+
 // DELETE /users/:id — soft delete (only allowed if user is inactive)
 router.delete("/:id", requirePermission("staff.manage"), async (req, res) => {
   const tenantId = req.user.tenantId!;
