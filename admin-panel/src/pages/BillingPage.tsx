@@ -1,3 +1,4 @@
+import { fmtDate } from "../lib/fmtDate.ts";
 import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import { useState } from "react";
@@ -314,7 +315,7 @@ export default function BillingPage() {
                     {expandedInvoice === inv.id && invoiceDetail?.payments?.length > 0 && invoiceDetail.payments.map((p: Payment & { id: string }) => (
                       <tr key={p.id} style={{ borderBottom: "1px solid #f0f0f0", background: "#f5f5ff" }}>
                         <td style={{ ...td, paddingLeft: 32, color: "#7c3aed", fontSize: 12 }}>↳ Payment</td>
-                        <td style={{ ...td, fontSize: 12, color: "#555" }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString("en-IN") : "—"}</td>
+                        <td style={{ ...td, fontSize: 12, color: "#555" }}>{p.payment_date ? fmtDate(p.payment_date) : "—"}</td>
                         <td colSpan={2} style={{ ...td, fontSize: 12, color: "#2b8a3e", fontWeight: 600 }}>{fmt(p.amount)}</td>
                         <td style={{ ...td, fontSize: 12 }}>{p.payment_mode?.toUpperCase()}</td>
                         <td style={{ ...td, fontSize: 12, color: "#888" }}>{p.reference_number || "—"}</td>
@@ -352,7 +353,7 @@ export default function BillingPage() {
               <tbody>
                 {payments?.data?.map((p) => (
                   <tr key={p.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                    <td style={td}>{new Date(p.payment_date).toLocaleDateString("en-IN")}</td>
+                    <td style={td}>{fmtDate(p.payment_date)}</td>
                     <td style={{ ...td, fontWeight: 500 }}>{p.client_name}</td>
                     <td style={{ ...td, fontWeight: 600, color: "#2b8a3e" }}>{fmt(p.amount)}</td>
                     <td style={td}>{p.payment_mode.toUpperCase()}</td>

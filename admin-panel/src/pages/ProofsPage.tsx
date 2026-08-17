@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { fmtDate } from "../lib/fmtDate.ts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
 
@@ -92,11 +93,6 @@ function StatusBadge({ status }: { status: ProofStatus }) {
       {s.label}
     </span>
   );
-}
-
-function fmtDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 // ── Main Component ─────────────────────────────────────────

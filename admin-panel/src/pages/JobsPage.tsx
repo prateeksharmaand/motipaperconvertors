@@ -1,3 +1,4 @@
+import { fmtDate } from "../lib/fmtDate.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import { useAuthStore, useHasPerm } from "../store/auth.ts";
 import { useState, useRef, useEffect } from "react";
@@ -1081,11 +1082,11 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
           {row("Company", job.client_company_name || clientName)}
           {row("Contact Name", job.client_name || "—")}
           {row("Phone", job.client_phone || "—")}
-          {row("Created Date", job.created_at ? job.created_at.slice(0, 10) : "—")}
+          {row("Created Date", fmtDate(job.created_at))}
           {row("Job Title", job.job_type)}
           {row("Order Type", job.order_type === "in_house" ? "In House" : job.order_type)}
           {row("Quantity", job.quantity)}
-          {row("Due Date", job.due_date ? job.due_date.slice(0, 10) : "")}
+          {row("Due Date", fmtDate(job.due_date))}
           {row("Description", job.description)}
 
           {sectionTitle("Paper & Machine")}
@@ -1097,7 +1098,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
 
           {sectionTitle("Pre-Print")}
           {row("Designer", designerName)}
-          {row("Composing Date", job.composing_date ? job.composing_date.slice(0, 10) : "")}
+          {row("Composing Date", fmtDate(job.composing_date))}
           {row("Composing Amount", job.composing_amount != null ? `Rs.${Number(job.composing_amount).toLocaleString("en-IN")}` : "")}
           {row("Plate Cost", job.plate_cost != null ? `Rs.${Number(job.plate_cost).toLocaleString("en-IN")}` : "")}
           {row("Die Cost", job.die_cost != null ? `Rs.${Number(job.die_cost).toLocaleString("en-IN")}` : "")}
@@ -1113,7 +1114,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
           {row("Screen", bool(job.is_screen))}
           {row("Print Colors", job.print_colors)}
           {row("Print Operator", printOpName)}
-          {row("Print Date", job.print_date ? job.print_date.slice(0, 10) : "")}
+          {row("Print Date", fmtDate(job.print_date))}
 
           {sectionTitle("Post-Print")}
           {row("Numbering", bool(job.is_numbering))}
@@ -1130,7 +1131,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
           {row("Gumming", bool(job.is_gumming))}
           {row("Binding Operator", bindOpName)}
           {row("Packing Operator", packOpName)}
-          {row("Post-Print Date", job.post_print_date ? job.post_print_date.slice(0, 10) : "")}
+          {row("Post-Print Date", fmtDate(job.post_print_date))}
 
           {sectionTitle("Financial & Delivery")}
           {row("Quoted Price", job.quoted_price != null ? `Rs.${Number(job.quoted_price).toLocaleString("en-IN")}` : "")}
@@ -1139,7 +1140,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
           {row("Indent Number", job.indent_number)}
           {row("Delivery Quantity", job.delivery_quantity)}
           {row("Challan Number", job.challan_number)}
-          {row("Challan Date", job.challan_date ? job.challan_date.slice(0, 10) : "")}
+          {row("Challan Date", fmtDate(job.challan_date))}
         </div>
       </div>
     </div>
@@ -1393,8 +1394,8 @@ export default function JobsPage() {
                     </select>
                   )}
                 </td>
-                <td style={{ ...td, color: "#374151" }}>{j.created_at ? j.created_at.slice(0, 10) : "—"}</td>
-                <td style={{ ...td, color: "#374151" }}>{j.due_date ? j.due_date.slice(0, 10) : "—"}</td>
+                <td style={{ ...td, color: "#374151" }}>{fmtDate(j.created_at)}</td>
+                <td style={{ ...td, color: "#374151" }}>{fmtDate(j.due_date)}</td>
                 <td style={{ ...td, color: "#1f2937", fontWeight: 500 }}>{j.advance_amount != null ? "Rs." + Number(j.advance_amount).toLocaleString("en-IN") : "—"}</td>
                 <td style={{ ...td, color: "#1f2937", fontWeight: 600 }}>{j.quoted_price ? "Rs." + Number(j.quoted_price).toLocaleString("en-IN") : "—"}</td>
                 <td style={td} onClick={e => e.stopPropagation()}>

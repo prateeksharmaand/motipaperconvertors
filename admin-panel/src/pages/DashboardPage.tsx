@@ -1,3 +1,4 @@
+import { fmtDate } from "../lib/fmtDate.ts";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -271,7 +272,7 @@ export default function DashboardPage() {
                     </span>
                   </td>
                   <td style={{ ...theme.td, color: "#6b7280" }}>
-                    {job.due_date ? new Date(job.due_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                    {job.due_date ? fmtDate(job.due_date) : "—"}
                   </td>
                   <td style={{ ...theme.td, textAlign: "right", fontWeight: 600 }}>
                     {job.quoted_price ? `₹${Number(job.quoted_price).toLocaleString("en-IN")}` : "—"}

@@ -1,4 +1,5 @@
 ﻿import { useEffect } from "react";
+import { fmtDate } from "../lib/fmtDate.ts";
 
 interface Job {
   id: string; job_number: number; title: string; client_name: string; client_company_name?: string; client_phone?: string; created_at?: string; machine_id: string;
@@ -30,7 +31,6 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
   }, []);
 
   const fmt = (n: number | null | undefined) => n ? "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 }) : "—";
-  const fmtDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString("en-IN") : "—";
   const row = (label: string, value: string | number | boolean | null | undefined) => (
     <tr>
       <td style={{ padding: "5px 10px", fontSize: 12, color: "#6b7280", width: "30%", borderBottom: "1px solid #f3f4f6" }}>{label}</td>

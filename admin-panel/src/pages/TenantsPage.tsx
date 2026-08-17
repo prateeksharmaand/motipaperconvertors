@@ -1,3 +1,4 @@
+import { fmtDate } from "../lib/fmtDate.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import { statusLabel } from "../theme.ts";
 import IconButton from "../components/IconButton.tsx";
@@ -121,7 +122,7 @@ export default function TenantsPage() {
                 <td style={{ ...td, color: "#888" }}>{t.slug}</td>
                 <td style={td}>{t.plan}</td>
                 <td style={td}><span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: t.status === "active" ? "#d3f9d8" : "#ffe3e3", color: t.status === "active" ? "#2b8a3e" : "#c92a2a" }}>{statusLabel(t.status)}</span></td>
-                <td style={td}>{new Date(t.created_at).toLocaleDateString("en-IN")}</td>
+                <td style={td}>{fmtDate(t.created_at)}</td>
                 <td style={td}>
                   <IconButton icon={t.status === "active" ? "🔴" : "🟢"} tooltip={t.status === "active" ? "Suspend" : "Activate"} onClick={() => toggleStatus.mutate({ id: t.id, status: t.status === "active" ? "suspended" : "active" })} danger={t.status === "active"} success={t.status !== "active"} />
                 </td>

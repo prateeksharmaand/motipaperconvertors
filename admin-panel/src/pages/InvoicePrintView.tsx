@@ -1,4 +1,5 @@
 ﻿import { useEffect } from "react";
+import { fmtDate } from "../lib/fmtDate.ts";
 
 interface LineItem { description: string; qty: number; rate: number; amount: number; }
 interface Invoice {
@@ -23,7 +24,6 @@ export default function InvoicePrintView({ invoice, template, onClose }: { invoi
   }, []);
 
   const fmt = (n: number | string | null | undefined) => "₹" + Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
-  const fmtDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString("en-IN") : "—";
 
   const lines: LineItem[] = invoice.line_items ?? [];
   const subtotalRaw = lines.reduce((s, l) => s + Number(l.amount), 0);

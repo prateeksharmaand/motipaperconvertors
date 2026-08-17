@@ -1,3 +1,4 @@
+import { fmtDate } from "../lib/fmtDate.ts";
 import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import { useState } from "react";
@@ -312,7 +313,7 @@ export default function InventoryPage() {
               <tbody>
                 {txns?.data?.map((t) => (
                   <tr key={t.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                    <td style={td}>{new Date(t.transacted_at).toLocaleDateString("en-IN")}</td>
+                    <td style={td}>{fmtDate(t.transacted_at)}</td>
                     <td style={td}>{t.paper_name || t.item_name || "—"}</td>
                     <td style={td}><span style={{ padding: "2px 8px", borderRadius: 8, fontSize: 12, background: t.type === "in" ? "#d3f9d8" : "#ffe3e3", color: t.type === "in" ? "#2b8a3e" : "#c92a2a" }}>{t.type}</span></td>
                     <td style={{ ...td, fontWeight: 600 }}>{t.quantity}</td>
