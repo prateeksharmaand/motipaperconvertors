@@ -944,18 +944,34 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
           &larr; Previous
         </button>
 
-        {step < 6 ? (
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* Save as Draft — always visible on every step */}
           <button
-            onClick={handleNext}
+            onClick={handleSave}
+            disabled={isPending || !(form.job_type as string)?.trim()}
+            title={!(form.job_type as string)?.trim() ? "Select a Job Title first" : "Save progress as draft"}
             style={{
-              padding: "9px 22px", background: "#3b5bdb", color: "#fff",
-              border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 14,
+              padding: "9px 18px", border: "1px solid #ced4da", borderRadius: 6,
+              cursor: isPending || !(form.job_type as string)?.trim() ? "not-allowed" : "pointer",
+              background: "#f8f9fa", color: "#495057",
+              fontWeight: 600, fontSize: 13,
+              opacity: !(form.job_type as string)?.trim() ? 0.45 : 1,
             }}
           >
-            Next &rarr;
+            {isPending ? "Saving..." : "💾 Save Draft"}
           </button>
-        ) : (
-          <div style={{ display: "flex", gap: 8 }}>
+
+          {step < 6 ? (
+            <button
+              onClick={handleNext}
+              style={{
+                padding: "9px 22px", background: "#3b5bdb", color: "#fff",
+                border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 14,
+              }}
+            >
+              Next &rarr;
+            </button>
+          ) : (
             <button
               onClick={handleSave}
               disabled={isPending}
@@ -967,8 +983,8 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
             >
               {isPending ? "Saving..." : initial?.id ? "Save Changes" : "Save as Draft"}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
