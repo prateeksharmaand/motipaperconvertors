@@ -1017,13 +1017,14 @@ function EditingJobFormWrapper({ job, clients, machines, plateSources, isSaving,
 
 // ─── JobDetailModal ───────────────────────────────────────────────────────────
 
-function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit }: {
+function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, onPrint }: {
   job: Job;
   clients: Client[];
   machines: Machine[];
   staffUsers: StaffUser[];
   onClose: () => void;
   onEdit: () => void;
+  onPrint: () => void;
 }) {
   const clientName = clients.find(c => c.id === job.client_id)?.name ?? job.client_name ?? "—";
   const machineName = machines.find(m => m.id === job.machine_id)?.name ?? "—";
@@ -1069,6 +1070,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit }:
             </span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={onPrint} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13 }}>🖨️ Print</button>
             <button onClick={onEdit} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Edit</button>
             <button onClick={onClose} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13 }}>Close</button>
           </div>
@@ -1282,6 +1284,7 @@ export default function JobsPage() {
           staffUsers={staffUsersMain}
           onClose={() => setViewJob(null)}
           onEdit={() => { setEditing(viewJob); setViewJob(null); }}
+          onPrint={() => { setPrintJob(viewJob); setViewJob(null); }}
         />
       )}
       <h1 style={{ marginBottom: 20 }}>Job Cards</h1>
