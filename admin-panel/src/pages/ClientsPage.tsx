@@ -1,3 +1,4 @@
+import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
 import IconButton from "../components/IconButton.tsx";
@@ -47,6 +48,7 @@ function ClientForm({ initial, onSave, onCancel }: { initial?: Partial<Client>; 
 }
 
 export default function ClientsPage() {
+  const canEdit = useHasPerm("clients.edit");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -112,7 +114,7 @@ export default function ClientsPage() {
         search={list.search} onSearch={actions.setSearch} placeholder="Search name, phone, GSTIN…"
         activeFilters={list.filters} onFilter={actions.setFilter} onReset={actions.resetFilters}
         filters={[{ key: "status", label: "Status", options: [{ label: "Active", value: "active" }, { label: "Inactive", value: "inactive" }] }]}
-        rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton /><button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export"}</button><button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Client</button></div>}
+        rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton /><button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export"}</button>{canEdit && <button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Client</button>}</div>}
       />
       <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -134,8 +136,8 @@ export default function ClientsPage() {
                 <td style={td}>{c.gstin || "—"}</td>
                 <td style={td}>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(c)} />
-                    <IconButton icon="🗑️" tooltip="Delete" onClick={() => setDeleteConfirm(c.id)} danger />
+                    {canEdit && <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(c)} />}
+                    {canEdit && <IconButton icon="🗑️" tooltip="Delete" onClick={() => setDeleteConfirm(c.id)} danger />}
                   </div>
                 </td>
               </tr>

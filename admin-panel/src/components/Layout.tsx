@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../store/auth.ts";
+import { useAuthStore, useHasPerm } from "../store/auth.ts";
 import { api } from "../lib/api.ts";
 import PaperRateModal, { shouldShowPaperRateToday } from "./PaperRateModal.tsx";
 
@@ -48,7 +48,20 @@ export default function Layout() {
   const clear = useAuthStore((s) => s.clear);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const navigate = useNavigate();
+  const setPermissions = useAuthStore(s => s.setPermissions);
+  const canViewJobs = useHasPerm("jobs.view");
+  const canViewClients = useHasPerm("clients.view");
+  const canViewInventory = useHasPerm("inventory.view");
+  const canViewBilling = useHasPerm("billing.view");
+  const canViewReports = useHasPerm("reports.view_financial");
+  const canViewStaff = useHasPerm("staff.view");
+  const canViewQuotations = useHasPerm("quotation.view");
   const [showPaperRate, setShowPaperRate] = useState(false);
+
+  // Fetch current user's permissions on mount
+  useEffect(() => {
+    api.get("/auth/me").then(r => setPermissions(r.data.permissions ?? [])).catch(() => {});
+  }, []);
 
   // Show paper rate modal once per day on first load for owner/sub_admin
   useEffect(() => {
@@ -98,16 +111,16 @@ export default function Layout() {
         <nav style={{ flex: 1, paddingBottom: 12 }}>
           <span style={sectionLabel}>Operations</span>
           <NavLink to="/" end style={navStyle}>Dashboard</NavLink>
-          <NavLink to="/jobs" style={navStyle}>Job Cards</NavLink>
-          <NavLink to="/proofs" style={navStyle}>Proofs</NavLink>
-          <NavLink to="/quotations" style={navStyle}>Quotations</NavLink>
-          <NavLink to="/clients" style={navStyle}>Clients</NavLink>
-          <NavLink to="/staff" style={navStyle}>Staff</NavLink>
+          {canViewJobs && <NavLink to="/jobs" style={navStyle}>Job Cards</NavLink>}
+          {canViewJobs && <NavLink to="/proofs" style={navStyle}>Proofs</NavLink>}
+          {canViewQuotations && <NavLink to="/quotations" style={navStyle}>Quotations</NavLink>}
+          {canViewClients && <NavLink to="/clients" style={navStyle}>Clients</NavLink>}
+          {canViewStaff && <NavLink to="/staff" style={navStyle}>Staff</NavLink>}
 
           <span style={sectionLabel}>Finance</span>
-          <NavLink to="/inventory" style={navStyle}>Inventory</NavLink>
-          <NavLink to="/billing" style={navStyle}>Billing</NavLink>
-          <NavLink to="/reports" style={navStyle}>Reports</NavLink>
+          {canViewInventory && <NavLink to="/inventory" style={navStyle}>Inventory</NavLink>}
+          {canViewBilling && <NavLink to="/billing" style={navStyle}>Billing</NavLink>}
+          {canViewReports && <NavLink to="/reports" style={navStyle}>Reports</NavLink>}
 
           {(role === "owner" || role === "super_admin") && (
             <>

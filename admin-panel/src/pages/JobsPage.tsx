@@ -1,5 +1,5 @@
 import TableSkeleton from "../components/TableSkeleton.tsx";
-import { useAuthStore } from "../store/auth.ts";
+import { useAuthStore, useHasPerm } from "../store/auth.ts";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import JobPrintView from "./JobPrintView.tsx";
@@ -1157,6 +1157,9 @@ export default function JobsPage() {
   const qc = useQueryClient();
   const currentUserId = useAuthStore(s => s.userId);
   const currentRole = useAuthStore(s => s.role);
+  const canCreate = useHasPerm("jobs.create");
+  const canEdit = useHasPerm("jobs.edit");
+  const canDelete = useHasPerm("jobs.delete");
 
   async function handleExport() {
     setExporting(true);
@@ -1338,7 +1341,7 @@ export default function JobsPage() {
         search={list.search} onSearch={actions.setSearch} placeholder="Search jobs, clients..."
         activeFilters={list.filters} onFilter={actions.setFilter} onReset={actions.resetFilters}
         filters={[{ key: "status", label: "Status", options: STATUS_OPTIONS }]}
-        rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton /><button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export Jobs"}</button><button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Job</button></div>}
+        rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton /><button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export Jobs"}</button>{canCreate && <button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Job</button>}</div>}
       />
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
         <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>
@@ -1424,8 +1427,8 @@ export default function JobsPage() {
                     {currentRole !== "operator" && currentRole !== "staff" && (
                       <>
                         <IconButton icon="🖨️" tooltip="Print Job Card" onClick={() => setPrintJob(j)} />
-                        <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(j)} />
-                        <IconButton icon="🗑️" tooltip="Delete" onClick={() => setDeleteConfirm(j.id)} danger />
+                        {canEdit && <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(j)} />}
+                        {canDelete && <IconButton icon="🗑️" tooltip="Delete" onClick={() => setDeleteConfirm(j.id)} danger />}
                       </>
                     )}
                   </div>

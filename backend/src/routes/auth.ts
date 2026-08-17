@@ -157,6 +157,16 @@ router.post("/refresh", async (req, res) => {
   res.json({ accessToken: newAccess, refreshToken: newRefresh });
 });
 
+// ── GET /api/v1/auth/me ───────────────────────────────────
+router.get("/me", authenticate, (req, res) => {
+  res.json({
+    id: req.user.id,
+    role: req.user.role,
+    tenantId: req.user.tenantId,
+    permissions: req.user.permissions ?? [],
+  });
+});
+
 // ── POST /api/v1/auth/logout ──────────────────────────────
 router.post("/logout", authenticate, async (req, res) => {
   const { refreshToken } = req.body;

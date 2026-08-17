@@ -1,3 +1,4 @@
+import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
 import IconButton from "../components/IconButton.tsx";
@@ -137,6 +138,7 @@ function StaffModal({
 }
 
 export default function StaffPage() {
+  const canManage = useHasPerm("staff.manage");
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<StaffMember | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -263,12 +265,12 @@ export default function StaffPage() {
           <div style={{ display: "flex", gap: 8 }}>
             <PrintListButton />
             <button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export"}</button>
-            <button
+            {canManage && <button
               onClick={() => setShowAdd(true)}
               style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}
             >
               + Add Staff
-            </button>
+            </button>}
           </div>
         }
       />
@@ -305,9 +307,9 @@ export default function StaffPage() {
                 </td>
                 <td style={td}>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(u)} />
-                    <IconButton icon={u.status === "active" ? "🔴" : "🟢"} tooltip={u.status === "active" ? "Deactivate" : "Activate"} onClick={() => toggleStatus.mutate({ id: u.id, status: u.status })} disabled={toggleStatus.isPending} danger={u.status === "active"} success={u.status !== "active"} />
-                    {u.status === "inactive" && (
+                    {canManage && <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(u)} />}
+                    {canManage && <IconButton icon={u.status === "active" ? "🔴" : "🟢"} tooltip={u.status === "active" ? "Deactivate" : "Activate"} onClick={() => toggleStatus.mutate({ id: u.id, status: u.status })} disabled={toggleStatus.isPending} danger={u.status === "active"} success={u.status !== "active"} />}
+                    {canManage && u.status === "inactive" && (
                       <IconButton icon="🗑️" tooltip="Delete" onClick={() => setDeleteConfirm(u.id)} danger />
                     )}
                   </div>

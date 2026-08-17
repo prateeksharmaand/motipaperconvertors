@@ -1,3 +1,4 @@
+import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -156,6 +157,7 @@ function RecordPaymentForm({ invoiceId, clientId, onClose }: { invoiceId: string
 }
 
 export default function BillingPage() {
+  const canCreateInvoice = useHasPerm("billing.create_invoice");
   const [tab, setTab] = useState<Tab>("invoices");
   const [paymentFor, setPaymentFor] = useState<{ invoiceId: string; clientId: string } | null>(null);
   const [showNewInvoice, setShowNewInvoice] = useState(false);
@@ -260,7 +262,7 @@ export default function BillingPage() {
               { key: "status", label: "Status", options: [{ label: "Issued", value: "issued" }, { label: "Partial", value: "partially_paid" }, { label: "Paid", value: "paid" }, { label: "Cancelled", value: "cancelled" }] },
               { key: "overdue", label: "Overdue", options: [{ label: "Overdue only", value: "1" }] },
             ]}
-            rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton label="Print Invoices" /><button onClick={handleExportInvoices} disabled={exportingInvoices} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exportingInvoices ? "Exporting…" : "⬇ Export"}</button><button onClick={() => setShowNewInvoice(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Invoice</button></div>} />
+            rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton label="Print Invoices" /><button onClick={handleExportInvoices} disabled={exportingInvoices} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exportingInvoices ? "Exporting…" : "⬇ Export"}</button>{canCreateInvoice && <button onClick={() => setShowNewInvoice(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Invoice</button>}</div>} />
           <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
             <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>Due from <input type="date" value={invList.filters.dueDateFrom ?? ""} onChange={e => invActions.setFilter("dueDateFrom", e.target.value)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} /></label>
             <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>to <input type="date" value={invList.filters.dueDateTo ?? ""} onChange={e => invActions.setFilter("dueDateTo", e.target.value)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} /></label>

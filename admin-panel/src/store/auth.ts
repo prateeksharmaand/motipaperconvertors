@@ -9,7 +9,9 @@ interface AuthState {
   role: Role | null;
   tenantId: string | null;
   userId: string | null;
+  permissions: string[];
   setTokens: (at: string, rt: string, role: Role, tenantId: string | null, userId: string) => void;
+  setPermissions: (permissions: string[]) => void;
   clear: () => void;
 }
 
@@ -21,10 +23,20 @@ export const useAuthStore = create<AuthState>()(
       role: null,
       tenantId: null,
       userId: null,
+      permissions: [],
       setTokens: (accessToken, refreshToken, role, tenantId, userId) =>
         set({ accessToken, refreshToken, role, tenantId, userId }),
-      clear: () => set({ accessToken: null, refreshToken: null, role: null, tenantId: null, userId: null }),
+      setPermissions: (permissions) => set({ permissions }),
+      clear: () => set({ accessToken: null, refreshToken: null, role: null, tenantId: null, userId: null, permissions: [] }),
     }),
     { name: "motipaper-auth" },
   ),
 );
+
+// Owners and super_admins have all permissions implicitly
+export function useHasPerm(permission: string): boolean {
+  const role = useAuthStore(s => s.role);
+  const permissions = useAuthStore(s => s.permissions);
+  if (role === "owner" || role === "super_admin") return true;
+  return permissions.includes(permission);
+}

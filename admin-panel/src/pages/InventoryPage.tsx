@@ -1,3 +1,4 @@
+import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -130,6 +131,7 @@ function ItemForm({ initial, onSave, onCancel, isPending }: { initial?: Partial<
 }
 
 export default function InventoryPage() {
+  const canEdit = useHasPerm("inventory.edit");
   const [tab, setTab] = useState<Tab>("paper");
   const [txnTarget, setTxnTarget] = useState<{ id: string; isPaper: boolean; name: string } | null>(null);
   const [showPaperForm, setShowPaperForm] = useState(false);
@@ -227,7 +229,7 @@ export default function InventoryPage() {
           {editingPaper && <PaperForm initial={editingPaper} isPending={updatePaper.isPending} onSave={(d) => updatePaper.mutate({ id: editingPaper.id, ...d })} onCancel={() => setEditingPaper(null)} />}
           <TableControls search={paperList.search} onSearch={paperActions.setSearch} placeholder="Search paper…" activeFilters={paperList.filters} onFilter={paperActions.setFilter} onReset={paperActions.resetFilters}
             filters={[{ key: "isLow", label: "Low Stock", options: [{ label: "Low only", value: "1" }] }]}
-            rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton label="Print Paper" /><button onClick={handleExportPaper} disabled={exportingPaper} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exportingPaper ? "Exporting…" : "⬇ Export Paper"}</button><button onClick={() => setShowPaperForm(true)} style={{ padding: "8px 16px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ Add Paper</button></div>} />
+            rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton label="Print Paper" /><button onClick={handleExportPaper} disabled={exportingPaper} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exportingPaper ? "Exporting…" : "⬇ Export Paper"}</button>{canEdit && <button onClick={() => setShowPaperForm(true)} style={{ padding: "8px 16px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ Add Paper</button>}</div>} />
           <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
@@ -245,8 +247,8 @@ export default function InventoryPage() {
                     <td style={td}><StockBadge isLow={p.is_low} qty={p.quantity} unit={p.unit} /></td>
                     <td style={td}>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditingPaper(p)} />
-                        <button onClick={() => setTxnTarget({ id: p.id, isPaper: true, name: p.name })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Stock</button>
+                        {canEdit && <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditingPaper(p)} />}
+                        {canEdit && <button onClick={() => setTxnTarget({ id: p.id, isPaper: true, name: p.name })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Stock</button>}
                       </div>
                     </td>
                   </tr>
@@ -266,7 +268,7 @@ export default function InventoryPage() {
           {editingItem && <ItemForm initial={editingItem} isPending={updateItem.isPending} onSave={(d) => updateItem.mutate({ id: editingItem.id, ...d })} onCancel={() => setEditingItem(null)} />}
           <TableControls search={itemList.search} onSearch={itemActions.setSearch} placeholder="Search items…" activeFilters={itemList.filters} onFilter={itemActions.setFilter} onReset={itemActions.resetFilters}
             filters={[{ key: "category", label: "Category", options: [{ label: "Ink", value: "ink" }, { label: "Plate", value: "plate" }, { label: "Consumable", value: "consumable" }] }, { key: "isLow", label: "Low Stock", options: [{ label: "Low only", value: "1" }] }]}
-            rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton label="Print Items" /><button onClick={handleExportItems} disabled={exportingItems} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exportingItems ? "Exporting…" : "⬇ Export Items"}</button><button onClick={() => setShowItemForm(true)} style={{ padding: "8px 16px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ Add Item</button></div>} />
+            rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton label="Print Items" /><button onClick={handleExportItems} disabled={exportingItems} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exportingItems ? "Exporting…" : "⬇ Export Items"}</button>{canEdit && <button onClick={() => setShowItemForm(true)} style={{ padding: "8px 16px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ Add Item</button>}</div>} />
           <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
@@ -282,7 +284,7 @@ export default function InventoryPage() {
                     <td style={td}><StockBadge isLow={i.is_low} qty={i.quantity} unit={i.unit} /></td>
                     <td style={td}>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditingItem(i)} />
+                        {canEdit && <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditingItem(i)} />}
                         <button onClick={() => setTxnTarget({ id: i.id, isPaper: false, name: i.name })} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>+ Stock</button>
                       </div>
                     </td>

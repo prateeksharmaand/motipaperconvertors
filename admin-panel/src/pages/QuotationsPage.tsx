@@ -1,3 +1,4 @@
+import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
 import IconButton from "../components/IconButton.tsx";
@@ -101,6 +102,8 @@ function QuotationForm({ initial, jobs, onSave, onCancel, isPending }: {
 }
 
 export default function QuotationsPage() {
+  const canCreate = useHasPerm("quotation.create");
+  const canEdit = useHasPerm("quotation.edit_rates");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Quotation | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -154,7 +157,7 @@ export default function QuotationsPage() {
         search={list.search} onSearch={actions.setSearch} placeholder="Search job, notes…"
         activeFilters={list.filters} onFilter={actions.setFilter} onReset={actions.resetFilters}
         filters={[{ key: "status", label: "Status", options: STATUS_OPTIONS }]}
-        rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton /><button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export"}</button><button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Quotation</button></div>}
+        rightSlot={<div style={{ display: "flex", gap: 8 }}><PrintListButton /><button onClick={handleExport} disabled={exporting} style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 13, fontWeight: 500, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>{exporting ? "Exporting…" : "⬇ Export"}</button>{canCreate && <button onClick={() => setShowForm(true)} style={{ padding: "8px 18px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}>+ New Quotation</button>}</div>}
       />
       <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -175,7 +178,7 @@ export default function QuotationsPage() {
                   <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: (STATUS_COLOR[q.status] ?? "#868e96") + "22", color: STATUS_COLOR[q.status] ?? "#868e96" }}>{statusLabel(q.status)}</span>
                 </td>
                 <td style={td}>
-                  <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(q)} />
+                  {canEdit && <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(q)} />}
                 </td>
               </tr>
             ))}
