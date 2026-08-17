@@ -1,6 +1,6 @@
 import { statusLabel } from "../theme.ts";
 import "../components/TableSkeleton.tsx";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
@@ -34,14 +34,22 @@ const PERM_LABEL: Record<Permission, string> = {
 
 interface User { id: string; name: string; email: string; role: string; status: string; }
 
-function PermissionMatrix({ userId, currentPerms }: { userId: string; currentPerms: Permission[] }) {
-  const [selected, setSelected] = useState<Set<Permission>>(new Set(currentPerms));
+function PermissionMatrix({ userId }: { userId: string }) {
+  const { data: existingPerms = [], isLoading } = useQuery<Permission[]>({
+    queryKey: ["user-perms", userId],
+    queryFn: () => api.get(`/admin/users/${userId}/permissions`).then(r => r.data),
+  });
+  const [selected, setSelected] = useState<Set<Permission>>(new Set<Permission>());
+
+  useEffect(() => { if (existingPerms.length) setSelected(new Set(existingPerms)); }, [existingPerms.join(",")]);
   const qc = useQueryClient();
   const save = useMutation({
     mutationFn: (perms: Permission[]) => api.patch(`/admin/users/${userId}/permissions`, { permissions: perms }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["sub-admins"] }),
   });
   const toggle = (p: Permission) => setSelected(prev => { const n = new Set(prev); n.has(p) ? n.delete(p) : n.add(p); return n; });
+  if (isLoading) return <div style={{ padding: 16, color: "#888", fontSize: 13 }}>Loading permissions…</div>;
+
   return (
     <div style={{ marginTop: 14 }}>
       {PERMISSION_GROUPS.map(g => (
@@ -128,7 +136,7 @@ export default function SubAdminsPage() {
                   <span style={{ color: "#aaa" }}>{expanded === u.id ? "▲" : "▼"}</span>
                 </div>
               </div>
-              {expanded === u.id && <div style={{ padding: "0 18px 18px" }}><PermissionMatrix userId={u.id} currentPerms={[]} /></div>}
+              {expanded === u.id && <div style={{ padding: "0 18px 18px" }}><PermissionMatrix userId={u.id} /></div>}
             </div>
           ))}
           {!data?.data?.length && <p style={{ color: "#888" }}>No sub-admins yet.</p>}

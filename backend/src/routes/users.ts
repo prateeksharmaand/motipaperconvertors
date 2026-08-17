@@ -131,6 +131,12 @@ router.patch("/:id", requirePermission("staff.manage"), async (req, res) => {
   res.json(updated);
 });
 
+router.get("/:id/permissions", requireRole("owner", "super_admin"), async (req, res) => {
+  const tenantId = req.user.tenantId!;
+  const rows = await db("role_permissions").where({ user_id: req.params.id, tenant_id: tenantId }).select("permission");
+  res.json(rows.map((r: { permission: string }) => r.permission));
+});
+
 router.patch("/:id/permissions", requireRole("owner", "super_admin"), async (req, res) => {
   const { permissions } = req.body as { permissions: Permission[] };
   const tenantId = req.user.tenantId!;
