@@ -904,16 +904,8 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
         </button>
       </div>
       {initial?.status === "draft" && (
-        <div style={{ background: "#fff9e6", border: "1px solid #ffe066", borderRadius: 7, padding: "10px 14px", marginBottom: 20, fontSize: 13, color: "#664d03", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span>⚠️ This job is a <strong>Draft</strong> — not visible to assigned staff until published.</span>
-          {onPublish && (
-            <button
-              onClick={() => onPublish(form, papers)}
-              style={{ padding: "5px 14px", background: "#2f9e44", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, whiteSpace: "nowrap", marginLeft: 12 }}
-            >
-              Save & Publish
-            </button>
-          )}
+        <div style={{ background: "#fff9e6", border: "1px solid #ffe066", borderRadius: 7, padding: "10px 14px", marginBottom: 20, fontSize: 13, color: "#664d03" }}>
+          ⚠️ This job is a <strong>Draft</strong> — not visible to assigned staff. Go to the last step and save to publish it.
         </div>
       )}
 
@@ -973,7 +965,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
             </button>
           ) : (
             <button
-              onClick={handleSave}
+              onClick={() => onPublish ? onPublish(form, papers) : handleSave()}
               disabled={isPending}
               style={{
                 padding: "9px 24px", background: "#2f9e44", color: "#fff",
@@ -981,7 +973,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
                 fontWeight: 700, fontSize: 14, opacity: isPending ? 0.6 : 1,
               }}
             >
-              {isPending ? "Saving..." : initial?.id ? "Save Changes" : "Save as Draft"}
+              {isPending ? "Saving..." : "✓ Save & Publish"}
             </button>
           )}
         </div>
@@ -1237,6 +1229,14 @@ export default function JobsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setEditing(null); },
   });
 
+  const createAndPublish = useMutation({
+    mutationFn: async ({ form, papers }: { form: FormState; papers: PaperLine[] }) => {
+      const { data: job } = await api.post("/admin/jobs", buildApiPayload(form, papers));
+      await api.patch(`/admin/jobs/${job.id}/status`, { status: "enquiry" });
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setShowForm(false); },
+  });
+
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/jobs/${id}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setDeleteConfirm(null); },
@@ -1289,8 +1289,9 @@ export default function JobsPage() {
           clients={clients}
           machines={machines}
           plateSources={plateSources}
-          isPending={create.isPending}
+          isPending={create.isPending || createAndPublish.isPending}
           onSave={(form, papers) => create.mutate({ form, papers })}
+          onPublish={(form, papers) => createAndPublish.mutate({ form, papers })}
           onCancel={() => setShowForm(false)}
         />
       )}
@@ -1410,20 +1411,7 @@ export default function JobsPage() {
                     {currentRole !== "operator" && currentRole !== "staff" && (
                       <>
                         {j.status === "draft" && (
-                          <>
-                            <button
-                              onClick={e => { e.stopPropagation(); changeStatus.mutate({ id: j.id, status: "enquiry" }); }}
-                              style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700, background: "#2f9e44", color: "#fff" }}
-                            >
-                              ✓ Publish
-                            </button>
-                            <button
-                              onClick={e => { e.stopPropagation(); setDeleteConfirm(j.id); }}
-                              style={{ padding: "4px 10px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, background: "#fff", color: "#c92a2a" }}
-                            >
-                              🗑 Discard
-                            </button>
-                          </>
+                          <IconButton icon="🗑️" tooltip="Discard Draft" onClick={() => setDeleteConfirm(j.id)} danger />
                         )}
                         <IconButton icon="🖨️" tooltip="Print Job Card" onClick={() => setPrintJob(j)} />
                         <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(j)} />
