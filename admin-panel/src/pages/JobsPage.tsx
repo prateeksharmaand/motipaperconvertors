@@ -1076,7 +1076,9 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit }:
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
           {sectionTitle("Basic Info")}
-          {row("Client", clientName)}
+          {row("Company", job.client_company_name || clientName)}
+          {row("Contact Name", job.client_name || "—")}
+          {row("Phone", job.client_phone || "—")}
           {row("Created Date", job.created_at ? job.created_at.slice(0, 10) : "—")}
           {row("Job Title", job.job_type)}
           {row("Order Type", job.order_type === "in_house" ? "In House" : job.order_type)}
