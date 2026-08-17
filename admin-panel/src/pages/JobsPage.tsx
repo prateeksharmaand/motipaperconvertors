@@ -15,6 +15,7 @@ import { statusLabel } from "../theme.ts";
 import { exportToCsv } from "../lib/exportCsv.ts";
 
 const STATUS_OPTIONS = [
+  { label: "Draft", value: "draft" },
   { label: "Enquiry", value: "enquiry" }, { label: "Quotation", value: "quotation" },
   { label: "Design", value: "design" }, { label: "Approval", value: "approval" },
   { label: "Print", value: "print" }, { label: "Finishing", value: "finishing" },
@@ -23,6 +24,7 @@ const STATUS_OPTIONS = [
 ];
 
 const STATUS_COLOR: Record<string, string> = {
+  draft: "#adb5bd",
   enquiry: "#868e96", quotation: "#1971c2", design: "#7048e8", approval: "#f59f00",
   print: "#2f9e44", finishing: "#0c8599", qc: "#e67700", ready: "#2b8a3e",
   delivered: "#1864ab", cancelled: "#c92a2a",
@@ -424,13 +426,14 @@ function Stepper({ current }: { current: number }) {
 
 // ─── JobForm ──────────────────────────────────────────────────────────────────
 
-function JobForm({ initial, initialPapers, clients, machines, plateSources, onSave, onCancel, isPending }: {
+function JobForm({ initial, initialPapers, clients, machines, plateSources, onSave, onPublish, onCancel, isPending }: {
   initial?: Partial<Job>;
   initialPapers?: PaperLine[];
   clients: Client[];
   machines: Machine[];
   plateSources: SettingItem[];
   onSave: (d: FormState, papers: PaperLine[]) => void;
+  onPublish?: (d: FormState, papers: PaperLine[]) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
@@ -887,9 +890,11 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
       background: "#fff", padding: 32, borderRadius: 10, marginBottom: 20,
       boxShadow: "0 2px 8px rgba(0,0,0,.10)",
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h3 style={{ margin: 0, fontSize: 17 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: initial?.status === "draft" ? 12 : 24 }}>
+        <h3 style={{ margin: 0, fontSize: 17, display: "flex", alignItems: "center", gap: 10 }}>
           {initial?.id ? `Edit Job #${initial.job_number}` : "New Job Card"}
+          {!initial?.id && <span style={{ fontSize: 12, fontWeight: 600, padding: "2px 10px", borderRadius: 10, background: "#adb5bd22", color: "#6b7280", border: "1px solid #ced4da" }}>Will save as Draft</span>}
+          {initial?.status === "draft" && <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 10, background: "#adb5bd33", color: "#495057", border: "1px solid #ced4da" }}>DRAFT</span>}
         </h3>
         <button
           onClick={onCancel}
@@ -898,6 +903,19 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
           Cancel
         </button>
       </div>
+      {initial?.status === "draft" && (
+        <div style={{ background: "#fff9e6", border: "1px solid #ffe066", borderRadius: 7, padding: "10px 14px", marginBottom: 20, fontSize: 13, color: "#664d03", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>⚠️ This job is a <strong>Draft</strong> — not visible to assigned staff until published.</span>
+          {onPublish && (
+            <button
+              onClick={() => onPublish(form, papers)}
+              style={{ padding: "5px 14px", background: "#2f9e44", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, whiteSpace: "nowrap", marginLeft: 12 }}
+            >
+              Save & Publish
+            </button>
+          )}
+        </div>
+      )}
 
       <Stepper current={step} />
 
@@ -937,17 +955,19 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
             Next &rarr;
           </button>
         ) : (
-          <button
-            onClick={handleSave}
-            disabled={isPending}
-            style={{
-              padding: "9px 24px", background: "#2f9e44", color: "#fff",
-              border: "none", borderRadius: 6, cursor: isPending ? "not-allowed" : "pointer",
-              fontWeight: 700, fontSize: 14, opacity: isPending ? 0.6 : 1,
-            }}
-          >
-            {isPending ? "Saving..." : "Save Job"}
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={handleSave}
+              disabled={isPending}
+              style={{
+                padding: "9px 24px", background: "#2f9e44", color: "#fff",
+                border: "none", borderRadius: 6, cursor: isPending ? "not-allowed" : "pointer",
+                fontWeight: 700, fontSize: 14, opacity: isPending ? 0.6 : 1,
+              }}
+            >
+              {isPending ? "Saving..." : initial?.id ? "Save Changes" : "Save as Draft"}
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -956,13 +976,14 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onSa
 
 // ─── EditingJobFormWrapper ────────────────────────────────────────────────────
 
-function EditingJobFormWrapper({ job, clients, machines, plateSources, isPending, onSave, onCancel }: {
+function EditingJobFormWrapper({ job, clients, machines, plateSources, isPending, onSave, onPublish, onCancel }: {
   job: Job;
   clients: Client[];
   machines: Machine[];
   plateSources: SettingItem[];
   isPending: boolean;
   onSave: (form: FormState, papers: PaperLine[]) => void;
+  onPublish?: (form: FormState, papers: PaperLine[]) => void;
   onCancel: () => void;
 }) {
   const { data: jobDetail, isLoading } = useQuery<{ papers: PaperLine[] }>({
@@ -981,6 +1002,7 @@ function EditingJobFormWrapper({ job, clients, machines, plateSources, isPending
       plateSources={plateSources}
       isPending={isPending}
       onSave={onSave}
+      onPublish={onPublish}
       onCancel={onCancel}
     />
   );
@@ -1191,6 +1213,14 @@ export default function JobsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setEditing(null); },
   });
 
+  const publish = useMutation({
+    mutationFn: async ({ id, form, papers }: { id: string; form: FormState; papers: PaperLine[] }) => {
+      await api.patch(`/admin/jobs/${id}`, buildPatchPayload(form, papers));
+      await api.patch(`/admin/jobs/${id}/status`, { status: "enquiry" });
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setEditing(null); },
+  });
+
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/jobs/${id}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setDeleteConfirm(null); },
@@ -1254,8 +1284,9 @@ export default function JobsPage() {
           clients={clients}
           machines={machines}
           plateSources={plateSources}
-          isPending={update.isPending}
+          isPending={update.isPending || publish.isPending}
           onSave={(form, papers) => update.mutate({ id: editing.id, form, papers })}
+          onPublish={editing.status === "draft" ? (form, papers) => publish.mutate({ id: editing.id, form, papers }) : undefined}
           onCancel={() => setEditing(null)}
         />
       )}
@@ -1358,6 +1389,14 @@ export default function JobsPage() {
                     )}
                     {currentRole !== "operator" && currentRole !== "staff" && (
                       <>
+                        {j.status === "draft" && (
+                          <button
+                            onClick={e => { e.stopPropagation(); changeStatus.mutate({ id: j.id, status: "enquiry" }); }}
+                            style={{ padding: "4px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700, background: "#2f9e44", color: "#fff" }}
+                          >
+                            ✓ Publish
+                          </button>
+                        )}
                         <IconButton icon="🖨️" tooltip="Print Job Card" onClick={() => setPrintJob(j)} />
                         <IconButton icon="✏️" tooltip="Edit" onClick={() => setEditing(j)} />
                         <IconButton icon="🗑️" tooltip="Delete" onClick={() => setDeleteConfirm(j.id)} danger />

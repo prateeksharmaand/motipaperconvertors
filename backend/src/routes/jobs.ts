@@ -42,9 +42,9 @@ router.get("/", requirePermission("jobs.view"), async (req, res) => {
       "designer.name as designer_name",
     );
 
-  // Staff/operators see jobs where they are assigned in any operator role
+  // Staff/operators see jobs where they are assigned — never see drafts
   if (["staff", "operator"].includes(req.user.role)) {
-    base = base.where(function () {
+    base = base.where("job_cards.status", "!=", "draft").where(function () {
       this.where("job_cards.assigned_operator_id", req.user.id)
           .orWhere("job_cards.print_operator_id", req.user.id)
           .orWhere("job_cards.binding_operator_id", req.user.id)
@@ -65,7 +65,7 @@ router.get("/", requirePermission("jobs.view"), async (req, res) => {
   let countQ = db("job_cards")
     .where("job_cards.tenant_id", tenantId)
     .leftJoin("clients", "job_cards.client_id", "clients.id");
-  if (["staff", "operator"].includes(req.user.role)) countQ = countQ.where("job_cards.assigned_operator_id", req.user.id);
+  if (["staff", "operator"].includes(req.user.role)) countQ = countQ.where("job_cards.status", "!=", "draft").where("job_cards.assigned_operator_id", req.user.id);
   if (status) countQ = countQ.where("job_cards.status", status);
   if (clientId) countQ = countQ.where("job_cards.client_id", clientId);
   if (machineId) countQ = countQ.where("job_cards.machine_id", machineId);
@@ -85,6 +85,7 @@ router.get("/my-assigned", async (req, res) => {
 
   const jobs = await db("job_cards")
     .where("job_cards.tenant_id", tenantId)
+    .where("job_cards.status", "!=", "draft")
     .where((qb) => {
       qb.where("job_cards.print_operator_id", userId)
         .orWhere("job_cards.binding_operator_id", userId)
@@ -272,7 +273,7 @@ router.post("/", requirePermission("jobs.create"), async (req, res) => {
       due_date: data.dueDate ?? null,
       copied_from_job_id: data.copiedFromJobId ?? null,
       quoted_price: data.quotedPrice ?? null,
-      status: "enquiry",
+      status: "draft",
       // Extended fields
       order_type: data.orderType ?? "in_house",
       sheet_size: data.sheetSize ?? null,
@@ -321,7 +322,7 @@ router.post("/", requirePermission("jobs.create"), async (req, res) => {
       job_id: inserted.id,
       changed_by: req.user.id,
       from_status: null,
-      to_status: "enquiry",
+      to_status: "draft",
     });
 
     // Insert job_papers and auto-deduct from inventory
