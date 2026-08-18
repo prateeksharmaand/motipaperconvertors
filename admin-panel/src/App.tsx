@@ -8,6 +8,7 @@ import MachinesPage from "./pages/MachinesPage.tsx";
 import InventoryPage from "./pages/InventoryPage.tsx";
 import BillingPage from "./pages/BillingPage.tsx";
 import ReportsPage from "./pages/ReportsPage.tsx";
+import ActivityLogPage from "./pages/ActivityLogPage.tsx";
 import SubAdminsPage from "./pages/SubAdminsPage.tsx";
 import TenantsPage from "./pages/TenantsPage.tsx";
 import QuotationsPage from "./pages/QuotationsPage.tsx";
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="settings" element={<SettingsPage />} />
         <Route path="staff" element={<StaffPage />} />
         <Route path="proofs" element={<ProofsPage />} />
+        <Route path="activity-logs" element={<ActivityLogPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

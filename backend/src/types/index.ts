@@ -9,7 +9,8 @@ export type Permission =
   | "clients.view" | "clients.edit"
   | "staff.view" | "staff.manage"
   | "reports.view_financial"
-  | "settings.edit";
+  | "settings.edit"
+  | "activity_log.view";
 
 export interface JwtPayload {
   sub: string;        // user id

@@ -5,6 +5,7 @@ import { z } from "zod";
 import db from "../db/knex.js";
 import { signAccess, signRefresh, verifyRefresh } from "../lib/jwt.js";
 import { authenticate } from "../middleware/authenticate.js";
+import { logActivity, Category, Action, Source } from "../lib/activityLogger.js";
 import type { Role } from "../types/index.js";
 
 const router = Router();
@@ -88,12 +89,14 @@ router.post("/login", async (req, res) => {
 
   const user = await db("users").where({ email }).whereNull("deleted_at").first();
   if (!user || !user.password_hash) {
+    await logActivity({ category: Category.AUTH, action: Action.LOGIN_FAILED, module: "Auth", description: `Failed login attempt for ${email}`, status: "FAILED", ipAddress: req.ip ?? undefined, userAgent: req.headers["user-agent"] ?? undefined, source: Source.WEB, metadata: { email } });
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }
 
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) {
+    await logActivity({ category: Category.AUTH, action: Action.LOGIN_FAILED, module: "Auth", description: `Failed login attempt for ${email}`, status: "FAILED", tenantId: user.tenant_id, userId: user.id, userName: user.name, userEmail: user.email, userRole: user.role, ipAddress: req.ip ?? undefined, userAgent: req.headers["user-agent"] ?? undefined, source: Source.WEB });
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }
@@ -114,6 +117,9 @@ router.post("/login", async (req, res) => {
     expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     device_info: req.headers["user-agent"] ?? null,
   });
+
+  // Log successful login
+  await logActivity({ category: Category.AUTH, action: Action.LOGIN, module: "Auth", description: `${user.name} logged in`, tenantId: user.tenant_id, userId: user.id, userName: user.name, userEmail: user.email, userRole: user.role, ipAddress: req.ip ?? undefined, userAgent: req.headers["user-agent"] ?? undefined, source: Source.WEB });
 
   res.json({ accessToken, refreshToken });
 });
@@ -174,6 +180,7 @@ router.post("/logout", authenticate, async (req, res) => {
     const tokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
     await db("refresh_tokens").where({ token_hash: tokenHash }).update({ revoked_at: new Date() });
   }
+  await logActivity({ category: Category.AUTH, action: Action.LOGOUT, module: "Auth", description: "User logged out", tenantId: req.user.tenantId, userId: req.user.id, userRole: req.user.role, ipAddress: req.ip ?? undefined, source: Source.WEB });
   res.status(204).send();
 });
 

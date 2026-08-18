@@ -21,6 +21,7 @@ import platformRouter from "./routes/platform.js";
 import publicRouter from "./routes/public.js";
 import settingsRouter from "./routes/settings.js";
 import proofsRouter from "./routes/proofs.js";
+import activityLogsRouter from "./routes/activityLogs.js";
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use("/api/v1/admin/billing", billingRouter);
 app.use("/api/v1/admin/reports", reportsRouter);
 app.use("/api/v1/admin/settings", settingsRouter);
 app.use("/api/v1/admin/proofs", proofsRouter);
+app.use("/api/v1/admin/activity-logs", activityLogsRouter);
 
 // Super Admin platform namespace
 app.use("/api/v1/platform", platformRouter);

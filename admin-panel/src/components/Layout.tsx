@@ -54,6 +54,7 @@ export default function Layout() {
   const canViewInventory = useHasPerm("inventory.view");
   const canViewBilling = useHasPerm("billing.view");
   const canViewReports = useHasPerm("reports.view_financial");
+  const canViewActivityLog = useHasPerm("activity_log.view");
   const canViewStaff = useHasPerm("staff.view");
   const canViewQuotations = useHasPerm("quotation.view");
   const [showPaperRate, setShowPaperRate] = useState(false);
@@ -121,6 +122,7 @@ export default function Layout() {
           {canViewInventory && <NavLink to="/inventory" style={navStyle}>Inventory</NavLink>}
           {canViewBilling && <NavLink to="/billing" style={navStyle}>Billing</NavLink>}
           {canViewReports && <NavLink to="/reports" style={navStyle}>Reports</NavLink>}
+          {canViewActivityLog && <NavLink to="/activity-logs" style={navStyle}>Activity Log</NavLink>}
 
           {(role === "owner" || role === "super_admin") && (
             <>
