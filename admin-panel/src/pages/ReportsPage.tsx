@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
 import { exportToCsv } from "../lib/exportCsv.ts";
+import { fmtDate } from "../lib/fmtDate.ts";
 import PrintListButton from "../components/PrintListButton.tsx";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -63,6 +64,72 @@ function StatCard({ label, value, color }: { label: string; value: string; color
   );
 }
 
+// ── DrillDown modal ───────────────────────────────────────
+type DrillDownConfig = {
+  title: string;
+  queryKey: unknown[];
+  queryFn: () => Promise<unknown[]>;
+  columns: { label: string; key: string; fmt?: (v: unknown) => string }[];
+};
+
+function DrillDownModal({ config, onClose }: { config: DrillDownConfig; onClose: () => void }) {
+  const { data = [], isLoading } = useQuery<unknown[]>({
+    queryKey: config.queryKey,
+    queryFn: config.queryFn,
+  });
+  const rows = data as Record<string, unknown>[];
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 4000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+      onClick={onClose}>
+      <div style={{ background: "#fff", borderRadius: 12, width: "100%", maxWidth: 900, maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ margin: 0, fontSize: 16 }}>{config.title}</h3>
+          <div style={{ display: "flex", gap: 8 }}>
+            {rows.length > 0 && (
+              <button onClick={() => exportToCsv(`${config.title.replace(/\s+/g, "-").toLowerCase()}.csv`, rows)}
+                style={{ padding: "6px 12px", border: "1px solid #e5e7eb", borderRadius: 6, cursor: "pointer", background: "#fff", fontSize: 12 }}>⬇ Export</button>
+            )}
+            <button onClick={onClose} style={{ border: "none", background: "none", fontSize: 20, cursor: "pointer", color: "#6b7280" }}>✕</button>
+          </div>
+        </div>
+        <div style={{ overflowY: "auto", flex: 1, padding: 0 }}>
+          {isLoading && <div style={{ padding: 40, textAlign: "center", color: "#888" }}>Loading…</div>}
+          {!isLoading && rows.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#888" }}>No records found</div>}
+          {rows.length > 0 && (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f9fafb", position: "sticky", top: 0 }}>
+                  {config.columns.map(c => (
+                    <th key={c.key} style={{ padding: "11px 16px", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "2px solid #e5e7eb" }}>{c.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                    {config.columns.map(c => (
+                      <td key={c.key} style={{ padding: "11px 16px", fontSize: 13 }}>
+                        {c.fmt ? c.fmt(row[c.key]) : (row[c.key] != null ? String(row[c.key]) : "—")}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {rows.length > 0 && (
+            <div style={{ padding: "10px 16px", fontSize: 12, color: "#9ca3af", borderTop: "1px solid #f3f4f6" }}>
+              {rows.length} record{rows.length !== 1 ? "s" : ""}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const TABS = [
   { key: "monthly",     label: "Monthly Revenue" },
   { key: "pipeline",    label: "Job Pipeline" },
@@ -80,6 +147,44 @@ export default function ReportsPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const dateParams = { ...(from && { from }), ...(to && { to }) };
+  const [drillDown, setDrillDown] = useState<DrillDownConfig | null>(null);
+
+  // Drill-down helpers
+  const jobCols = [
+    { label: "Job #", key: "job_number", fmt: (v: unknown) => `#${v}` },
+    { label: "Title", key: "job_type" },
+    { label: "Client", key: "client_company_name" },
+    { label: "Status", key: "status" },
+    { label: "Qty", key: "quantity" },
+    { label: "Quoted", key: "quoted_price", fmt: (v: unknown) => v ? fmt(v as number) : "—" },
+    { label: "Due Date", key: "due_date", fmt: (v: unknown) => v ? fmtDate(v as string) : "—" },
+  ];
+
+  function drillJobs(title: string, params: Record<string, string>) {
+    setDrillDown({
+      title,
+      queryKey: ["drill-jobs", params],
+      queryFn: () => api.get("/admin/jobs", { params: { ...params, limit: "200" } }).then(r => r.data.data ?? []),
+      columns: jobCols,
+    });
+  }
+
+  function drillInvoices(title: string, params: Record<string, string>) {
+    setDrillDown({
+      title,
+      queryKey: ["drill-invoices", params],
+      queryFn: () => api.get("/admin/billing/invoices", { params: { ...params, limit: "200" } }).then(r => r.data.data ?? []),
+      columns: [
+        { label: "Invoice #", key: "invoice_number", fmt: (v: unknown) => `#${v}` },
+        { label: "Client", key: "client_name" },
+        { label: "Total", key: "total", fmt: (v: unknown) => fmt(v as number) },
+        { label: "Paid", key: "amount_paid", fmt: (v: unknown) => fmt(v as number) },
+        { label: "Balance", key: "balance_due", fmt: (v: unknown) => fmt(v as number) },
+        { label: "Status", key: "status" },
+        { label: "Due Date", key: "due_date", fmt: (v: unknown) => v ? fmtDate(v as string) : "—" },
+      ],
+    });
+  }
 
   // queries
   const { data: profitability } = useQuery({ queryKey: ["report-profitability", dateParams], queryFn: () => api.get("/admin/reports/job-profitability", { params: dateParams }).then(r => r.data) });
@@ -98,6 +203,7 @@ export default function ReportsPage() {
 
   return (
     <div>
+      {drillDown && <DrillDownModal config={drillDown} onClose={() => setDrillDown(null)} />}
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h1 style={{ margin: 0 }}>Reports</h1>
@@ -155,14 +261,15 @@ export default function ReportsPage() {
           <div style={cardStyle}>
             <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Revenue vs Collected per Month</div>
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={monthlyRevenue.map((r: MonthRow) => ({ month: r.month, Revenue: Number(r.revenue), Collected: Number(r.collected) }))} margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+              <LineChart data={monthlyRevenue.map((r: MonthRow) => ({ month: r.month, Revenue: Number(r.revenue), Collected: Number(r.collected) }))} margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
+                onClick={(d) => { if (d?.activeLabel) drillInvoices(`Invoices — ${d.activeLabel}`, { from: d.activeLabel + "-01", to: d.activeLabel + "-31" }); }}>
                 <CartesianGrid {...gridStyle} />
                 <XAxis dataKey="month" tick={axisTickStyle} />
                 <YAxis tickFormatter={moneyFmt} tick={axisTickStyle} width={90} />
                 <Tooltip formatter={(v) => moneyFmt(v as number)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="Revenue" stroke="#7c3aed" strokeWidth={2} dot={{ r: 4 }} />
-                <Line type="monotone" dataKey="Collected" stroke="#2b8a3e" strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="Revenue" stroke="#7c3aed" strokeWidth={2} dot={{ r: 4, cursor: "pointer" }} />
+                <Line type="monotone" dataKey="Collected" stroke="#2b8a3e" strokeWidth={2} dot={{ r: 4, cursor: "pointer" }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -179,12 +286,13 @@ export default function ReportsPage() {
             <div style={cardStyle}>
               <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Jobs per Status</div>
               <ResponsiveContainer width="100%" height={Math.max(200, jobsByStatus.length * 44)}>
-                <BarChart data={jobsByStatus.map((r: StatusRow) => ({ name: r.status, Jobs: Number(r.count) }))} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+                <BarChart data={jobsByStatus.map((r: StatusRow) => ({ name: r.status, Jobs: Number(r.count) }))} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+                  onClick={(d) => { if (d?.activeLabel) drillJobs(`Jobs — ${d.activeLabel}`, { status: String(d.activeLabel), ...dateParams }); }}>
                   <CartesianGrid {...gridStyle} horizontal={false} />
                   <XAxis type="number" tick={axisTickStyle} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={axisTickStyle} width={80} />
                   <Tooltip formatter={(v) => countFmt(v as number)} />
-                  <Bar dataKey="Jobs" radius={[0, 3, 3, 0]}>
+                  <Bar dataKey="Jobs" radius={[0, 3, 3, 0]} cursor="pointer">
                     {jobsByStatus.map((r: StatusRow, i: number) => (
                       <Cell key={i} fill={STATUS_COLOR[r.status] ?? "#868e96"} />
                     ))}
@@ -194,7 +302,10 @@ export default function ReportsPage() {
             </div>
             <div>
               {jobsByStatus.map((r: StatusRow) => (
-                <div key={r.status} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "12px 16px", marginBottom: 8, borderLeft: `4px solid ${STATUS_COLOR[r.status] ?? "#868e96"}` }}>
+                <div key={r.status} onClick={() => drillJobs(`Jobs — ${r.status}`, { status: r.status, ...dateParams })}
+                  style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "12px 16px", marginBottom: 8, borderLeft: `4px solid ${STATUS_COLOR[r.status] ?? "#868e96"}`, cursor: "pointer", transition: "box-shadow 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.12)")}
+                  onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontWeight: 600, fontSize: 13, textTransform: "capitalize" }}>{r.status}</span>
                     <span style={{ fontWeight: 800, fontSize: 16 }}>{r.count}</span>
@@ -216,7 +327,8 @@ export default function ReportsPage() {
           <div style={cardStyle}>
             <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Top Clients by Revenue</div>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={clientRevenue.slice(0, 10).map((r: ClientRevRow) => ({ name: r.client_name?.slice(0, 14) ?? "—", Billed: Number(r.total_billed), Paid: Number(r.total_paid) }))} margin={{ top: 4, right: 16, left: 8, bottom: 40 }}>
+              <BarChart data={clientRevenue.slice(0, 10).map((r: ClientRevRow) => ({ name: r.client_name?.slice(0, 14) ?? "—", clientId: r.client_id, Billed: Number(r.total_billed), Paid: Number(r.total_paid) }))} margin={{ top: 4, right: 16, left: 8, bottom: 40 }}
+                onClick={(d) => { const r = clientRevenue.find((c: ClientRevRow) => c.client_name?.slice(0,14) === d?.activeLabel); if (r) drillInvoices(`Invoices — ${r.client_name}`, { clientId: r.client_id, ...dateParams }); }}>
                 <CartesianGrid {...gridStyle} />
                 <XAxis dataKey="name" tick={{ ...axisTickStyle, angle: -30, textAnchor: "end" }} interval={0} />
                 <YAxis tickFormatter={moneyFmt} tick={axisTickStyle} width={90} />
@@ -235,7 +347,8 @@ export default function ReportsPage() {
             </tr></thead>
             <tbody>
               {clientRevenue.map((r: ClientRevRow) => (
-                <tr key={r.client_id} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                <tr key={r.client_id} onClick={() => drillInvoices(`Invoices — ${r.client_name}`, { clientId: r.client_id, ...dateParams })} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#faf5ff")} onMouseLeave={e => (e.currentTarget.style.background = "")}>
                   <td style={{ padding: "12px 16px", fontWeight: 600 }}>{r.client_name ?? "—"}</td>
                   <td style={{ padding: "12px 16px", fontSize: 13 }}>{r.total_invoices}</td>
                   <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#7c3aed" }}>{fmt(r.total_billed)}</td>
@@ -349,7 +462,8 @@ export default function ReportsPage() {
             </tr></thead>
             <tbody>
               {profitability.jobs.map((j: ProfitabilityJob) => (
-                <tr key={j.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                <tr key={j.id} onClick={() => drillJobs(`Job #${j.job_number} — ${j.title}`, { jobId: j.id })} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#faf5ff")} onMouseLeave={e => (e.currentTarget.style.background = "")}>
                   <td style={{ padding: "12px 16px", fontSize: 13, color: "#888" }}>#{j.job_number}</td>
                   <td style={{ padding: "12px 16px", fontWeight: 500 }}>{j.title}</td>
                   <td style={{ padding: "12px 16px", fontSize: 13 }}>{j.client_name || "—"}</td>
@@ -377,7 +491,8 @@ export default function ReportsPage() {
           <div style={cardStyle}>
             <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Sheets Used per Paper Type</div>
             <ResponsiveContainer width="100%" height={Math.max(180, paperConsumption.length * 44)}>
-              <BarChart data={paperConsumption.map((r: PaperRow) => ({ name: `${r.paper_name} ${r.gsm ?? ""}gsm`, Sheets: Number(r.total_sheets) }))} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+              <BarChart data={paperConsumption.map((r: PaperRow) => ({ name: `${r.paper_name} ${r.gsm ?? ""}gsm`, Sheets: Number(r.total_sheets) }))} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+                onClick={(d) => { const p = paperConsumption.find((x: PaperRow) => `${x.paper_name} ${x.gsm ?? ""}gsm` === d?.activeLabel); if (p) setDrillDown({ title: `Transactions — ${p.paper_name}`, queryKey: ["drill-paper-txn", p.paper_stock_id], queryFn: () => api.get("/admin/inventory/transactions", { params: { paperStockId: p.paper_stock_id, limit: "200" } }).then(r => r.data.data ?? []), columns: [{ label: "Date", key: "transacted_at", fmt: (v) => fmtDate(v as string) }, { label: "Type", key: "type" }, { label: "Qty", key: "quantity" }, { label: "Notes", key: "notes" }] }); }}>
                 <CartesianGrid {...gridStyle} horizontal={false} />
                 <XAxis type="number" tick={axisTickStyle} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" tick={axisTickStyle} width={140} />
@@ -414,7 +529,8 @@ export default function ReportsPage() {
           <div style={cardStyle}>
             <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Jobs per Machine</div>
             <ResponsiveContainer width="100%" height={Math.max(180, machines.length * 48)}>
-              <BarChart data={machines.map((m: MachineRow) => ({ name: m.machine_name, Jobs: Number(m.total_jobs) }))} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+              <BarChart data={machines.map((m: MachineRow) => ({ name: m.machine_name, Jobs: Number(m.total_jobs) }))} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+                onClick={(d) => { const m = machines.find((x: MachineRow) => x.machine_name === d?.activeLabel); if (m) drillJobs(`Jobs on ${m.machine_name}`, { machineId: m.machine_id, ...dateParams }); }}>
                 <CartesianGrid {...gridStyle} horizontal={false} />
                 <XAxis type="number" tick={axisTickStyle} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" tick={axisTickStyle} width={110} />
@@ -425,7 +541,9 @@ export default function ReportsPage() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 12 }}>
             {machines.map((m: MachineRow) => (
-              <div key={m.machine_id} style={{ background: "#fff", padding: 18, borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,.06)", borderTop: "3px solid #7c3aed" }}>
+              <div key={m.machine_id} onClick={() => drillJobs(`Jobs on ${m.machine_name}`, { machineId: m.machine_id, ...dateParams })}
+                style={{ background: "#fff", padding: 18, borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,.06)", borderTop: "3px solid #7c3aed", cursor: "pointer" }}
+                onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 4px 12px rgba(124,58,237,0.15)")} onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.06)")}>
                 <div style={{ fontWeight: 700, marginBottom: 8 }}>{m.machine_name}</div>
                 <div style={{ fontSize: 13, color: "#555", marginBottom: 4 }}>Total: <strong>{m.total_jobs}</strong></div>
                 <div style={{ fontSize: 13, color: "#2b8a3e", marginBottom: 4 }}>Done: <strong>{m.completed_jobs}</strong></div>
@@ -445,7 +563,8 @@ export default function ReportsPage() {
           <div style={cardStyle}>
             <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Jobs per Operator</div>
             <ResponsiveContainer width="100%" height={Math.max(180, staff.length * 44)}>
-              <BarChart data={staff.map((r: StaffRow) => ({ name: r.operator_name, Total: Number(r.total_jobs), Completed: Number(r.completed_jobs) }))} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+              <BarChart data={staff.map((r: StaffRow) => ({ name: r.operator_name, Total: Number(r.total_jobs), Completed: Number(r.completed_jobs) }))} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+                onClick={(d) => { const s = staff.find((x: StaffRow) => x.operator_name === d?.activeLabel); if (s) drillJobs(`Jobs by ${s.operator_name}`, { assignedOperatorId: s.operator_id, ...dateParams }); }}>
                 <CartesianGrid {...gridStyle} horizontal={false} />
                 <XAxis type="number" tick={axisTickStyle} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" tick={axisTickStyle} width={110} />
@@ -458,7 +577,9 @@ export default function ReportsPage() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 12 }}>
             {staff.map((r: StaffRow) => (
-              <div key={r.operator_id} style={{ background: "#fff", padding: 18, borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,.06)", borderTop: "3px solid #10b981" }}>
+              <div key={r.operator_id} onClick={() => drillJobs(`Jobs by ${r.operator_name}`, { assignedOperatorId: r.operator_id, ...dateParams })}
+                style={{ background: "#fff", padding: 18, borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,.06)", borderTop: "3px solid #10b981", cursor: "pointer" }}
+                onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 4px 12px rgba(16,185,129,0.15)")} onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.06)")}>
                 <div style={{ fontWeight: 700, marginBottom: 8 }}>{r.operator_name}</div>
                 <div style={{ fontSize: 13, color: "#555", marginBottom: 4 }}>Total Jobs: <strong>{r.total_jobs}</strong></div>
                 <div style={{ fontSize: 13, color: "#2b8a3e" }}>Completed: <strong>{r.completed_jobs}</strong></div>
