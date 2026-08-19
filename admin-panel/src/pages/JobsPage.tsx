@@ -59,8 +59,8 @@ interface StaffUser { id: string; name: string; role: string; }
 interface SettingItem { id: string; name: string; }
 
 const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14, boxSizing: "border-box" };
-const th: React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, color: "#6b7280", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" };
-const td: React.CSSProperties = { padding: "13px 14px", fontSize: 13, borderTop: "1px solid rgba(0,0,0,0.04)", borderBottom: "1px solid rgba(0,0,0,0.04)", background: "inherit" };
+const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
+const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
 const gridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
 const labelStyle: React.CSSProperties = { fontSize: 13, color: "#444", display: "flex", flexDirection: "column", gap: 4 };
@@ -1352,10 +1352,10 @@ export default function JobsPage() {
           to <input type="date" value={list.filters.dueDateTo ?? ""} onChange={(e) => actions.setFilter("dueDateTo", e.target.value)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} />
         </label>
       </div>
-      <div style={{ background: "#f3f4f6", borderRadius: 10, padding: "4px 8px 8px", overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 6px", minWidth: 900 }}>
+      <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,.06)", overflow: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
           <thead>
-            <tr style={{ background: "transparent" }}>
+            <tr style={{ background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
               {col("#", "job_number")}
               {col("Job Title", "job_type")}
               <th style={th}>Company</th>
@@ -1372,11 +1372,9 @@ export default function JobsPage() {
           <tbody>
             {isLoading && <TableSkeleton cols={10} />}
             {data?.data?.map((j) => (
-              <tr key={j.id} style={{ cursor: "pointer", background: "#ffffff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.08))", transition: "filter 0.15s" }}
-                onMouseEnter={e => (e.currentTarget.style.filter = "drop-shadow(0 4px 12px rgba(0,0,0,0.14))")}
-                onMouseLeave={e => (e.currentTarget.style.filter = "drop-shadow(0 1px 3px rgba(0,0,0,0.08))")}
+              <tr key={j.id} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer", background: (STATUS_COLOR[j.status] ?? "#868e96") + "4D", borderLeft: `3px solid ${STATUS_COLOR[j.status] ?? "#868e96"}` }}
                 onClick={() => setViewJob(j)}>
-                <td style={{ ...td, color: STATUS_COLOR[j.status] ?? "#868e96", fontWeight: 700, borderLeft: `4px solid ${STATUS_COLOR[j.status] ?? "#868e96"}`, borderRadius: "8px 0 0 8px" }}>{j.job_number}</td>
+                <td style={{ ...td, color: STATUS_COLOR[j.status] ?? "#868e96", fontWeight: 700 }}>{j.job_number}</td>
                 <td style={{ ...td, fontWeight: 600, color: "#111827" }}>{j.job_type ?? "—"}</td>
                 <td style={{ ...td, color: "#374151" }}>{j.client_company_name || j.client_name || "—"}</td>
                 <td style={{ ...td, color: "#374151" }}>{j.sheet_size ?? "—"}</td>
@@ -1400,7 +1398,7 @@ export default function JobsPage() {
                 <td style={{ ...td, color: "#374151" }}>{fmtDate(j.due_date)}</td>
                 <td style={{ ...td, color: "#1f2937", fontWeight: 500 }}>{j.advance_amount != null ? "Rs." + Number(j.advance_amount).toLocaleString("en-IN") : "—"}</td>
                 <td style={{ ...td, color: "#1f2937", fontWeight: 600 }}>{j.quoted_price ? "Rs." + Number(j.quoted_price).toLocaleString("en-IN") : "—"}</td>
-                <td style={{ ...td, borderRadius: "0 8px 8px 0", borderRight: "1px solid rgba(0,0,0,0.04)" }} onClick={e => e.stopPropagation()}>
+                <td style={td} onClick={e => e.stopPropagation()}>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {/* ── Print Operator ── */}
                     {j.print_operator_id === currentUserId && j.status === "approval" && (
