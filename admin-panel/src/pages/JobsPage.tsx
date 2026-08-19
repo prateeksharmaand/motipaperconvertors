@@ -1372,7 +1372,7 @@ export default function JobsPage() {
           <tbody>
             {isLoading && <TableSkeleton cols={10} />}
             {data?.data?.map((j) => (
-              <tr key={j.id} style={{ cursor: "pointer", background: `linear-gradient(135deg, ${(STATUS_COLOR[j.status] ?? "#868e96")}22 0%, #ffffff 60%)`, filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.08))", transition: "filter 0.15s" }}
+              <tr key={j.id} style={{ cursor: "pointer", background: "#ffffff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.08))", transition: "filter 0.15s" }}
                 onMouseEnter={e => (e.currentTarget.style.filter = "drop-shadow(0 4px 12px rgba(0,0,0,0.14))")}
                 onMouseLeave={e => (e.currentTarget.style.filter = "drop-shadow(0 1px 3px rgba(0,0,0,0.08))")}
                 onClick={() => setViewJob(j)}>
