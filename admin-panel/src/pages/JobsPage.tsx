@@ -1287,7 +1287,7 @@ export default function JobsPage() {
           machines={machines}
           staffUsers={staffUsersMain}
           onClose={() => setViewJob(null)}
-          onEdit={() => { setEditing(viewJob); setViewJob(null); }}
+          onEdit={() => { setEditing(viewJob); setViewJob(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}
           onPrint={() => { setPrintJob(viewJob); setViewJob(null); }}
         />
       )}
