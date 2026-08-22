@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import 'job_form_screen.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/job_model.dart';
 import 'jobs_bloc.dart';
@@ -95,6 +96,14 @@ class _JobDetailView extends StatelessWidget {
                 ),
               ),
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                  tooltip: 'Edit',
+                  onPressed: () async {
+                    final updated = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => JobFormScreen(existing: job)));
+                    if (updated == true && context.mounted) context.read<JobDetailBloc>().add(JobDetailLoadRequested(jobId));
+                  },
+                ),
                 IconButton(icon: const Icon(Icons.refresh_outlined, color: Colors.white), onPressed: () => context.read<JobDetailBloc>().add(JobDetailLoadRequested(jobId))),
                 const SizedBox(width: 8),
               ],

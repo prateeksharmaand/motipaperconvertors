@@ -15,6 +15,8 @@ import '../../features/reports/reports_screen.dart';
 import '../../features/activity_logs/activity_log_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/quotations/quotations_screen.dart';
+import '../../features/sub_admins/sub_admins_screen.dart';
+import '../../features/machines/machines_screen.dart';
 import '../widgets/shell_scaffold.dart';
 
 GoRouter createRouter(BuildContext context) {
@@ -57,6 +59,8 @@ GoRouter createRouter(BuildContext context) {
           GoRoute(path: '/reports',       builder: (_, __) => const ReportsScreen()),
           GoRoute(path: '/activity-logs', builder: (_, __) => const ActivityLogScreen()),
           GoRoute(path: '/settings',      builder: (_, __) => const SettingsScreen()),
+          GoRoute(path: '/sub-admins',    builder: (_, __) => const SubAdminsScreen()),
+          GoRoute(path: '/machines',      builder: (_, __) => const MachinesScreen()),
         ],
       ),
     ],

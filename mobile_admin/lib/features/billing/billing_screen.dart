@@ -5,6 +5,7 @@ import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/pagination_model.dart';
+import 'record_payment_sheet.dart';
 
 // ── Models ────────────────────────────────────────────────
 class Invoice extends Equatable {
@@ -261,6 +262,22 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
             _InvoicesTab(state: state, scrollCtrl: _invoiceScrollCtrl, searchCtrl: _searchCtrl),
             _PaymentsTab(state: state, scrollCtrl: _paymentScrollCtrl),
           ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () async {
+            final recorded = await showModalBottomSheet<bool>(
+              context: context,
+              isScrollControlled: true,
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+              builder: (_) => const RecordPaymentSheet(),
+            );
+            if (recorded == true && context.mounted) {
+              context.read<BillingBloc>().add(const PaymentsLoadRequested());
+              context.read<BillingBloc>().add(const InvoicesLoadRequested());
+            }
+          },
+          icon: const Icon(Icons.add),
+          label: const Text('Record Payment'),
         ),
       ),
     );

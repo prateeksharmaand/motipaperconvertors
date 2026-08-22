@@ -26,6 +26,8 @@ const _allNavItems = [
   _NavItem(label: 'Staff',        icon: Icons.badge_outlined,         activeIcon: Icons.badge,            path: '/staff',         permission: 'staff.view'),
   _NavItem(label: 'Reports',      icon: Icons.bar_chart_outlined,     activeIcon: Icons.bar_chart,        path: '/reports',       permission: 'reports.view_financial'),
   _NavItem(label: 'Activity Log', icon: Icons.history_outlined,       activeIcon: Icons.history,          path: '/activity-logs', permission: 'activity_log.view'),
+  _NavItem(label: 'Sub Admins',   icon: Icons.admin_panel_settings_outlined, activeIcon: Icons.admin_panel_settings, path: '/sub-admins', permission: 'settings.edit'),
+  _NavItem(label: 'Machines',     icon: Icons.precision_manufacturing_outlined, activeIcon: Icons.precision_manufacturing, path: '/machines', permission: 'settings.edit'),
   _NavItem(label: 'Settings',     icon: Icons.settings_outlined,      activeIcon: Icons.settings,         path: '/settings',      permission: 'settings.edit'),
 ];
 

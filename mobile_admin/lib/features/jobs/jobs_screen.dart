@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/job_model.dart';
+import 'job_form_screen.dart';
 import 'jobs_bloc.dart';
 
 const _statuses = ['draft','enquiry','quotation','design','approval','print','finishing','qc','ready','delivered','cancelled'];
@@ -43,6 +44,14 @@ class _JobsViewState extends State<_JobsView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final created = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => BlocProvider.value(value: context.read<JobsBloc>(), child: const JobFormScreen())));
+          if (created == true && context.mounted) context.read<JobsBloc>().add(const JobsLoadRequested());
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('New Job'),
+      ),
       body: BlocBuilder<JobsBloc, JobsState>(
         builder: (context, state) {
           return RefreshIndicator(

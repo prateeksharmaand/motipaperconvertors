@@ -12,6 +12,7 @@ class Job {
   final double? advanceAmount;
   final String? dueDate;
   final String? createdAt;
+  final String? clientId;
   final String? machineId;
   final String? printOperatorId;
   final String? designerId;
@@ -36,6 +37,7 @@ class Job {
     this.advanceAmount,
     this.dueDate,
     this.createdAt,
+    this.clientId,
     this.machineId,
     this.printOperatorId,
     this.designerId,
@@ -61,6 +63,7 @@ class Job {
     advanceAmount: double.tryParse(j['advance_amount']?.toString() ?? ''),
     dueDate: j['due_date'] as String?,
     createdAt: j['created_at'] as String?,
+    clientId: j['client_id'] as String?,
     machineId: j['machine_id'] as String?,
     printOperatorId: j['print_operator_id'] as String?,
     designerId: j['designer_id'] as String?,
