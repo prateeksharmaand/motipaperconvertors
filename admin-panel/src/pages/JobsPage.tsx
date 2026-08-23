@@ -1447,7 +1447,7 @@ export default function JobsPage() {
                     )}
                     {currentRole !== "operator" && currentRole !== "staff" && (
                       <>
-                        <IconButton icon="🖨️" tooltip="Print Job Card" onClick={() => setPrintJob(j)} />
+                        <IconButton icon="🖨️" tooltip="Print Job Card" onClick={() => api.get(`/admin/jobs/${j.id}`).then(r => setPrintJob(r.data))} />
                         {canEdit && <IconButton icon="✏️" tooltip="Edit" onClick={() => { setEditing(j); window.scrollTo({ top: 0, behavior: "smooth" }); }} />}
                         {canDelete && <IconButton icon="🗑️" tooltip="Delete" onClick={() => setDeleteConfirm(j.id)} danger />}
                       </>
