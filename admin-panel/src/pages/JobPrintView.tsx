@@ -4,16 +4,17 @@ import { fmtDate } from "../lib/fmtDate.ts";
 interface Job {
   id: string; job_number: number; title: string; client_name: string; client_company_name?: string; client_phone?: string; created_at?: string; machine_id: string;
   status: string; quantity: number; due_date: string; order_type: string; job_type: string;
+  machine_name?: string;
   paper_type: string; paper_gsm: number; sheet_size: string; sheet_count: number;
   composing_date: string; composing_amount: number; plate_cost: number; die_cost: number;
   plate_source: string; approved_rate: number; hela_cost: number; other_cost: number;
   proof_required: boolean;
   is_offset: boolean; is_digital: boolean; is_screen: boolean;
-  print_colors: string; print_operator: string; print_date: string;
+  print_colors: string; print_operator: string; print_operator_name?: string; print_date: string;
   is_numbering: boolean; numbering_from: number; numbering_to: number;
   is_binding: boolean; is_uv: boolean; is_foil: boolean; is_die_cutting: boolean;
   is_half_cutting: boolean; is_creasing: boolean; is_pasting: boolean;
-  is_lamination: boolean; is_folding: boolean; is_gumming: boolean;
+  is_lamination: boolean; lamination_type?: string; is_folding: boolean; is_gumming: boolean;
   post_print_date: string; binding_operator: string; packing_operator: string;
   advance_amount: number; quoted_price: number; quotation_ref: string; indent_number: string;
   delivery_quantity: number; challan_number: string; challan_date: string;
@@ -34,7 +35,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
   const row = (label: string, value: string | number | boolean | null | undefined) => (
     <tr>
       <td style={{ padding: "5px 10px", fontSize: 12, color: "#6b7280", width: "30%", borderBottom: "1px solid #f3f4f6" }}>{label}</td>
-      <td style={{ padding: "5px 10px", fontSize: 13, fontWeight: 500, borderBottom: "1px solid #f3f4f6" }}>{value || "—"}</td>
+      <td style={{ padding: "5px 10px", fontSize: 13, fontWeight: 500, borderBottom: "1px solid #f3f4f6" }}>{value != null && value !== "" && value !== false ? value : "—"}</td>
     </tr>
   );
   const section = (title: string) => (
@@ -47,7 +48,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
     job.is_binding && "Binding", job.is_uv && "UV", job.is_foil && "Foil",
     job.is_die_cutting && "Die Cutting", job.is_half_cutting && "Half Cutting",
     job.is_creasing && "Creasing", job.is_pasting && "Pasting",
-    job.is_lamination && "Lamination", job.is_folding && "Folding", job.is_gumming && "Gumming",
+    job.is_lamination && ("Lamination" + (job.lamination_type ? ` (${job.lamination_type.charAt(0).toUpperCase() + job.lamination_type.slice(1)})` : "")), job.is_folding && "Folding", job.is_gumming && "Gumming",
   ].filter(Boolean).join(", ");
 
   const balance = (Number(job.quoted_price) || 0) - (Number(job.advance_amount) || 0);
@@ -96,6 +97,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
               {row("Order Type", job.order_type)}
               {row("Quantity", job.quantity ? (job.quantity + " PCS") : "—")}
               {section("Paper & Machine")}
+              {row("Machine", job.machine_name)}
               {row("Paper Type", job.paper_type)}
               {row("Paper GSM", job.paper_gsm ? (job.paper_gsm + " GSM") : "—")}
               {row("Sheet Size", job.sheet_size)}
@@ -113,7 +115,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
               {section("Print Process")}
               {row("Print Type", [job.is_offset && "Offset", job.is_digital && "Digital", job.is_screen && "Screen"].filter(Boolean).join(", ") || "—")}
               {row("Print Colors", job.print_colors)}
-              {row("Print Operator", job.print_operator)}
+              {row("Print Operator", job.print_operator_name || job.print_operator)}
               {row("Print Date", fmtDate(job.print_date))}
               {section("Post-Print Process")}
               {row("Finishing", finishingItems || "None")}

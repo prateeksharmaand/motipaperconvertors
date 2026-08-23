@@ -10,7 +10,7 @@ import TableControls from "../components/TableControls.tsx";
 import Pagination from "../components/Pagination.tsx";
 import type { PagedResult } from "../lib/queryHelpers.ts";
 
-type Permission = "jobs.view"|"jobs.create"|"jobs.edit"|"jobs.delete"|"quotation.view"|"quotation.create"|"quotation.edit_rates"|"production.view"|"production.update_status"|"inventory.view"|"inventory.edit"|"inventory.create_po"|"billing.view"|"billing.create_invoice"|"billing.record_payment"|"clients.view"|"clients.edit"|"staff.view"|"staff.manage"|"reports.view_financial"|"settings.edit"|"activity_log.view";
+type Permission = "jobs.view"|"jobs.create"|"jobs.edit"|"jobs.delete"|"quotation.view"|"quotation.create"|"quotation.edit_rates"|"production.view"|"production.update_status"|"inventory.view"|"inventory.edit"|"inventory.create_po"|"billing.view"|"billing.create_invoice"|"billing.record_payment"|"clients.view"|"clients.edit"|"staff.view"|"staff.manage"|"reports.view_financial"|"settings.view"|"settings.edit"|"activity_log.view";
 
 const PERMISSION_GROUPS: { label: string; perms: Permission[] }[] = [
   { label: "Jobs", perms: ["jobs.view","jobs.create","jobs.edit","jobs.delete"] },
@@ -21,7 +21,7 @@ const PERMISSION_GROUPS: { label: string; perms: Permission[] }[] = [
   { label: "Clients", perms: ["clients.view","clients.edit"] },
   { label: "Staff", perms: ["staff.view","staff.manage"] },
   { label: "Reports", perms: ["reports.view_financial"] },
-  { label: "Settings", perms: ["settings.edit"] },
+  { label: "Settings", perms: ["settings.view", "settings.edit"] },
   { label: "Activity Log", perms: ["activity_log.view"] },
 ];
 const PERM_LABEL: Record<Permission, string> = {
@@ -31,7 +31,7 @@ const PERM_LABEL: Record<Permission, string> = {
   "inventory.view":"View","inventory.edit":"Edit","inventory.create_po":"Create PO",
   "billing.view":"View","billing.create_invoice":"Create Invoice","billing.record_payment":"Record Payment",
   "clients.view":"View","clients.edit":"Edit","staff.view":"View","staff.manage":"Manage",
-  "reports.view_financial":"View Financial","settings.edit":"Edit Settings",
+  "reports.view_financial":"View Financial","settings.view":"View Settings","settings.edit":"Edit Settings",
   "activity_log.view":"View Activity Log",
 };
 

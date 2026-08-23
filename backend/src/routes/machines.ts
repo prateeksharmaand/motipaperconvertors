@@ -22,7 +22,7 @@ const MachineSchema = z.object({
 });
 
 // GET /machines?page&limit&search&sortBy&sortDir&status&type
-router.get("/", requirePermission("settings.edit"), async (req, res) => {
+router.get("/", requirePermission("settings.view"), async (req, res) => {
   const params = parseListParams(req, { sortBy: "name" });
   const tenantId = req.user.tenantId!;
   const { status, type } = req.query as Record<string, string>;

@@ -134,6 +134,7 @@ router.get("/:id", requirePermission("jobs.view"), async (req, res) => {
     .leftJoin("users as binding_op", "job_cards.binding_operator_id", "binding_op.id")
     .leftJoin("users as packing_op", "job_cards.packing_operator_id", "packing_op.id")
     .leftJoin("users as qc_op", "job_cards.qc_operator_id", "qc_op.id")
+    .leftJoin("machines", "job_cards.machine_id", "machines.id")
     .select(
       "job_cards.*",
       "clients.name as client_name",
@@ -142,6 +143,7 @@ router.get("/:id", requirePermission("jobs.view"), async (req, res) => {
       "binding_op.name as binding_operator_name",
       "packing_op.name as packing_operator_name",
       "qc_op.name as qc_operator_name",
+      "machines.name as machine_name",
     )
     .first();
 
@@ -213,6 +215,7 @@ const CreateJobSchema = z.object({
   isCreasing: z.boolean().optional(),
   isPasting: z.boolean().optional(),
   isLamination: z.boolean().optional(),
+  laminationType: z.enum(["glass", "matte"]).optional(),
   isFolding: z.boolean().optional(),
   isGumming: z.boolean().optional(),
   postPrintDate: z.string().optional(),
@@ -305,6 +308,7 @@ router.post("/", requirePermission("jobs.create"), async (req, res) => {
       is_creasing: data.isCreasing ?? false,
       is_pasting: data.isPasting ?? false,
       is_lamination: data.isLamination ?? false,
+      lamination_type: data.isLamination ? (data.laminationType ?? null) : null,
       is_folding: data.isFolding ?? false,
       is_gumming: data.isGumming ?? false,
       post_print_date: data.postPrintDate ?? null,
@@ -370,7 +374,7 @@ router.patch("/:id", requirePermission("jobs.edit"), async (req, res) => {
     "is_offset", "is_digital", "is_screen", "print_colors", "print_operator", "print_date",
     "is_numbering", "numbering_from", "numbering_to",
     "is_binding", "is_uv", "is_foil", "is_die_cutting", "is_half_cutting",
-    "is_creasing", "is_pasting", "is_lamination", "is_folding", "is_gumming",
+    "is_creasing", "is_pasting", "is_lamination", "lamination_type", "is_folding", "is_gumming",
     "post_print_date", "binding_operator", "packing_operator",
     "advance_amount", "quotation_ref", "indent_number",
     "delivery_quantity", "challan_number", "challan_date",

@@ -29,6 +29,7 @@ export async function up(knex: Knex): Promise<void> {
       "staff.view",
       "staff.manage",
       "reports.view_financial",
+      "settings.view",
       "settings.edit",
     ]).notNullable();
     t.timestamp("granted_at").notNullable().defaultTo(knex.fn.now());

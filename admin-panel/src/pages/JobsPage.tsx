@@ -46,7 +46,7 @@ type Job = {
   is_numbering: boolean; numbering_from: number; numbering_to: number;
   is_binding: boolean; is_uv: boolean; is_foil: boolean; is_die_cutting: boolean;
   is_half_cutting: boolean; is_creasing: boolean; is_pasting: boolean;
-  is_lamination: boolean; is_folding: boolean; is_gumming: boolean;
+  is_lamination: boolean; lamination_type?: string; is_folding: boolean; is_gumming: boolean;
   post_print_date: string; binding_operator: string; packing_operator: string;
   advance_amount: number; quotation_ref: string; indent_number: string;
   delivery_quantity: number; challan_number: string; challan_date: string;
@@ -125,6 +125,7 @@ function buildApiPayload(form: FormState, papers: PaperLine[]) {
     isCreasing: bool("is_creasing"),
     isPasting: bool("is_pasting"),
     isLamination: bool("is_lamination"),
+    laminationType: bool("is_lamination") ? (str("lamination_type") || undefined) : undefined,
     isFolding: bool("is_folding"),
     isGumming: bool("is_gumming"),
     postPrintDate: str("post_print_date") || undefined,
@@ -189,6 +190,7 @@ function buildPatchPayload(form: FormState, papers: PaperLine[]) {
     is_creasing: bool("is_creasing"),
     is_pasting: bool("is_pasting"),
     is_lamination: bool("is_lamination"),
+    lamination_type: bool("is_lamination") ? (str("lamination_type") || null) : null,
     is_folding: bool("is_folding"),
     is_gumming: bool("is_gumming"),
     post_print_date: str("post_print_date") || undefined,
@@ -217,7 +219,7 @@ function initForm(initial?: Partial<Job>): FormState {
       is_numbering: false, numbering_from: "", numbering_to: "",
       is_binding: false, is_uv: false, is_foil: false, is_die_cutting: false,
       is_half_cutting: false, is_creasing: false, is_pasting: false,
-      is_lamination: false, is_folding: false, is_gumming: false,
+      is_lamination: false, lamination_type: "", is_folding: false, is_gumming: false,
       post_print_date: "", binding_operator: "", packing_operator: "",
       advance_amount: "", quotation_ref: "", indent_number: "",
       delivery_quantity: "", challan_number: "", challan_date: "",
@@ -267,6 +269,7 @@ function initForm(initial?: Partial<Job>): FormState {
     is_creasing: initial.is_creasing ?? false,
     is_pasting: initial.is_pasting ?? false,
     is_lamination: initial.is_lamination ?? false,
+    lamination_type: (initial as Record<string, unknown>).lamination_type as string ?? "",
     is_folding: initial.is_folding ?? false,
     is_gumming: initial.is_gumming ?? false,
     post_print_date: initial.post_print_date ? initial.post_print_date.slice(0, 10) : "",
@@ -455,6 +458,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
     setForm(f => ({ ...f, [k]: e.target.checked }));
 
   const isNumbering = boolField(form, "is_numbering");
+  const isLamination = boolField(form, "is_lamination");
 
   // Paper stocks
   const { data: paperStocks = [] } = useQuery<PaperStock[]>({
@@ -611,6 +615,10 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
           <label style={labelStyle}>
             Sheet Size
             <input style={inputStyle} value={form.sheet_size as string} onChange={set("sheet_size")} placeholder="e.g. 12X18" />
+          </label>
+          <label style={labelStyle}>
+            Sheet Count
+            <input style={inputStyle} type="number" min={0} value={form.sheet_count as string} onChange={set("sheet_count")} placeholder="e.g. 500" />
           </label>
         </div>
 
@@ -803,6 +811,18 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
             <label style={labelStyle}>
               Numbering To
               <input style={inputStyle} type="number" value={form.numbering_to as string} onChange={set("numbering_to")} />
+            </label>
+          </div>
+        )}
+        {isLamination && (
+          <div style={{ ...gridStyle, marginBottom: 20 }}>
+            <label style={labelStyle}>
+              Lamination Type
+              <select style={inputStyle} value={form.lamination_type as string} onChange={set("lamination_type")}>
+                <option value="">— select type —</option>
+                <option value="glass">Glass</option>
+                <option value="matte">Matte</option>
+              </select>
             </label>
           </div>
         )}
@@ -1126,7 +1146,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
           {row("Half Cutting", bool(job.is_half_cutting))}
           {row("Creasing", bool(job.is_creasing))}
           {row("Pasting", bool(job.is_pasting))}
-          {row("Lamination", bool(job.is_lamination))}
+          {row("Lamination", job.is_lamination ? (job.lamination_type ? `Yes – ${job.lamination_type.charAt(0).toUpperCase() + job.lamination_type.slice(1)}` : "Yes") : "No")}
           {row("Folding", bool(job.is_folding))}
           {row("Gumming", bool(job.is_gumming))}
           {row("Binding Operator", bindOpName)}

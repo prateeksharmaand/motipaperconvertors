@@ -11,7 +11,7 @@ const NameSchema = z.object({ name: z.string().min(1) });
 
 // ── Job Types ─────────────────────────────────────────────────────────────────
 
-router.get("/job-types", requirePermission("settings.edit"), async (req, res) => {
+router.get("/job-types", requirePermission("settings.view"), async (req, res) => {
   const rows = await db("tenant_settings")
     .where({ tenant_id: req.user.tenantId!, key: "job_type" })
     .orderBy("created_at", "asc")
@@ -37,7 +37,7 @@ router.delete("/job-types/:id", requirePermission("settings.edit"), async (req, 
 
 // ── Print Colors ──────────────────────────────────────────────────────────────
 
-router.get("/print-colors", requirePermission("settings.edit"), async (req, res) => {
+router.get("/print-colors", requirePermission("settings.view"), async (req, res) => {
   const rows = await db("tenant_settings")
     .where({ tenant_id: req.user.tenantId!, key: "print_color" })
     .orderBy("created_at", "asc")
@@ -63,7 +63,7 @@ router.delete("/print-colors/:id", requirePermission("settings.edit"), async (re
 
 // ── Plate Sources ─────────────────────────────────────────────────────────────
 
-router.get("/plate-sources", requirePermission("settings.edit"), async (req, res) => {
+router.get("/plate-sources", requirePermission("settings.view"), async (req, res) => {
   const rows = await db("tenant_settings")
     .where({ tenant_id: req.user.tenantId!, key: "plate_source" })
     .orderBy("created_at", "asc")
@@ -89,7 +89,7 @@ router.delete("/plate-sources/:id", requirePermission("settings.edit"), async (r
 
 // ── Staff Types ───────────────────────────────────────────────────────────────
 
-router.get("/staff-types", requirePermission("settings.edit"), async (req, res) => {
+router.get("/staff-types", requirePermission("settings.view"), async (req, res) => {
   const rows = await db("tenant_settings")
     .where({ tenant_id: req.user.tenantId!, key: "staff_type" })
     .orderBy("created_at", "asc")
@@ -121,7 +121,7 @@ const PrintTemplateSchema = z.object({
   signature: z.string().optional(),
 });
 
-router.get("/print-template", requirePermission("settings.edit"), async (req, res) => {
+router.get("/print-template", requirePermission("settings.view"), async (req, res) => {
   const rows = await db("tenant_settings")
     .where({ tenant_id: req.user.tenantId! })
     .whereIn("key", ["print_header", "print_footer", "print_signature"])

@@ -57,6 +57,7 @@ export default function Layout() {
   const canViewActivityLog = useHasPerm("activity_log.view");
   const canViewStaff = useHasPerm("staff.view");
   const canViewQuotations = useHasPerm("quotation.view");
+  const canViewSettings = useHasPerm("settings.view");
   const [showPaperRate, setShowPaperRate] = useState(false);
 
   // Fetch current user's permissions on mount
@@ -124,13 +125,17 @@ export default function Layout() {
           {canViewReports && <NavLink to="/reports" style={navStyle}>Reports</NavLink>}
           {canViewActivityLog && <NavLink to="/activity-logs" style={navStyle}>Activity Log</NavLink>}
 
+          {(role === "owner" || role === "super_admin" || canViewSettings) && (
+            <span style={sectionLabel}>Config</span>
+          )}
           {(role === "owner" || role === "super_admin") && (
             <>
-              <span style={sectionLabel}>Config</span>
               <NavLink to="/machines" style={navStyle}>Machines</NavLink>
               <NavLink to="/sub-admins" style={navStyle}>Sub Admins</NavLink>
-              <NavLink to="/settings" style={navStyle}>Settings</NavLink>
             </>
+          )}
+          {(role === "owner" || role === "super_admin" || canViewSettings) && (
+            <NavLink to="/settings" style={navStyle}>Settings</NavLink>
           )}
 
           {role === "super_admin" && (
