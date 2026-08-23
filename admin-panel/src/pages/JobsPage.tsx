@@ -33,7 +33,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 type Job = {
   id: string; job_number: number; title: string; client_name: string; client_company_name: string; client_phone: string; client_id: string;
-  machine_id: string; status: string; due_date: string; created_at: string; quoted_price: number;
+  machine_id: string; machine_name?: string; status: string; due_date: string; created_at: string; quoted_price: number;
   print_operator_id: string; binding_operator_id: string; packing_operator_id: string; qc_operator_id: string; designer_id: string;
   operator_name: string; description: string; job_type: string; size: string; quantity: number;
   order_type: string; sheet_size: string; sheet_count: number; paper_gsm: number;
@@ -1308,7 +1308,7 @@ export default function JobsPage() {
           staffUsers={staffUsersMain}
           onClose={() => setViewJob(null)}
           onEdit={() => { setEditing(viewJob); setViewJob(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-          onPrint={() => { setPrintJob(viewJob); setViewJob(null); }}
+          onPrint={() => { setPrintJob({ ...viewJob, machine_name: machines.find(m => m.id === viewJob.machine_id)?.name }); setViewJob(null); }}
         />
       )}
       <h1 style={{ marginBottom: 20 }}>Job Cards</h1>
