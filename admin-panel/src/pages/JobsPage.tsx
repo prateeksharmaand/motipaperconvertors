@@ -1308,7 +1308,7 @@ export default function JobsPage() {
           staffUsers={staffUsersMain}
           onClose={() => setViewJob(null)}
           onEdit={() => { setEditing(viewJob); setViewJob(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-          onPrint={() => { setPrintJob({ ...viewJob, machine_name: machines.find(m => m.id === viewJob.machine_id)?.name }); setViewJob(null); }}
+          onPrint={() => { api.get(`/admin/jobs/${viewJob.id}`).then(r => setPrintJob(r.data)); setViewJob(null); }}
         />
       )}
       <h1 style={{ marginBottom: 20 }}>Job Cards</h1>
