@@ -17,6 +17,8 @@ import '../../features/settings/settings_screen.dart';
 import '../../features/quotations/quotations_screen.dart';
 import '../../features/sub_admins/sub_admins_screen.dart';
 import '../../features/machines/machines_screen.dart';
+import '../../features/proofs/proofs_screen.dart';
+import '../../features/tenants/tenants_screen.dart';
 import '../widgets/shell_scaffold.dart';
 
 GoRouter createRouter(BuildContext context) {
@@ -61,6 +63,8 @@ GoRouter createRouter(BuildContext context) {
           GoRoute(path: '/settings',      builder: (_, __) => const SettingsScreen()),
           GoRoute(path: '/sub-admins',    builder: (_, __) => const SubAdminsScreen()),
           GoRoute(path: '/machines',      builder: (_, __) => const MachinesScreen()),
+          GoRoute(path: '/proofs',        builder: (_, __) => const ProofsScreen()),
+          GoRoute(path: '/tenants',       builder: (_, __) => const TenantsScreen()),
         ],
       ),
     ],

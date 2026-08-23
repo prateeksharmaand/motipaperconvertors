@@ -1,12 +1,21 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'core/notifications/fcm_service.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_bloc.dart';
 import 'features/auth/auth_event.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Firebase init — only runs if google-services.json / GoogleService-Info.plist present
+  try {
+    await Firebase.initializeApp();
+    await FcmService.init();
+  } catch (_) {
+    // Graceful degradation — app works without Firebase configured
+  }
   runApp(const MotiPaperAdminApp());
 }
 

@@ -26,9 +26,11 @@ const _allNavItems = [
   _NavItem(label: 'Staff',        icon: Icons.badge_outlined,         activeIcon: Icons.badge,            path: '/staff',         permission: 'staff.view'),
   _NavItem(label: 'Reports',      icon: Icons.bar_chart_outlined,     activeIcon: Icons.bar_chart,        path: '/reports',       permission: 'reports.view_financial'),
   _NavItem(label: 'Activity Log', icon: Icons.history_outlined,       activeIcon: Icons.history,          path: '/activity-logs', permission: 'activity_log.view'),
+  _NavItem(label: 'Proofs',       icon: Icons.image_search_outlined,  activeIcon: Icons.image_search,     path: '/proofs',        permission: 'jobs.view'),
   _NavItem(label: 'Sub Admins',   icon: Icons.admin_panel_settings_outlined, activeIcon: Icons.admin_panel_settings, path: '/sub-admins', permission: 'settings.edit'),
   _NavItem(label: 'Machines',     icon: Icons.precision_manufacturing_outlined, activeIcon: Icons.precision_manufacturing, path: '/machines', permission: 'settings.edit'),
   _NavItem(label: 'Settings',     icon: Icons.settings_outlined,      activeIcon: Icons.settings,         path: '/settings',      permission: 'settings.edit'),
+  _NavItem(label: 'Tenants',      icon: Icons.business_outlined,      activeIcon: Icons.business,         path: '/tenants'),
 ];
 
 class ShellScaffold extends StatelessWidget {
@@ -40,7 +42,11 @@ class ShellScaffold extends StatelessWidget {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         final user = state is AuthAuthenticated ? state.user : null;
-        final items = _allNavItems.where((i) => i.permission == null || (user?.hasPerm(i.permission!) ?? false)).toList();
+        final items = _allNavItems.where((i) {
+          if (i.path == '/tenants') return user?.isSuperAdmin ?? false;
+          if (i.permission == null) return true;
+          return user?.hasPerm(i.permission!) ?? false;
+        }).toList();
         final phoneItems = items.take(5).toList();
 
         if (Responsive.showSidebar(context)) {

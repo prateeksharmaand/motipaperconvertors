@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/pagination_model.dart';
 import 'record_payment_sheet.dart';
+import 'create_invoice_sheet.dart';
 
 // ── Models ────────────────────────────────────────────────
 class Invoice extends Equatable {
@@ -89,6 +90,11 @@ class InvoicesStatusFilterChanged extends BillingEvent {
 class InvoicesNextPage extends BillingEvent { const InvoicesNextPage(); }
 class PaymentsLoadRequested extends BillingEvent { const PaymentsLoadRequested(); }
 class PaymentsNextPage extends BillingEvent { const PaymentsNextPage(); }
+class LedgerLoadRequested extends BillingEvent {
+  final String clientId;
+  const LedgerLoadRequested(this.clientId);
+  @override List<Object?> get props => [clientId];
+}
 
 class BillingState extends Equatable {
   final int tab;
@@ -100,24 +106,31 @@ class BillingState extends Equatable {
   final List<Payment> payments;
   final bool paymentsLoading, paymentsLoadingMore, paymentsHasMore;
   final int paymentPage;
+  final Map<String, dynamic> ledger;
+  final bool ledgerLoading;
+  final String? ledgerClientId;
   final String? error;
 
   const BillingState({
     this.tab = 0,
     this.invoices = const [], this.invoicesLoading = false, this.invoicesLoadingMore = false, this.invoicesHasMore = false, this.invoicePage = 1, this.invoiceTotal = 0, this.invoiceSearch = '', this.invoiceStatusFilter,
     this.payments = const [], this.paymentsLoading = false, this.paymentsLoadingMore = false, this.paymentsHasMore = false, this.paymentPage = 1,
+    this.ledger = const {}, this.ledgerLoading = false, this.ledgerClientId,
     this.error,
   });
 
   BillingState copyWith({
-    int? tab, List<Invoice>? invoices, bool? invoicesLoading, bool? invoicesLoadingMore, bool? invoicesHasMore, int? invoicePage, int? invoiceTotal, String? invoiceSearch, String? invoiceStatusFilter, bool clearStatusFilter = false,
+    int? tab,
+    List<Invoice>? invoices, bool? invoicesLoading, bool? invoicesLoadingMore, bool? invoicesHasMore, int? invoicePage, int? invoiceTotal, String? invoiceSearch, String? invoiceStatusFilter, bool clearStatusFilter = false,
     List<Payment>? payments, bool? paymentsLoading, bool? paymentsLoadingMore, bool? paymentsHasMore, int? paymentPage,
+    Map<String, dynamic>? ledger, bool? ledgerLoading, String? ledgerClientId,
     String? error, bool clearError = false,
   }) => BillingState(
     tab: tab ?? this.tab,
     invoices: invoices ?? this.invoices, invoicesLoading: invoicesLoading ?? this.invoicesLoading, invoicesLoadingMore: invoicesLoadingMore ?? this.invoicesLoadingMore, invoicesHasMore: invoicesHasMore ?? this.invoicesHasMore, invoicePage: invoicePage ?? this.invoicePage, invoiceTotal: invoiceTotal ?? this.invoiceTotal, invoiceSearch: invoiceSearch ?? this.invoiceSearch,
     invoiceStatusFilter: clearStatusFilter ? null : (invoiceStatusFilter ?? this.invoiceStatusFilter),
     payments: payments ?? this.payments, paymentsLoading: paymentsLoading ?? this.paymentsLoading, paymentsLoadingMore: paymentsLoadingMore ?? this.paymentsLoadingMore, paymentsHasMore: paymentsHasMore ?? this.paymentsHasMore, paymentPage: paymentPage ?? this.paymentPage,
+    ledger: ledger ?? this.ledger, ledgerLoading: ledgerLoading ?? this.ledgerLoading, ledgerClientId: ledgerClientId ?? this.ledgerClientId,
     error: clearError ? null : (error ?? this.error),
   );
 
@@ -134,6 +147,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<InvoicesNextPage>(_onNextInvoicePage);
     on<PaymentsLoadRequested>(_onLoadPayments);
     on<PaymentsNextPage>(_onNextPaymentPage);
+    on<LedgerLoadRequested>(_onLoadLedger);
   }
 
   Map<String, dynamic> get _invoiceParams => {
@@ -195,6 +209,14 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       emit(state.copyWith(payments: [...state.payments, ...r.data], paymentsLoadingMore: false, paymentPage: state.paymentPage + 1, paymentsHasMore: r.hasMore));
     } catch (_) { emit(state.copyWith(paymentsLoadingMore: false)); }
   }
+
+  Future<void> _onLoadLedger(LedgerLoadRequested event, Emitter<BillingState> emit) async {
+    emit(state.copyWith(ledgerLoading: true, ledgerClientId: event.clientId));
+    try {
+      final res = await ApiClient.instance.get('/admin/billing/ledger/${event.clientId}');
+      emit(state.copyWith(ledger: res.data as Map<String, dynamic>, ledgerLoading: false));
+    } catch (_) { emit(state.copyWith(ledgerLoading: false)); }
+  }
 }
 
 // ── Screen ────────────────────────────────────────────────
@@ -213,7 +235,7 @@ class _BillingView extends StatefulWidget {
 }
 
 class _BillingViewState extends State<_BillingView> with SingleTickerProviderStateMixin {
-  late final _tabCtrl = TabController(length: 2, vsync: this);
+  late final _tabCtrl = TabController(length: 3, vsync: this);
   final _searchCtrl = TextEditingController();
   final _invoiceScrollCtrl = ScrollController();
   final _paymentScrollCtrl = ScrollController();
@@ -250,7 +272,7 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
           surfaceTintColor: Colors.transparent,
           bottom: TabBar(
             controller: _tabCtrl,
-            tabs: const [Tab(text: 'Invoices'), Tab(text: 'Payments')],
+            tabs: const [Tab(text: 'Invoices'), Tab(text: 'Payments'), Tab(text: 'Ledger')],
             labelColor: AppColors.primary,
             unselectedLabelColor: AppColors.textMuted,
             indicatorColor: AppColors.primary,
@@ -261,23 +283,45 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
           children: [
             _InvoicesTab(state: state, scrollCtrl: _invoiceScrollCtrl, searchCtrl: _searchCtrl),
             _PaymentsTab(state: state, scrollCtrl: _paymentScrollCtrl),
+            _LedgerTab(state: state),
           ],
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () async {
-            final recorded = await showModalBottomSheet<bool>(
-              context: context,
-              isScrollControlled: true,
-              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-              builder: (_) => const RecordPaymentSheet(),
-            );
-            if (recorded == true && context.mounted) {
-              context.read<BillingBloc>().add(const PaymentsLoadRequested());
-              context.read<BillingBloc>().add(const InvoicesLoadRequested());
-            }
-          },
-          icon: const Icon(Icons.add),
-          label: const Text('Record Payment'),
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            FloatingActionButton.extended(
+              heroTag: 'fab-invoice',
+              backgroundColor: AppColors.secondary,
+              onPressed: () async {
+                final created = await showModalBottomSheet<bool>(
+                  context: context, isScrollControlled: true,
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                  builder: (_) => const CreateInvoiceSheet(),
+                );
+                if (created == true && context.mounted) context.read<BillingBloc>().add(const InvoicesLoadRequested());
+              },
+              icon: const Icon(Icons.receipt_long_outlined),
+              label: const Text('New Invoice'),
+            ),
+            const SizedBox(height: 10),
+            FloatingActionButton.extended(
+              heroTag: 'fab-payment',
+              onPressed: () async {
+                final recorded = await showModalBottomSheet<bool>(
+                  context: context, isScrollControlled: true,
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                  builder: (_) => const RecordPaymentSheet(),
+                );
+                if (recorded == true && context.mounted) {
+                  context.read<BillingBloc>().add(const PaymentsLoadRequested());
+                  context.read<BillingBloc>().add(const InvoicesLoadRequested());
+                }
+              },
+              icon: const Icon(Icons.payments_outlined),
+              label: const Text('Record Payment'),
+            ),
+          ],
         ),
       ),
     );
@@ -417,6 +461,149 @@ class _InvoiceCard extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Ledger Tab ────────────────────────────────────────────
+class _LedgerTab extends StatefulWidget {
+  final BillingState state;
+  const _LedgerTab({required this.state});
+  @override State<_LedgerTab> createState() => _LedgerTabState();
+}
+
+class _LedgerTabState extends State<_LedgerTab> {
+  String? _selectedClientId;
+  List<Map<String, dynamic>> _clients = [];
+  bool _loadingClients = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadClients();
+  }
+
+  Future<void> _loadClients() async {
+    try {
+      final res = await ApiClient.instance.get('/admin/clients', queryParameters: {'limit': 200});
+      if (!mounted) return;
+      setState(() {
+        _clients = List<Map<String, dynamic>>.from(res.data['data'] as List? ?? []);
+        _loadingClients = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingClients = false);
+    }
+  }
+
+  void _selectClient(String clientId) {
+    setState(() => _selectedClientId = clientId);
+    context.read<BillingBloc>().add(LedgerLoadRequested(clientId));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.state;
+
+    if (_loadingClients) return const Center(child: CircularProgressIndicator());
+
+    return Column(children: [
+      // Client selector
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: DropdownButtonFormField<String>(
+          initialValue: _selectedClientId,
+          hint: const Text('Select a client to view ledger', style: TextStyle(color: AppColors.textDisabled)),
+          decoration: const InputDecoration(labelText: 'Client', prefixIcon: Icon(Icons.people_outline, size: 20)),
+          isExpanded: true,
+          items: _clients.map((c) => DropdownMenuItem(
+            value: c['id'] as String,
+            child: Text(c['company_name'] as String? ?? c['name'] as String? ?? '', overflow: TextOverflow.ellipsis),
+          )).toList(),
+          onChanged: (v) { if (v != null) _selectClient(v); },
+        ),
+      ),
+      // Ledger content
+      Expanded(child: _selectedClientId == null
+        ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.account_balance_outlined, size: 56, color: AppColors.textMuted),
+            SizedBox(height: 12),
+            Text('Select a client to view their ledger', style: TextStyle(color: AppColors.textMuted)),
+          ]))
+        : state.ledgerLoading
+          ? const Center(child: CircularProgressIndicator())
+          : state.ledger.isEmpty
+            ? const Center(child: Text('No ledger data', style: TextStyle(color: AppColors.textMuted)))
+            : _LedgerContent(ledger: state.ledger),
+      ),
+    ]);
+  }
+}
+
+class _LedgerContent extends StatelessWidget {
+  final Map<String, dynamic> ledger;
+  const _LedgerContent({required this.ledger});
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = ledger['summary'] as Map? ?? {};
+    final entries = List<Map<String, dynamic>>.from(ledger['entries'] as List? ?? []);
+
+    return ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 80), children: [
+      // Summary cards
+      Row(children: [
+        _SummaryCard('Total Billed',   Fmt.money(summary['total_billed']),       AppColors.primary),
+        const SizedBox(width: 10),
+        _SummaryCard('Total Paid',     Fmt.money(summary['total_paid']),         AppColors.success),
+        const SizedBox(width: 10),
+        _SummaryCard('Outstanding',    Fmt.money(summary['total_outstanding']),  AppColors.error),
+      ]),
+      const SizedBox(height: 16),
+      const Text('Transaction History', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+      const SizedBox(height: 8),
+      if (entries.isEmpty)
+        const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('No transactions', style: TextStyle(color: AppColors.textMuted))))
+      else
+        ...entries.map((e) {
+          final type = e['entry_type'] as String? ?? 'invoice';
+          final isPayment = type == 'payment';
+          final color = isPayment ? AppColors.success : AppColors.primary;
+          final icon = isPayment ? Icons.payments_outlined : Icons.receipt_long_outlined;
+          return Card(
+            margin: const EdgeInsets.only(bottom: 6),
+            child: ListTile(
+              dense: true,
+              leading: CircleAvatar(
+                radius: 18,
+                backgroundColor: color.withValues(alpha: 0.12),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              title: Text(
+                isPayment ? 'Payment — ${(e['payment_mode'] as String? ?? '').toUpperCase()}' : 'Invoice #${e['invoice_number'] ?? ''}',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(Fmt.date(e['created_at'] ?? e['payment_date']), style: const TextStyle(fontSize: 11)),
+              trailing: Text(
+                Fmt.money(e['amount'] ?? e['total']),
+                style: TextStyle(fontWeight: FontWeight.w800, color: color, fontSize: 14),
+              ),
+            ),
+          );
+        }),
+    ]);
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _SummaryCard(this.label, this.value, this.color);
+
+  @override
+  Widget build(BuildContext context) => Expanded(child: Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+    const SizedBox(height: 4),
+    Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
+  ]))));
 }
 
 // ── Payments Tab ──────────────────────────────────────────

@@ -70,6 +70,8 @@ class PaperLoadRequested extends InventoryEvent { const PaperLoadRequested(); }
 class PaperSearchChanged extends InventoryEvent { final String q; const PaperSearchChanged(this.q); @override List<Object?> get props => [q]; }
 class ItemsLoadRequested extends InventoryEvent { const ItemsLoadRequested(); }
 class ItemsSearchChanged extends InventoryEvent { final String q; const ItemsSearchChanged(this.q); @override List<Object?> get props => [q]; }
+class TransactionsLoadRequested extends InventoryEvent { const TransactionsLoadRequested(); }
+class TransactionsNextPage extends InventoryEvent { const TransactionsNextPage(); }
 
 class InventoryState extends Equatable {
   final int tab;
@@ -82,12 +84,17 @@ class InventoryState extends Equatable {
   final int lowStockCount;
   final String? error;
 
-  const InventoryState({this.tab = 0, this.papers = const [], this.papersLoading = false, this.paperSearch = '', this.items = const [], this.itemsLoading = false, this.itemSearch = '', this.lowStockCount = 0, this.error});
+  final List<Map<String, dynamic>> transactions;
+  final bool txLoading, txLoadingMore, txHasMore;
+  final int txPage;
 
-  InventoryState copyWith({int? tab, List<PaperStock>? papers, bool? papersLoading, String? paperSearch, List<InventoryItem>? items, bool? itemsLoading, String? itemSearch, int? lowStockCount, String? error}) => InventoryState(
+  const InventoryState({this.tab = 0, this.papers = const [], this.papersLoading = false, this.paperSearch = '', this.items = const [], this.itemsLoading = false, this.itemSearch = '', this.lowStockCount = 0, this.error, this.transactions = const [], this.txLoading = false, this.txLoadingMore = false, this.txHasMore = false, this.txPage = 1});
+
+  InventoryState copyWith({int? tab, List<PaperStock>? papers, bool? papersLoading, String? paperSearch, List<InventoryItem>? items, bool? itemsLoading, String? itemSearch, int? lowStockCount, String? error, List<Map<String, dynamic>>? transactions, bool? txLoading, bool? txLoadingMore, bool? txHasMore, int? txPage}) => InventoryState(
     tab: tab ?? this.tab, papers: papers ?? this.papers, papersLoading: papersLoading ?? this.papersLoading, paperSearch: paperSearch ?? this.paperSearch,
     items: items ?? this.items, itemsLoading: itemsLoading ?? this.itemsLoading, itemSearch: itemSearch ?? this.itemSearch,
     lowStockCount: lowStockCount ?? this.lowStockCount, error: error ?? this.error,
+    transactions: transactions ?? this.transactions, txLoading: txLoading ?? this.txLoading, txLoadingMore: txLoadingMore ?? this.txLoadingMore, txHasMore: txHasMore ?? this.txHasMore, txPage: txPage ?? this.txPage,
   );
 
   @override List<Object?> get props => [tab, papers, papersLoading, items, itemsLoading];
@@ -101,6 +108,8 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     on<PaperSearchChanged>(_onSearchPaper);
     on<ItemsLoadRequested>(_onLoadItems);
     on<ItemsSearchChanged>(_onSearchItems);
+    on<TransactionsLoadRequested>(_onLoadTransactions);
+    on<TransactionsNextPage>(_onNextTxPage);
   }
 
   Future<void> _onTab(InventoryTabChanged event, Emitter<InventoryState> emit) async {
@@ -137,6 +146,27 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     emit(state.copyWith(itemSearch: event.q));
     await _onLoadItems(const ItemsLoadRequested(), emit);
   }
+
+  Future<void> _onLoadTransactions(TransactionsLoadRequested _, Emitter<InventoryState> emit) async {
+    emit(state.copyWith(txLoading: true));
+    try {
+      final res = await ApiClient.instance.get('/admin/inventory/transactions', queryParameters: {'limit': 30, 'page': 1, 'sortDir': 'desc'});
+      final data = List<Map<String, dynamic>>.from(res.data['data'] as List? ?? []);
+      final total = res.data['total'] as int? ?? data.length;
+      final limit = res.data['limit'] as int? ?? 30;
+      emit(state.copyWith(transactions: data, txLoading: false, txPage: 1, txHasMore: data.length < total && data.length >= limit));
+    } catch (_) { emit(state.copyWith(txLoading: false)); }
+  }
+
+  Future<void> _onNextTxPage(TransactionsNextPage _, Emitter<InventoryState> emit) async {
+    if (!state.txHasMore || state.txLoadingMore) return;
+    emit(state.copyWith(txLoadingMore: true));
+    try {
+      final res = await ApiClient.instance.get('/admin/inventory/transactions', queryParameters: {'limit': 30, 'page': state.txPage + 1, 'sortDir': 'desc'});
+      final data = List<Map<String, dynamic>>.from(res.data['data'] as List? ?? []);
+      emit(state.copyWith(transactions: [...state.transactions, ...data], txLoadingMore: false, txPage: state.txPage + 1, txHasMore: data.length == 30));
+    } catch (_) { emit(state.copyWith(txLoadingMore: false)); }
+  }
 }
 
 // ── Screen ────────────────────────────────────────────────
@@ -155,7 +185,7 @@ class _InventoryView extends StatefulWidget {
 }
 
 class _InventoryViewState extends State<_InventoryView> with SingleTickerProviderStateMixin {
-  late final _tabCtrl = TabController(length: 2, vsync: this);
+  late final _tabCtrl = TabController(length: 3, vsync: this);
   final _searchCtrl = TextEditingController();
 
   @override
@@ -165,6 +195,7 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
       if (!_tabCtrl.indexIsChanging) {
         _searchCtrl.clear();
         context.read<InventoryBloc>().add(InventoryTabChanged(_tabCtrl.index));
+        if (_tabCtrl.index == 2) context.read<InventoryBloc>().add(const TransactionsLoadRequested());
       }
     });
   }
@@ -192,7 +223,7 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
           backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent,
           bottom: TabBar(
             controller: _tabCtrl,
-            tabs: const [Tab(text: 'Paper Stock'), Tab(text: 'Ink & Plates')],
+            tabs: const [Tab(text: 'Paper Stock'), Tab(text: 'Ink & Plates'), Tab(text: 'Transactions')],
             labelColor: AppColors.primary, unselectedLabelColor: AppColors.textMuted, indicatorColor: AppColors.primary,
           ),
         ),
@@ -214,7 +245,7 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
           ),
           Expanded(child: TabBarView(
             controller: _tabCtrl,
-            children: [_PaperTab(state: state), _ItemsTab(state: state)],
+            children: [_PaperTab(state: state), _ItemsTab(state: state), _TransactionsTab(state: state)],
           )),
         ]),
       ),
@@ -324,5 +355,102 @@ class _ItemsTab extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+// ── Transactions tab ──────────────────────────────────────
+class _TransactionsTab extends StatelessWidget {
+  final InventoryState state;
+  const _TransactionsTab({required this.state});
+
+  static const _typeColors = {
+    'in': AppColors.success, 'out': AppColors.primary,
+    'adjustment': AppColors.warning, 'wastage': AppColors.error,
+  };
+  static const _typeIcons = {
+    'in': Icons.arrow_downward, 'out': Icons.arrow_upward,
+    'adjustment': Icons.tune, 'wastage': Icons.delete_outline,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.txLoading) return const Center(child: CircularProgressIndicator());
+    if (state.transactions.isEmpty) {
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Icon(Icons.swap_horiz, size: 56, color: AppColors.textMuted),
+        const SizedBox(height: 12),
+        const Text('No transactions yet', style: TextStyle(color: AppColors.textMuted)),
+        const SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: () => context.read<InventoryBloc>().add(const TransactionsLoadRequested()),
+          child: const Text('Refresh'),
+        ),
+      ]));
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => context.read<InventoryBloc>().add(const TransactionsLoadRequested()),
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+        itemCount: state.transactions.length + 1,
+        itemBuilder: (_, i) {
+          if (i == state.transactions.length) {
+            if (state.txLoadingMore) return const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+            if (state.txHasMore) return Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Center(child: TextButton(onPressed: () => context.read<InventoryBloc>().add(const TransactionsNextPage()), child: const Text('Load more'))));
+            return const SizedBox.shrink();
+          }
+          final tx = state.transactions[i];
+          final type = tx['type'] as String? ?? 'out';
+          final color = _typeColors[type] ?? AppColors.textMuted;
+          final icon = _typeIcons[type] ?? Icons.swap_horiz;
+          final qty = double.tryParse(tx['quantity']?.toString() ?? '0') ?? 0;
+          final isOut = type == 'out' || type == 'wastage';
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 6),
+            child: ListTile(
+              dense: true,
+              leading: CircleAvatar(
+                radius: 18,
+                backgroundColor: color.withValues(alpha: 0.12),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              title: Row(children: [
+                Expanded(child: Text(
+                  tx['paper_name'] as String? ?? tx['item_name'] as String? ?? 'Unknown Item',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                )),
+                Text(
+                  '${isOut ? "-" : "+"}${qty.toStringAsFixed(0)}',
+                  style: TextStyle(fontWeight: FontWeight.w800, color: color, fontSize: 14),
+                ),
+              ]),
+              subtitle: Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                  child: Text(type.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+                ),
+                const SizedBox(width: 8),
+                if (tx['notes'] != null) Expanded(child: Text(tx['notes'] as String, style: const TextStyle(fontSize: 11, color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              ]),
+              trailing: Text(
+                _fmtDate(tx['transacted_at'] as String?),
+                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _fmtDate(String? v) {
+    if (v == null) return '—';
+    try {
+      final d = DateTime.parse(v).toLocal();
+      return '${d.day.toString().padLeft(2,'0')}/${d.month.toString().padLeft(2,'0')}';
+    } catch (_) { return '—'; }
   }
 }
