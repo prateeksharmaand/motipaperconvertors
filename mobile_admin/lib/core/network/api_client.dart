@@ -134,11 +134,13 @@ class _AuthInterceptor extends Interceptor {
       final data = err.response?.data;
       if (data is Map) return data['error']?.toString() ?? data['message']?.toString() ?? 'An error occurred';
     } catch (_) {}
+    final url = err.requestOptions.uri.toString();
     return switch (err.type) {
-      DioExceptionType.connectionTimeout => 'Connection timeout. Check your internet.',
-      DioExceptionType.receiveTimeout => 'Server took too long to respond.',
-      DioExceptionType.connectionError => 'No internet connection.',
-      _ => err.message ?? 'An error occurred.',
+      DioExceptionType.connectionTimeout => 'Connection timeout. Could not reach $url',
+      DioExceptionType.receiveTimeout    => 'Server took too long to respond.',
+      DioExceptionType.connectionError   => 'Cannot connect to server.\nURL: $url\nCheck your internet or VPN.',
+      DioExceptionType.badCertificate    => 'SSL certificate error. URL: $url',
+      _                                  => err.message ?? 'An error occurred. URL: $url',
     };
   }
 }
