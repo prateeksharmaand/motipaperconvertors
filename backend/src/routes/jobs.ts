@@ -330,11 +330,12 @@ router.post("/", requirePermission("jobs.create"), async (req, res) => {
     });
 
     // Insert job_papers and auto-deduct from inventory
-    if (data.papers && data.papers.length > 0) {
+    const validPapers = (data.papers ?? []).filter(p => p.paperStockId && p.sheetCount > 0);
+    if (validPapers.length > 0) {
       await trx("job_papers").insert(
-        data.papers.map(p => ({ job_id: inserted.id, paper_stock_id: p.paperStockId, sheet_count: p.sheetCount }))
+        validPapers.map(p => ({ job_id: inserted.id, paper_stock_id: p.paperStockId, sheet_count: p.sheetCount }))
       );
-      for (const p of data.papers) {
+      for (const p of validPapers) {
         await trx("inventory_transactions").insert({
           tenant_id: tenantId, paper_stock_id: p.paperStockId,
           job_id: inserted.id, performed_by: req.user.id,
@@ -390,7 +391,7 @@ router.patch("/:id", requirePermission("jobs.edit"), async (req, res) => {
 
     // If papers array provided, replace all job_papers and re-sync inventory
     if (req.body.papers !== undefined) {
-      const newPapers: { paperStockId: string; sheetCount: number }[] = req.body.papers ?? [];
+      const newPapers: { paperStockId: string; sheetCount: number }[] = (req.body.papers ?? []).filter((p: { paperStockId: string; sheetCount: number }) => p.paperStockId && p.sheetCount > 0);
 
       // Reverse all old deductions
       const oldPapers = await trx("job_papers").where({ job_id: req.params.id });
