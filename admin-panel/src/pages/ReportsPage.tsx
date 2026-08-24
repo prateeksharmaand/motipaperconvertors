@@ -699,7 +699,7 @@ export default function ReportsPage() {
                   <PieChart width={180} height={180}>
                     <Pie data={pieData} cx={90} cy={90} innerRadius={44} outerRadius={78} dataKey="value" paddingAngle={3}
                       style={{ cursor: "pointer" }}
-                      onClick={(entry: { name: string }) => { drillInvoices(`Outstanding — ${entry.name}`, {}); }}>
+                      onClick={(entry) => { drillInvoices(`Outstanding — ${String(entry?.name ?? "")}`, {}); }}>
                       {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Pie>
                     <Tooltip formatter={(v) => moneyFmt(v as number)} />
