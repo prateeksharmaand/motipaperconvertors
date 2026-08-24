@@ -242,11 +242,10 @@ router.get("/paper-consumption", requirePermission("inventory.view"), async (req
 // ── GET /reports/monthly-revenue ─────────────────────────
 router.get("/monthly-revenue", requirePermission("reports.view_financial"), async (req, res) => {
   const tenantId = req.user.tenantId!;
-  const { months = "12" } = req.query as Record<string, string>;
+  const { months = "12", from, to } = req.query as Record<string, string>;
 
-  const rows = await db("invoices")
+  let query = db("invoices")
     .where({ tenant_id: tenantId })
-    .where("issue_date", ">=", db.raw(`CURRENT_DATE - INTERVAL '${parseInt(months)} months'`))
     .groupByRaw("TO_CHAR(issue_date, 'YYYY-MM')")
     .select(
       db.raw("TO_CHAR(issue_date, 'YYYY-MM') as month"),
@@ -256,7 +255,12 @@ router.get("/monthly-revenue", requirePermission("reports.view_financial"), asyn
     )
     .orderBy("month");
 
-  res.json(rows);
+  if (from) query = query.where("issue_date", ">=", from);
+  else if (to) query = query.where("issue_date", ">=", db.raw(`CURRENT_DATE - INTERVAL '${parseInt(months)} months'`));
+  else query = query.where("issue_date", ">=", db.raw(`CURRENT_DATE - INTERVAL '${parseInt(months)} months'`));
+  if (to) query = query.where("issue_date", "<=", to);
+
+  res.json(await query);
 });
 
 // ── GET /reports/summary — dashboard numbers ──────────────

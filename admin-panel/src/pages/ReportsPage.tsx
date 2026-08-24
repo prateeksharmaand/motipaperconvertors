@@ -485,7 +485,7 @@ export default function ReportsPage() {
   const { data: clientRevenue } = useQuery({ queryKey: ["report-client-revenue", dateParams], queryFn: () => api.get("/admin/reports/revenue-by-client", { params: dateParams }).then(r => r.data) });
   const { data: jobsByStatus } = useQuery({ queryKey: ["report-jobs-status", dateParams], queryFn: () => api.get("/admin/reports/jobs-by-status", { params: dateParams }).then(r => r.data) });
   const { data: paperConsumption } = useQuery({ queryKey: ["report-paper", dateParams], queryFn: () => api.get("/admin/reports/paper-consumption", { params: dateParams }).then(r => r.data) });
-  const { data: monthlyRevenue } = useQuery({ queryKey: ["report-monthly"], queryFn: () => api.get("/admin/reports/monthly-revenue", { params: { months: "12" } }).then(r => r.data) });
+  const { data: monthlyRevenue } = useQuery({ queryKey: ["report-monthly", dateParams], queryFn: () => api.get("/admin/reports/monthly-revenue", { params: { months: "12", ...dateParams } }).then(r => r.data) });
 
   // exports
   function exportCsv(filename: string, rows: Record<string, unknown>[]) {
@@ -672,7 +672,8 @@ export default function ReportsPage() {
               </tr></thead>
               <tbody>
                 {outstanding.invoices.map((i: OutstandingInvoice) => (
-                  <tr key={i.id} style={{ borderBottom: "1px solid #f0f0f0", background: i.urgency === "overdue" ? "#fff5f5" : "#fff" }}>
+                  <tr key={i.id} onClick={() => drillInvoices(`Invoices — ${i.client_name}`, { clientId: "" })} style={{ borderBottom: "1px solid #f0f0f0", background: i.urgency === "overdue" ? "#fff5f5" : "#fff", cursor: "pointer" }}
+                    onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")} onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
                     <td style={{ padding: "12px 16px", fontWeight: 500 }}>{i.client_name}</td>
                     <td style={{ padding: "12px 16px", fontSize: 13 }}>#{i.invoice_number}</td>
                     <td style={{ padding: "12px 16px", fontWeight: 600, color: "#c92a2a" }}>{fmt(i.balance_due)}</td>
@@ -697,7 +698,9 @@ export default function ReportsPage() {
                 <div style={{ ...cardStyle, display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 8 }}>By Status</div>
                   <PieChart width={180} height={180}>
-                    <Pie data={pieData} cx={90} cy={90} innerRadius={44} outerRadius={78} dataKey="value" paddingAngle={3}>
+                    <Pie data={pieData} cx={90} cy={90} innerRadius={44} outerRadius={78} dataKey="value" paddingAngle={3}
+                      style={{ cursor: "pointer" }}
+                      onClick={(entry: { name: string }) => { const urgency = Object.entries(PIE_OUTSTANDING_LABELS).find(([, v]) => v === entry.name)?.[0]; if (urgency) drillInvoices(`Outstanding — ${entry.name}`, { status: urgency === "overdue" ? "partially_paid,issued" : "issued" }); }}>
                       {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Pie>
                     <Tooltip formatter={(v) => moneyFmt(v as number)} />
@@ -733,7 +736,9 @@ export default function ReportsPage() {
             <div style={cardStyle}>
               <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Quoted vs Actual Cost per Job</div>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={profitability.jobs.map((j: ProfitabilityJob) => ({ name: j.title ? j.title.slice(0, 15) : `#${j.job_number}`, Quoted: Number(j.quoted_price) || 0, "Actual Cost": Number(j.computed_cost) || 0 }))} margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+                <BarChart data={profitability.jobs.map((j: ProfitabilityJob) => ({ name: j.title ? j.title.slice(0, 15) : `#${j.job_number}`, jobId: j.id, jobNumber: j.job_number, Quoted: Number(j.quoted_price) || 0, "Actual Cost": Number(j.computed_cost) || 0 }))} margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
+                  onClick={(d) => { const j = profitability.jobs.find((x: ProfitabilityJob) => (x.title ? x.title.slice(0,15) : `#${x.job_number}`) === d?.activeLabel); if (j) drillJobs(`Job #${j.job_number} — ${j.title || ""}`, { jobId: j.id }); }}
+                  style={{ cursor: "pointer" }}>
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="name" tick={axisTickStyle} />
                   <YAxis tickFormatter={moneyFmt} tick={axisTickStyle} width={80} />
@@ -800,7 +805,8 @@ export default function ReportsPage() {
             </tr></thead>
             <tbody>
               {paperConsumption.map((r: PaperRow) => (
-                <tr key={r.paper_stock_id} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                <tr key={r.paper_stock_id} onClick={() => setDrillDown({ title: `Transactions — ${r.paper_name}`, queryKey: ["drill-paper-txn", r.paper_stock_id], queryFn: () => api.get("/admin/inventory/transactions", { params: { paperStockId: r.paper_stock_id, limit: "200" } }).then(res => res.data.data ?? []), columns: [{ label: "Date", key: "transacted_at", fmt: (v) => fmtDate(v as string) }, { label: "Type", key: "type" }, { label: "Qty", key: "quantity" }, { label: "Notes", key: "notes" }] })} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#f0fdfd")} onMouseLeave={e => (e.currentTarget.style.background = "")}>
                   <td style={{ padding: "12px 16px", fontWeight: 600 }}>{r.paper_name}</td>
                   <td style={{ padding: "12px 16px", fontSize: 13 }}>{r.gsm ? `${r.gsm} GSM` : "—"}</td>
                   <td style={{ padding: "12px 16px", fontSize: 13 }}>{r.size || "—"}</td>
