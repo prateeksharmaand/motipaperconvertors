@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useAuthStore, useHasPerm } from "../store/auth.ts";
 import { api } from "../lib/api.ts";
 import PaperRateModal, { shouldShowPaperRateToday } from "./PaperRateModal.tsx";
+import { Toaster } from "sonner";
 
 const SIDEBAR_W = 220;
 
@@ -80,6 +81,15 @@ export default function Layout() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: { fontFamily: "inherit", fontSize: 13 },
+          success: { style: { borderLeft: "4px solid #7c3aed" } },
+          error:   { style: { borderLeft: "4px solid #c92a2a" } },
+        }}
+        richColors
+      />
       {showPaperRate && <PaperRateModal onClose={() => setShowPaperRate(false)} />}
       {/* ── Sidebar ── */}
       <aside style={{

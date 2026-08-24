@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { fmtDate } from "../lib/fmtDate.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import { useAuthStore, useHasPerm } from "../store/auth.ts";
@@ -1241,13 +1242,15 @@ export default function JobsPage() {
   const create = useMutation({
     mutationFn: ({ form, papers }: { form: FormState; papers: PaperLine[] }) =>
       api.post("/admin/jobs", buildApiPayload(form, papers)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setShowForm(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setShowForm(false); toast.success("Job card created successfully"); },
+    onError: () => toast.error("Failed to create job card"),
   });
 
   const update = useMutation({
     mutationFn: ({ id, form, papers }: { id: string; form: FormState; papers: PaperLine[] }) =>
       api.patch(`/admin/jobs/${id}`, buildPatchPayload(form, papers)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setEditing(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setEditing(null); toast.success("Job card updated successfully"); },
+    onError: () => toast.error("Failed to update job card"),
   });
 
   const publish = useMutation({
@@ -1255,7 +1258,8 @@ export default function JobsPage() {
       await api.patch(`/admin/jobs/${id}`, buildPatchPayload(form, papers));
       await api.patch(`/admin/jobs/${id}/status`, { status: "enquiry" });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setEditing(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setEditing(null); toast.success("Job card published"); },
+    onError: () => toast.error("Failed to publish job card"),
   });
 
   const createAndPublish = useMutation({
@@ -1263,18 +1267,21 @@ export default function JobsPage() {
       const { data: job } = await api.post("/admin/jobs", buildApiPayload(form, papers));
       await api.patch(`/admin/jobs/${job.id}/status`, { status: "enquiry" });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setShowForm(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setShowForm(false); toast.success("Job card created and published"); },
+    onError: () => toast.error("Failed to create and publish job card"),
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/jobs/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setDeleteConfirm(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setDeleteConfirm(null); toast.success("Job card deleted"); },
+    onError: () => toast.error("Failed to delete job card"),
   });
 
   const changeStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       api.patch(`/admin/jobs/${id}/status`, { status }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs"] }),
+    onSuccess: (_, { status }) => { qc.invalidateQueries({ queryKey: ["jobs"] }); toast.success(`Status updated to ${status}`); },
+    onError: () => toast.error("Failed to update status"),
   });
 
   const logNote = useMutation({

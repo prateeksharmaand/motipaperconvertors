@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
@@ -183,7 +184,8 @@ export default function StaffPage() {
         staffType: form.staffType,
         status: form.status,
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["staff"] }); setShowAdd(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["staff"] }); setShowAdd(false); toast.success("Staff member added successfully"); },
+    onError: () => toast.error("Failed to add staff member"),
   });
 
   const update = useMutation({
@@ -194,7 +196,8 @@ export default function StaffPage() {
         staff_type: form.staffType,
         status: form.status,
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["staff"] }); setEditing(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["staff"] }); setEditing(null); toast.success("Staff member updated successfully"); },
+    onError: () => toast.error("Failed to update staff member"),
   });
 
   const toggleStatus = useMutation({
@@ -202,12 +205,14 @@ export default function StaffPage() {
       api.patch(`/admin/users/${id}/status`, {
         status: status === "active" ? "inactive" : "active",
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["staff"] }),
+    onSuccess: (_, { status }) => { qc.invalidateQueries({ queryKey: ["staff"] }); toast.success(status === "active" ? "Staff marked inactive" : "Staff marked active"); },
+    onError: () => toast.error("Failed to update status"),
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/users/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["staff"] }); setDeleteConfirm(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["staff"] }); setDeleteConfirm(null); toast.success("Staff member deleted"); },
+    onError: () => toast.error("Failed to delete staff member"),
   });
 
   return (

@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState, useRef } from "react";
 import { fmtDate } from "../lib/fmtDate.ts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -135,19 +136,21 @@ export default function ProofsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["proofs", newJobId] });
       if (newJobId === selectedJobId) qc.invalidateQueries({ queryKey: ["proofs", selectedJobId] });
-      setShowNewProof(false);
-      setNewJobId("");
-      setNewNotes("");
+      setShowNewProof(false); setNewJobId(""); setNewNotes("");
+      toast.success("Proof created successfully");
     },
+    onError: () => toast.error("Failed to create proof"),
   });
 
   const actionProof = useMutation({
     mutationFn: ({ proofId, action, notes }: { proofId: string; action: string; notes: string }) =>
       api.patch(`/admin/proofs/${proofId}/action`, { action, notes: notes || undefined }),
-    onSuccess: () => {
+    onSuccess: (_, { action }) => {
       qc.invalidateQueries({ queryKey: ["proofs", selectedJobId] });
       setActionTarget(null);
+      toast.success(`Proof ${action.replace("_", " ")} successfully`);
     },
+    onError: () => toast.error("Failed to update proof"),
   });
 
   const uploadVersion = useMutation({
@@ -161,9 +164,10 @@ export default function ProofsPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["proofs", selectedJobId] });
-      setUploadingFor(null);
-      setUploadComment("");
+      setUploadingFor(null); setUploadComment("");
+      toast.success("Version uploaded successfully");
     },
+    onError: () => toast.error("Failed to upload version"),
   });
 
   async function handleView(proofId: string, versionId: string) {

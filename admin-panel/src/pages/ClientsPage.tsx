@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
@@ -80,15 +81,18 @@ export default function ClientsPage() {
 
   const create = useMutation({
     mutationFn: (d: Record<string, string | boolean>) => api.post("/admin/clients", { name: d.name, companyName: d.company_name, phone: d.phone, email: d.email, city: d.city, gstin: d.gstin, emailReminder: d.email_reminder }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setShowForm(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setShowForm(false); toast.success("Client created successfully"); },
+    onError: () => toast.error("Failed to create client"),
   });
   const update = useMutation({
     mutationFn: ({ id, ...d }: Record<string, string | boolean>) => api.patch(`/admin/clients/${id as string}`, { name: d.name, companyName: d.company_name, phone: d.phone, email: d.email, city: d.city, gstin: d.gstin, emailReminder: d.email_reminder }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setEditing(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setEditing(null); toast.success("Client updated successfully"); },
+    onError: () => toast.error("Failed to update client"),
   });
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/clients/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDeleteConfirm(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDeleteConfirm(null); toast.success("Client deleted"); },
+    onError: () => toast.error("Failed to delete client"),
   });
 
   const col = (label: string, key: string) => (

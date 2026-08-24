@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
@@ -73,8 +74,10 @@ export default function PaperRateModal({ onClose }: Props) {
     },
     onSuccess: () => {
       markPaperRateShownToday();
+      toast.success("Paper rates updated");
       onClose();
     },
+    onError: () => toast.error("Failed to update paper rates"),
   });
 
   const handleSkip = () => { markPaperRateShownToday(); onClose(); };

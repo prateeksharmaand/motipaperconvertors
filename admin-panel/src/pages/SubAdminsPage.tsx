@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { statusLabel } from "../theme.ts";
 import "../components/TableSkeleton.tsx";
 import ChangePasswordModal from "../components/ChangePasswordModal.tsx";
@@ -48,7 +49,8 @@ function PermissionMatrix({ userId }: { userId: string }) {
   const qc = useQueryClient();
   const save = useMutation({
     mutationFn: (perms: Permission[]) => api.patch(`/admin/users/${userId}/permissions`, { permissions: perms }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["sub-admins"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["sub-admins"] }); toast.success("Permissions saved"); },
+    onError: () => toast.error("Failed to save permissions"),
   });
   const toggle = (p: Permission) => setSelected(prev => { const n = new Set(prev); n.has(p) ? n.delete(p) : n.add(p); return n; });
   if (isLoading) return <div style={{ padding: 16, color: "#888", fontSize: 13 }}>Loading permissions…</div>;
@@ -94,8 +96,8 @@ export default function SubAdminsPage() {
 
   const create = useMutation({
     mutationFn: () => api.post("/admin/users", { name: form.name, email: form.email, password: form.password, staffType: undefined, status: "active", role: "sub_admin" }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["sub-admins"] }); setShowCreate(false); setForm({ name: "", email: "", password: "" }); setCreateError(""); },
-    onError: (e: unknown) => setCreateError((e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to create sub admin."),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["sub-admins"] }); setShowCreate(false); setForm({ name: "", email: "", password: "" }); setCreateError(""); toast.success("Sub admin created successfully"); },
+    onError: (e: unknown) => { const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to create sub admin."; setCreateError(msg); toast.error(msg); },
   });
 
   return (

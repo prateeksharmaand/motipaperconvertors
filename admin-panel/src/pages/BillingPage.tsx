@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { fmtDate } from "../lib/fmtDate.ts";
 import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
@@ -71,7 +72,8 @@ function InvoiceForm({ clients, initial, onClose }: { clients: Client[]; initial
     mutationFn: () => isEdit
       ? api.patch(`/admin/billing/invoices/${initial!.id}`, payload)
       : api.post("/admin/billing/invoices", payload),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); onClose(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); onClose(); toast.success(isEdit ? "Invoice updated" : "Invoice created"); },
+    onError: () => toast.error("Failed to save invoice"),
   });
 
   const subTotal = lines.reduce((s, l) => s + l.amount, 0) - Number(form.discountAmount);
@@ -134,7 +136,8 @@ function RecordPaymentForm({ invoiceId, clientId, onClose }: { invoiceId: string
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
   const save = useMutation({
     mutationFn: () => api.post("/admin/billing/payments", { invoiceId, clientId, amount: Number(form.amount), paymentMode: form.paymentMode, type: "against_invoice", referenceNumber: form.referenceNumber || undefined, notes: form.notes || undefined }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); qc.invalidateQueries({ queryKey: ["payments"] }); onClose(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); qc.invalidateQueries({ queryKey: ["payments"] }); onClose(); toast.success("Payment recorded successfully"); },
+    onError: () => toast.error("Failed to record payment"),
   });
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>

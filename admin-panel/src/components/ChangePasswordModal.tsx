@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
@@ -15,8 +16,8 @@ export default function ChangePasswordModal({ userId, userName, onClose }: Props
 
   const save = useMutation({
     mutationFn: () => api.patch(`/admin/users/${userId}/password`, { password }),
-    onSuccess: () => onClose(),
-    onError: (e: unknown) => setError((e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to change password."),
+    onSuccess: () => { toast.success("Password changed successfully"); onClose(); },
+    onError: (e: unknown) => { const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to change password."; setError(msg); toast.error(msg); },
   });
 
   function handleSave() {

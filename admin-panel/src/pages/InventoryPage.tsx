@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { fmtDate } from "../lib/fmtDate.ts";
 import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
@@ -40,8 +41,10 @@ function TxnForm({ target, onClose }: { target: { id: string; isPaper: boolean; 
       qc.invalidateQueries({ queryKey: ["paper"] });
       qc.invalidateQueries({ queryKey: ["inv-items"] });
       qc.invalidateQueries({ queryKey: ["inv-txns"] });
+      toast.success("Transaction recorded successfully");
       onClose();
     },
+    onError: () => toast.error("Failed to record transaction"),
   });
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
@@ -193,21 +196,23 @@ export default function InventoryPage() {
 
   const createPaper = useMutation({
     mutationFn: (d: Record<string, string>) => api.post("/admin/inventory/paper", { name: d.name, brand: d.brand || undefined, gsm: d.gsm ? Number(d.gsm) : undefined, size: d.size || undefined, unit: d.unit || "sheets", quantity: d.quantity ? Number(d.quantity) : 0, lowStockThreshold: d.low_stock_threshold ? Number(d.low_stock_threshold) : 100, costPerUnit: d.cost_per_unit ? Number(d.cost_per_unit) : undefined }),
-    onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["paper"] }); setShowPaperForm(false); },
+    onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["paper"] }); setShowPaperForm(false); toast.success("Paper stock added"); },
+    onError: () => toast.error("Failed to add paper stock"),
   });
   const updatePaper = useMutation({
     mutationFn: ({ id, ...d }: Record<string, string>) => api.patch(`/admin/inventory/paper/${id}`, { name: d.name, brand: d.brand || undefined, gsm: d.gsm ? Number(d.gsm) : undefined, size: d.size || undefined, unit: d.unit || undefined, quantity: d.quantity ? Number(d.quantity) : undefined, lowStockThreshold: d.low_stock_threshold ? Number(d.low_stock_threshold) : undefined, costPerUnit: d.cost_per_unit ? Number(d.cost_per_unit) : undefined }),
-    onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["paper"] }); setEditingPaper(null); },
-    onError: () => alert("Failed to update paper stock. Please try again."),
+    onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["paper"] }); setEditingPaper(null); toast.success("Paper stock updated"); },
+    onError: () => toast.error("Failed to update paper stock"),
   });
   const createItem = useMutation({
     mutationFn: (d: Record<string, string>) => api.post("/admin/inventory/items", { name: d.name, category: d.category, unit: d.unit || "pcs", quantity: d.quantity ? Number(d.quantity) : 0, lowStockThreshold: d.low_stock_threshold ? Number(d.low_stock_threshold) : 10, costPerUnit: d.cost_per_unit ? Number(d.cost_per_unit) : undefined }),
-    onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["inv-items"] }); setShowItemForm(false); },
+    onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["inv-items"] }); setShowItemForm(false); toast.success("Inventory item added"); },
+    onError: () => toast.error("Failed to add inventory item"),
   });
   const updateItem = useMutation({
     mutationFn: ({ id, ...d }: Record<string, string>) => api.patch(`/admin/inventory/items/${id}`, { name: d.name, category: d.category, unit: d.unit || undefined, quantity: d.quantity ? Number(d.quantity) : undefined, lowStockThreshold: d.low_stock_threshold ? Number(d.low_stock_threshold) : undefined, costPerUnit: d.cost_per_unit ? Number(d.cost_per_unit) : undefined }),
-    onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["inv-items"] }); setEditingItem(null); },
-    onError: () => alert("Failed to update inventory item. Please try again."),
+    onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["inv-items"] }); setEditingItem(null); toast.success("Inventory item updated"); },
+    onError: () => toast.error("Failed to update inventory item"),
   });
 
   const tabBtn = (t: Tab, label: string) => (

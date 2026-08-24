@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useHasPerm } from "../store/auth.ts";
 import TableSkeleton from "../components/TableSkeleton.tsx";
 import PrintListButton from "../components/PrintListButton.tsx";
@@ -136,12 +137,14 @@ export default function QuotationsPage() {
 
   const create = useMutation({
     mutationFn: (d: Record<string, string | number | FinishingItem[]>) => api.post("/admin/quotations", d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["quotations"] }); setShowForm(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["quotations"] }); setShowForm(false); toast.success("Quotation created successfully"); },
+    onError: () => toast.error("Failed to create quotation"),
   });
 
   const update = useMutation({
     mutationFn: ({ id, ...d }: Record<string, string | number | FinishingItem[]>) => api.patch(`/admin/quotations/${id}`, d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["quotations"] }); setEditing(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["quotations"] }); setEditing(null); toast.success("Quotation updated successfully"); },
+    onError: () => toast.error("Failed to update quotation"),
   });
 
   const col = (label: string, key: string) => (

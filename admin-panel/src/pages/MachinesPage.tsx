@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import PrintListButton from "../components/PrintListButton.tsx";
 import IconButton from "../components/IconButton.tsx";
 import "../components/TableSkeleton.tsx";
@@ -69,17 +70,20 @@ export default function MachinesPage() {
 
   const create = useMutation({
     mutationFn: (d: Record<string, string>) => api.post("/admin/machines", { name: d.name, type: d.type, model: d.model, maxColors: Number(d.max_colors) || undefined, status: d.status, notes: d.notes }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["machines"] }); setShowForm(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["machines"] }); setShowForm(false); toast.success("Machine created successfully"); },
+    onError: () => toast.error("Failed to create machine"),
   });
 
   const update = useMutation({
     mutationFn: ({ id, ...d }: Record<string, string>) => api.patch(`/admin/machines/${id}`, { name: d.name, type: d.type, model: d.model, maxColors: Number(d.max_colors) || undefined, status: d.status, notes: d.notes }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["machines"] }); setEditing(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["machines"] }); setEditing(null); toast.success("Machine updated successfully"); },
+    onError: () => toast.error("Failed to update machine"),
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/machines/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["machines"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["machines"] }); toast.success("Machine deleted"); },
+    onError: () => toast.error("Failed to delete machine"),
   });
 
 

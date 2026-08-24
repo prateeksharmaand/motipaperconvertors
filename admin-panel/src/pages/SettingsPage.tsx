@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
@@ -24,12 +25,14 @@ function SettingsList({ label, queryKey, endpoint }: { label: string; queryKey: 
 
   const add = useMutation({
     mutationFn: () => api.post(endpoint, { name: newName.trim() }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: [queryKey] }); setNewName(""); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: [queryKey] }); setNewName(""); toast.success("Item added"); },
+    onError: () => toast.error("Failed to add item"),
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`${endpoint}/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [queryKey] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: [queryKey] }); toast.success("Item deleted"); },
+    onError: () => toast.error("Failed to delete item"),
   });
 
   const filtered = items
@@ -215,9 +218,15 @@ function PrintTemplateSettings() {
 
   const save = async () => {
     setSaving(true);
-    await api.post("/admin/settings/print-template", { header, footer, signature });
-    await refetch();
-    setSaving(false);
+    try {
+      await api.post("/admin/settings/print-template", { header, footer, signature });
+      await refetch();
+      toast.success("Print template saved");
+    } catch {
+      toast.error("Failed to save print template");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const cardStyle: React.CSSProperties = {
