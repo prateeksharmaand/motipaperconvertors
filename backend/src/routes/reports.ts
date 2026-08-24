@@ -323,10 +323,14 @@ router.get("/client-jobs", requirePermission("jobs.view"), async (req, res) => {
   const [{ count }] = await base.clone().clearSelect().count("job_cards.id as count");
   const jobs = await base.clone().orderBy(sortCol, dir).limit(limitNum).offset(offset);
 
-  // Summary stats — respect same date range as table
+  // Summary stats + breakdown — respect ALL same filters as table
   let statsBase = db("job_cards").where({ tenant_id: tenantId, client_id: clientId });
-  if (from) statsBase = statsBase.where("created_at", ">=", from);
-  if (to)   statsBase = statsBase.where("created_at", "<=", to);
+  if (status) statsBase = statsBase.where("status", status);
+  if (from)   statsBase = statsBase.where("created_at", ">=", from);
+  if (to)     statsBase = statsBase.where("created_at", "<=", to);
+  if (search) statsBase = statsBase.where(function () {
+    this.whereILike("title", `%${search}%`).orWhereILike("job_type", `%${search}%`);
+  });
 
   const [stats] = await statsBase.clone().select(
     db.raw("COUNT(*) as total_jobs"),
@@ -336,8 +340,10 @@ router.get("/client-jobs", requirePermission("jobs.view"), async (req, res) => {
     db.raw("COALESCE(SUM(advance_amount), 0) as total_advance"),
   );
 
-  // Jobs by status breakdown — respect same date range
-  const statusBreakdown = await statsBase.clone()
+  // Status breakdown — only when no status filter (makes no sense to show breakdown for a single status)
+  const statusBreakdown = status ? [] : await db("job_cards")
+    .where({ tenant_id: tenantId, client_id: clientId })
+    .modify(q => { if (from) q.where("created_at", ">=", from); if (to) q.where("created_at", "<=", to); })
     .groupBy("status")
     .select("status", db.raw("COUNT(*) as count"));
 
