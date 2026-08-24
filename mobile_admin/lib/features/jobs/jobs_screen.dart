@@ -269,12 +269,12 @@ class _JobCard extends StatelessWidget {
     final status = job.status;
     final color = AppColors.statusColors[status] ?? AppColors.textMuted;
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border(left: BorderSide(color: color, width: 4)),
-        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.06), blurRadius: 6, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: InkWell(
         onTap: () => context.push('/jobs/${job.id}'),

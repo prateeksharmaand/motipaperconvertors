@@ -21,7 +21,7 @@ class _DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4FF),
+      backgroundColor: AppColors.background,
       body: BlocBuilder<DashboardBloc, DashboardState>(
         builder: (context, state) => RefreshIndicator(
           onRefresh: () async => context.read<DashboardBloc>().add(const DashboardRefreshRequested()),
