@@ -83,11 +83,7 @@ export default function Layout() {
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <Toaster
         position="top-right"
-        toastOptions={{
-          style: { fontFamily: "inherit", fontSize: 13 },
-          success: { style: { borderLeft: "4px solid #7c3aed" } },
-          error:   { style: { borderLeft: "4px solid #c92a2a" } },
-        }}
+        toastOptions={{ style: { fontFamily: "inherit", fontSize: 13 } }}
         richColors
       />
       {showPaperRate && <PaperRateModal onClose={() => setShowPaperRate(false)} />}
