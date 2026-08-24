@@ -27,6 +27,12 @@ class JobsFilterChanged extends JobsEvent {
 }
 class JobsFilterCleared extends JobsEvent { const JobsFilterCleared(); }
 class JobsNextPageRequested extends JobsEvent { const JobsNextPageRequested(); }
+class JobsSortChanged extends JobsEvent {
+  final String sortBy;
+  final String sortDir;
+  const JobsSortChanged(this.sortBy, this.sortDir);
+  @override List<Object?> get props => [sortBy, sortDir];
+}
 class JobsStatusChanged extends JobsEvent {
   final String jobId;
   final String newStatus;
@@ -47,6 +53,8 @@ class JobsState extends Equatable {
   final String? statusFilter;
   final String? clientFilter;
   final String? machineFilter;
+  final String sortBy;
+  final String sortDir;
   final String? error;
 
   const JobsState({
@@ -60,6 +68,8 @@ class JobsState extends Equatable {
     this.statusFilter,
     this.clientFilter,
     this.machineFilter,
+    this.sortBy = 'created_at',
+    this.sortDir = 'desc',
     this.error,
   });
 
@@ -71,6 +81,7 @@ class JobsState extends Equatable {
     String? statusFilter, bool clearStatus = false,
     String? clientFilter, bool clearClient = false,
     String? machineFilter, bool clearMachine = false,
+    String? sortBy, String? sortDir,
     String? error, bool clearError = false,
   }) => JobsState(
     jobs: jobs ?? this.jobs,
@@ -83,10 +94,12 @@ class JobsState extends Equatable {
     statusFilter: clearStatus ? null : (statusFilter ?? this.statusFilter),
     clientFilter: clearClient ? null : (clientFilter ?? this.clientFilter),
     machineFilter: clearMachine ? null : (machineFilter ?? this.machineFilter),
+    sortBy: sortBy ?? this.sortBy,
+    sortDir: sortDir ?? this.sortDir,
     error: clearError ? null : (error ?? this.error),
   );
 
-  @override List<Object?> get props => [jobs, isLoading, isLoadingMore, page, search, statusFilter];
+  @override List<Object?> get props => [jobs, isLoading, isLoadingMore, page, search, statusFilter, sortBy, sortDir];
 }
 
 // ── BLoC ──────────────────────────────────────────────────
@@ -100,12 +113,13 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     on<JobsFilterCleared>(_onClearFilter);
     on<JobsNextPageRequested>(_onNextPage);
     on<JobsStatusChanged>(_onStatusChange);
+    on<JobsSortChanged>(_onSort);
   }
 
   Map<String, dynamic> get _params => {
     'limit': _limit,
-    'sortBy': 'created_at',
-    'sortDir': 'desc',
+    'sortBy': state.sortBy,
+    'sortDir': state.sortDir,
     if (state.search.isNotEmpty) 'search': state.search,
     if (state.statusFilter != null) 'status': state.statusFilter,
     if (state.clientFilter != null) 'clientId': state.clientFilter,
@@ -161,10 +175,14 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
         'status': event.newStatus,
         if (event.notes != null) 'notes': event.notes,
       });
-      // Refresh list
       add(const JobsLoadRequested());
     } catch (e) {
       emit(state.copyWith(error: 'Failed to update status'));
     }
+  }
+
+  Future<void> _onSort(JobsSortChanged event, Emitter<JobsState> emit) async {
+    emit(state.copyWith(sortBy: event.sortBy, sortDir: event.sortDir));
+    await _onLoad(const JobsLoadRequested(), emit);
   }
 }

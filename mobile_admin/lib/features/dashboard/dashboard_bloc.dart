@@ -18,14 +18,17 @@ class DashboardSummary extends Equatable {
     required this.lowStockAlerts,
   });
 
+  static int _i(dynamic v) => int.tryParse(v?.toString() ?? '') ?? 0;
+  static double _d(dynamic v) => double.tryParse(v?.toString() ?? '') ?? 0;
+
   factory DashboardSummary.fromJson(Map<String, dynamic> j) => DashboardSummary(
-    totalJobs: j['jobs']?['total_jobs'] as int? ?? 0,
-    activeJobs: j['jobs']?['active_jobs'] as int? ?? 0,
-    deliveredJobs: j['jobs']?['delivered_jobs'] as int? ?? 0,
-    dueToday: j['jobs']?['due_today'] as int? ?? 0,
-    totalBilled: double.tryParse(j['billing']?['total_billed']?.toString() ?? '0') ?? 0,
-    totalOutstanding: double.tryParse(j['billing']?['total_outstanding']?.toString() ?? '0') ?? 0,
-    lowStockAlerts: j['low_stock_alerts'] as int? ?? 0,
+    totalJobs: _i(j['jobs']?['total_jobs']),
+    activeJobs: _i(j['jobs']?['active_jobs']),
+    deliveredJobs: _i(j['jobs']?['delivered_jobs']),
+    dueToday: _i(j['jobs']?['due_today']),
+    totalBilled: _d(j['billing']?['total_billed']),
+    totalOutstanding: _d(j['billing']?['total_outstanding']),
+    lowStockAlerts: _i(j['low_stock_alerts']),
   );
 
   @override List<Object?> get props => [totalJobs, activeJobs];
