@@ -141,26 +141,39 @@ router.post("/refresh", async (req, res) => {
   }
 
   const tokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
-  const stored = await db("refresh_tokens").where({ token_hash: tokenHash }).first();
 
-  if (!stored || stored.revoked_at || new Date(stored.expires_at) < new Date()) {
+  // Use a transaction with FOR UPDATE to serialise concurrent refresh attempts
+  const result = await db.transaction(async (trx) => {
+    const stored = await trx("refresh_tokens")
+      .where({ token_hash: tokenHash })
+      .forUpdate()
+      .first();
+
+    if (!stored || stored.revoked_at || new Date(stored.expires_at) < new Date()) {
+      return null;
+    }
+
+    // Rotate: revoke old, issue new
+    await trx("refresh_tokens").where({ id: stored.id }).update({ revoked_at: new Date() });
+
+    const newAccess = signAccess({ sub: payload.sub, tenantId: payload.tenantId, role: payload.role });
+    const newRefresh = signRefresh({ sub: payload.sub, tenantId: payload.tenantId, role: payload.role });
+
+    await trx("refresh_tokens").insert({
+      user_id: payload.sub,
+      token_hash: crypto.createHash("sha256").update(newRefresh).digest("hex"),
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
+
+    return { newAccess, newRefresh };
+  });
+
+  if (!result) {
     res.status(401).json({ error: "Refresh token not recognised or revoked" });
     return;
   }
 
-  // Rotate: revoke old, issue new
-  await db("refresh_tokens").where({ id: stored.id }).update({ revoked_at: new Date() });
-
-  const newAccess = signAccess({ sub: payload.sub, tenantId: payload.tenantId, role: payload.role });
-  const newRefresh = signRefresh({ sub: payload.sub, tenantId: payload.tenantId, role: payload.role });
-
-  await db("refresh_tokens").insert({
-    user_id: payload.sub,
-    token_hash: crypto.createHash("sha256").update(newRefresh).digest("hex"),
-    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-  });
-
-  res.json({ accessToken: newAccess, refreshToken: newRefresh });
+  res.json({ accessToken: result.newAccess, refreshToken: result.newRefresh });
 });
 
 // ── GET /api/v1/auth/me ───────────────────────────────────
