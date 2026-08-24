@@ -12,6 +12,7 @@ class JobFormData {
   String orderType = 'in_house';
   int? quantity;
   String? sheetSize;
+  int? sheetCount;
   int? paperGsm;
   String? description;
   int colorsFont = 4;
@@ -37,6 +38,7 @@ class JobFormData {
   bool isCreasing = false;
   bool isPasting = false;
   bool isLamination = false;
+  String? laminationType;
   bool isFolding = false;
   bool isGumming = false;
   String? printOperatorId;
@@ -58,6 +60,7 @@ class JobFormData {
     'orderType': orderType,
     if (quantity != null) 'quantity': quantity,
     if (sheetSize != null) 'sheetSize': sheetSize,
+    if (sheetCount != null) 'sheetCount': sheetCount,
     if (paperGsm != null) 'paperGsm': paperGsm,
     if (description != null && description!.isNotEmpty) 'description': description,
     'colorsFont': colorsFont,
@@ -83,6 +86,7 @@ class JobFormData {
     'isCreasing': isCreasing,
     'isPasting': isPasting,
     'isLamination': isLamination,
+    if (isLamination && laminationType != null) 'laminationType': laminationType,
     'isFolding': isFolding,
     'isGumming': isGumming,
     if (printOperatorId != null) 'printOperatorId': printOperatorId,
@@ -141,6 +145,9 @@ class _JobFormScreenState extends State<JobFormScreen> {
     _data.orderType = j.orderType ?? 'in_house';
     _data.quantity = j.quantity;
     _data.sheetSize = j.sheetSize;
+    _data.sheetCount = j.sheetCount;
+    _data.isLamination = j.isLamination ?? false;
+    _data.laminationType = j.laminationType;
     _data.dueDate = j.dueDate;
     _data.quotedPrice = j.quotedPrice;
     _data.advanceAmount = j.advanceAmount;
@@ -390,6 +397,7 @@ class _Step1BasicInfo extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(child: _textField('Sheet Size', data.sheetSize, (v) { data.sheetSize = v; onChange(); }, hint: 'e.g. A4, 12x18')),
         ]),
+        _textField('Sheet Count', data.sheetCount?.toString(), (v) { data.sheetCount = int.tryParse(v); onChange(); }, type: TextInputType.number, hint: 'e.g. 500'),
         _textField('Description', data.description, (v) { data.description = v; onChange(); }, hint: 'Optional notes'),
       ]),
       _FormSection(title: 'Schedule', children: [
@@ -512,7 +520,12 @@ class _Step3Finishing extends StatelessWidget {
         _toggle('Half Cutting', data.isHalfCutting, (v) { data.isHalfCutting = v; onChange(); }),
         _toggle('Creasing', data.isCreasing, (v) { data.isCreasing = v; onChange(); }),
         _toggle('Pasting', data.isPasting, (v) { data.isPasting = v; onChange(); }),
-        _toggle('Lamination', data.isLamination, (v) { data.isLamination = v; onChange(); }),
+        _toggle('Lamination', data.isLamination, (v) { data.isLamination = v; if (!v) data.laminationType = null; onChange(); }),
+        if (data.isLamination)
+          _dropdownField<String>('Lamination Type', data.laminationType, const [
+            DropdownMenuItem(value: 'glass', child: Text('Glass')),
+            DropdownMenuItem(value: 'matte', child: Text('Matte')),
+          ], (v) { data.laminationType = v; onChange(); }),
         _toggle('Folding', data.isFolding, (v) { data.isFolding = v; onChange(); }),
         _toggle('Gumming', data.isGumming, (v) { data.isGumming = v; onChange(); }),
       ]),
@@ -598,7 +611,7 @@ class _Step5Pricing extends StatelessWidget {
     if (d.isUV) opts.add('UV');
     if (d.isFoil) opts.add('Foil');
     if (d.isDieCutting) opts.add('Die Cutting');
-    if (d.isLamination) opts.add('Lamination');
+    if (d.isLamination) opts.add('Lamination${d.laminationType != null ? " (${d.laminationType![0].toUpperCase()}${d.laminationType!.substring(1)})" : ""}');
     if (d.isNumbering) opts.add('Numbering');
     return opts.isEmpty ? 'None' : opts.join(', ');
   }

@@ -21,6 +21,11 @@ class Job {
   final String? qcOperatorId;
   final String? orderType;
   final bool? proofRequired;
+  final int? sheetCount;
+  final String? machineName;
+  final String? printOperatorName;
+  final String? laminationType;
+  final bool? isLamination;
   final List<JobPaper> papers;
 
   const Job({
@@ -46,6 +51,11 @@ class Job {
     this.qcOperatorId,
     this.orderType,
     this.proofRequired,
+    this.sheetCount,
+    this.machineName,
+    this.printOperatorName,
+    this.laminationType,
+    this.isLamination,
     this.papers = const [],
   });
 
@@ -72,6 +82,11 @@ class Job {
     qcOperatorId: j['qc_operator_id'] as String?,
     orderType: j['order_type'] as String?,
     proofRequired: j['proof_required'] as bool?,
+    sheetCount: j['sheet_count'] as int?,
+    machineName: j['machine_name'] as String?,
+    printOperatorName: j['print_operator_name'] as String?,
+    laminationType: j['lamination_type'] as String?,
+    isLamination: j['is_lamination'] as bool?,
     papers: (j['papers'] as List? ?? []).map((p) => JobPaper.fromJson(p as Map<String, dynamic>)).toList(),
   );
 }

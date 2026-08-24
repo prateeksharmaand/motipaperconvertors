@@ -127,8 +127,12 @@ class _JobDetailView extends StatelessWidget {
                 _InfoCard(title: 'Job Details', children: [
                   _InfoRow('Job Type', job.jobType ?? '—'),
                   _InfoRow('Order Type', job.orderType == 'in_house' ? 'In House' : (job.orderType ?? '—')),
+                  if (job.machineName != null) _InfoRow('Machine', job.machineName!),
                   if (job.quantity != null) _InfoRow('Quantity', '${job.quantity}'),
                   if (job.sheetSize != null) _InfoRow('Sheet Size', job.sheetSize!),
+                  if (job.sheetCount != null) _InfoRow('Sheet Count', '${job.sheetCount}'),
+                  if (job.printOperatorName != null) _InfoRow('Print Operator', job.printOperatorName!),
+                  if (job.isLamination == true) _InfoRow('Lamination', job.laminationType != null ? 'Yes – ${job.laminationType![0].toUpperCase()}${job.laminationType!.substring(1)}' : 'Yes'),
                   _InfoRow('Created', Fmt.date(job.createdAt)),
                   if (job.dueDate != null) _InfoRow('Due Date', Fmt.date(job.dueDate)),
                   if (job.proofRequired == true) _InfoRow('Proof Required', 'Yes'),
