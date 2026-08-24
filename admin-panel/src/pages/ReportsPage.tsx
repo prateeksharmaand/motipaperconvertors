@@ -521,8 +521,8 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      {/* Global date range filter */}
-      <div className="no-print" style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e5e7eb", borderTop: "none", padding: "12px 20px", marginBottom: 24, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+      {/* Global date range filter — hidden on Client Jobs tab which has its own */}
+      <div className="no-print" style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e5e7eb", borderTop: "none", padding: "12px 20px", marginBottom: 24, display: activeTab === "client-jobs" ? "none" : "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
         <span style={{ fontWeight: 600, fontSize: 13, color: "#374151" }}>Date Range</span>
         <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>
           From <input type="date" value={from} onChange={e => setFrom(e.target.value)} style={{ padding: "5px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} />
