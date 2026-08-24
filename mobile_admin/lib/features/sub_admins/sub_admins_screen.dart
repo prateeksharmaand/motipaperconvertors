@@ -37,7 +37,7 @@ const _permissionGroups = [
   (group: 'Clients',    perms: ['clients.view', 'clients.edit']),
   (group: 'Staff',      perms: ['staff.view', 'staff.manage']),
   (group: 'Reports',    perms: ['reports.view_financial']),
-  (group: 'Settings',   perms: ['settings.edit']),
+  (group: 'Settings',   perms: ['settings.view', 'settings.edit']),
   (group: 'Activity Log', perms: ['activity_log.view']),
 ];
 

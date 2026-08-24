@@ -95,7 +95,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
 // ── Screen ────────────────────────────────────────────────
 const _tabs = [
   'Pipeline', 'Revenue', 'Clients', 'Outstanding',
-  'Profitability', 'Paper', 'Machines', 'Staff',
+  'Profitability', 'Paper', 'Machines', 'Staff', 'Client Jobs',
 ];
 
 class ReportsScreen extends StatelessWidget {
@@ -113,7 +113,7 @@ class _ReportsView extends StatefulWidget {
 }
 
 class _ReportsViewState extends State<_ReportsView> with SingleTickerProviderStateMixin {
-  late final _tabCtrl = TabController(length: _tabs.length, vsync: this);
+  late final _tabCtrl = TabController(length: _tabs.length, vsync: this, initialIndex: 0);
 
   @override
   void initState() {
@@ -164,6 +164,7 @@ class _ReportsViewState extends State<_ReportsView> with SingleTickerProviderSta
                       _PaperTab(data: state.paperConsumption),
                       _MachinesTab(data: state.machines),
                       _StaffTab(data: state.staffOutput),
+                      const _ClientJobsTab(),
                     ],
                   ),
       ),
@@ -541,4 +542,250 @@ class _StaffTab extends StatelessWidget {
       },
     );
   }
+}
+
+// ── Client Jobs tab ───────────────────────────────────────
+class _ClientJobsTab extends StatefulWidget {
+  const _ClientJobsTab();
+  @override State<_ClientJobsTab> createState() => _ClientJobsTabState();
+}
+
+class _ClientJobsTabState extends State<_ClientJobsTab> with AutomaticKeepAliveClientMixin {
+  @override bool get wantKeepAlive => true;
+
+  List<Map<String, dynamic>> _clients = [];
+  String? _selectedClientId;
+  String? _selectedClientName;
+  String _statusFilter = '';
+  String _search = '';
+  bool _loading = false;
+  List<Map<String, dynamic>> _jobs = [];
+  Map<String, dynamic> _summary = {};
+  int _total = 0;
+  int _page = 1;
+  int _totalPages = 1;
+  String? _error;
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void initState() { super.initState(); _loadClients(); }
+
+  @override
+  void dispose() { _searchCtrl.dispose(); super.dispose(); }
+
+  Future<void> _loadClients() async {
+    try {
+      final res = await ApiClient.instance.get('/admin/clients', queryParameters: {'limit': 500});
+      if (!mounted) return;
+      setState(() => _clients = List<Map<String, dynamic>>.from(res.data['data'] as List? ?? []));
+    } catch (_) {}
+  }
+
+  Future<void> _loadJobs({int page = 1}) async {
+    if (_selectedClientId == null) return;
+    setState(() { _loading = true; _error = null; _page = page; });
+    try {
+      final params = <String, dynamic>{
+        'clientId': _selectedClientId, 'page': page, 'limit': 20,
+        if (_statusFilter.isNotEmpty) 'status': _statusFilter,
+        if (_search.trim().isNotEmpty) 'search': _search.trim(),
+      };
+      final res = await ApiClient.instance.get('/admin/reports/client-jobs', queryParameters: params);
+      final data = res.data as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _jobs = List<Map<String, dynamic>>.from(data['data'] as List? ?? []);
+        _summary = data['summary'] as Map<String, dynamic>? ?? {};
+        _total = data['total'] as int? ?? 0;
+        _totalPages = data['totalPages'] as int? ?? 1;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _loading = false; _error = e.toString(); });
+    }
+  }
+
+  void _selectClient(Map<String, dynamic> c) {
+    setState(() {
+      _selectedClientId = c['id'] as String;
+      _selectedClientName = c['company_name'] as String? ?? c['name'] as String? ?? '';
+      _jobs = []; _summary = {}; _total = 0; _page = 1;
+    });
+    _loadJobs();
+    Navigator.pop(context);
+  }
+
+  void _showClientPicker() {
+    final ctrl = TextEditingController();
+    showModalBottomSheet(
+      context: context, isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        expand: false, initialChildSize: 0.75, maxChildSize: 0.95,
+        builder: (ctx, scroll) => StatefulBuilder(builder: (sCtx, setSt) => Column(children: [
+          const SizedBox(height: 12),
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
+          Padding(padding: const EdgeInsets.all(16), child: TextField(
+            controller: ctrl, autofocus: true,
+            decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search client…', isDense: true),
+            onChanged: (_) => setSt(() {}),
+          )),
+          Expanded(child: Builder(builder: (_) {
+            final q = ctrl.text.toLowerCase();
+            final filtered = _clients.where((c) {
+              final name = '${c['company_name'] ?? ''} ${c['name'] ?? ''}'.toLowerCase();
+              return q.isEmpty || name.contains(q);
+            }).toList();
+            return ListView.builder(
+              controller: scroll, itemCount: filtered.length,
+              itemBuilder: (_, i) {
+                final c = filtered[i];
+                final name = c['company_name'] as String? ?? c['name'] as String? ?? '—';
+                final sub = c['name'] as String? ?? '';
+                return ListTile(
+                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: name != sub ? Text(sub) : null,
+                  selected: c['id'] == _selectedClientId,
+                  selectedColor: AppColors.primary,
+                  onTap: () => _selectClient(c),
+                );
+              },
+            );
+          })),
+        ])),
+      ),
+    );
+  }
+
+  static const _statuses = ['', 'draft', 'enquiry', 'quotation', 'design', 'approval', 'print', 'finishing', 'qc', 'ready', 'delivered', 'cancelled'];
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return Column(children: [
+      Container(color: AppColors.surface, padding: const EdgeInsets.all(12), child: Column(children: [
+        GestureDetector(
+          onTap: _showClientPicker,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(8)),
+            child: Row(children: [
+              const Icon(Icons.business_outlined, size: 18, color: AppColors.textMuted),
+              const SizedBox(width: 8),
+              Expanded(child: Text(
+                _selectedClientName ?? 'Tap to select a client',
+                style: TextStyle(fontSize: 13, color: _selectedClientId == null ? AppColors.textDisabled : AppColors.textPrimary, fontWeight: _selectedClientId != null ? FontWeight.w600 : FontWeight.normal),
+              )),
+              const Icon(Icons.arrow_drop_down, color: AppColors.textMuted),
+            ]),
+          ),
+        ),
+        if (_selectedClientId != null) ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: DropdownButtonFormField<String>(
+              value: _statusFilter, isDense: true,
+              decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8), labelText: 'Status'),
+              items: _statuses.map((s) => DropdownMenuItem(value: s, child: Text(s.isEmpty ? 'All' : s[0].toUpperCase() + s.substring(1)))).toList(),
+              onChanged: (v) { setState(() { _statusFilter = v ?? ''; _page = 1; }); _loadJobs(); },
+            )),
+            const SizedBox(width: 8),
+            Expanded(child: TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                hintText: 'Search…', isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                suffixIcon: _search.isNotEmpty ? IconButton(icon: const Icon(Icons.clear, size: 16), onPressed: () { _searchCtrl.clear(); setState(() { _search = ''; _page = 1; }); _loadJobs(); }) : null,
+              ),
+              onChanged: (v) { setState(() { _search = v; _page = 1; }); _loadJobs(); },
+            )),
+          ]),
+        ],
+      ])),
+      if (_selectedClientId == null)
+        const Expanded(child: Center(child: Text('Select a client to view their jobs', style: TextStyle(color: AppColors.textMuted))))
+      else if (_loading)
+        const Expanded(child: Center(child: CircularProgressIndicator()))
+      else if (_error != null)
+        Expanded(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Icon(Icons.error_outline, color: AppColors.error), const SizedBox(height: 8),
+          Text(_error!, textAlign: TextAlign.center), const SizedBox(height: 12),
+          ElevatedButton(onPressed: _loadJobs, child: const Text('Retry')),
+        ])))
+      else Expanded(child: RefreshIndicator(
+        onRefresh: _loadJobs,
+        child: ListView(children: [
+          if (_summary.isNotEmpty) Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: Wrap(spacing: 8, runSpacing: 8, children: [
+              _chip('Total', '${_summary['total_jobs'] ?? 0}', AppColors.primary),
+              _chip('Active', '${_summary['active_jobs'] ?? 0}', AppColors.warning),
+              _chip('Delivered', '${_summary['delivered_jobs'] ?? 0}', AppColors.success),
+              _chip('Revenue', '₹${_fmt(_summary['total_revenue'])}', AppColors.info),
+            ]),
+          ),
+          if (_jobs.isEmpty)
+            const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('No jobs found', style: TextStyle(color: AppColors.textMuted))))
+          else
+            ..._jobs.map((j) => _CJJobTile(j)),
+          if (_totalPages > 1) Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              IconButton(icon: const Icon(Icons.chevron_left), onPressed: _page > 1 ? () => _loadJobs(page: _page - 1) : null),
+              Text('$_page / $_totalPages  ($_total jobs)', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              IconButton(icon: const Icon(Icons.chevron_right), onPressed: _page < _totalPages ? () => _loadJobs(page: _page + 1) : null),
+            ]),
+          ),
+        ]),
+      )),
+    ]);
+  }
+
+  Widget _chip(String label, String value, Color color) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withValues(alpha: 0.3))),
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
+      Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+    ]),
+  );
+
+  String _fmt(dynamic v) {
+    final n = double.tryParse(v?.toString() ?? '') ?? 0;
+    if (n >= 100000) return '${(n / 100000).toStringAsFixed(1)}L';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
+    return n.toStringAsFixed(0);
+  }
+}
+
+class _CJJobTile extends StatelessWidget {
+  final Map<String, dynamic> job;
+  const _CJJobTile(this.job);
+  @override
+  Widget build(BuildContext context) {
+    final status = job['status'] as String? ?? '';
+    final color = AppColors.statusColors[status] ?? AppColors.textMuted;
+    return Card(margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Text('#${job['job_number']}', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.primary)),
+        const SizedBox(width: 8),
+        Expanded(child: Text(job['job_type'] as String? ?? job['title'] as String? ?? '—', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+          child: Text(status.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color))),
+      ]),
+      const SizedBox(height: 6),
+      Wrap(spacing: 12, children: [
+        if (job['machine_name'] != null) _meta(Icons.precision_manufacturing_outlined, job['machine_name'] as String),
+        if (job['quantity'] != null) _meta(Icons.numbers_outlined, '${job['quantity']} pcs'),
+        if (job['quoted_price'] != null) _meta(Icons.currency_rupee, '${job['quoted_price']}'),
+        if (job['due_date'] != null) _meta(Icons.calendar_today_outlined, (job['due_date'] as String).substring(0, 10)),
+      ]),
+    ])));
+  }
+
+  Widget _meta(IconData icon, String text) => Row(mainAxisSize: MainAxisSize.min, children: [
+    Icon(icon, size: 12, color: AppColors.textMuted),
+    const SizedBox(width: 3),
+    Text(text, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+  ]);
 }
