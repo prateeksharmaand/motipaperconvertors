@@ -318,20 +318,21 @@ router.get("/client-jobs", requirePermission("jobs.view"), async (req, res) => {
   const [{ count }] = await base.clone().clearSelect().count("job_cards.id as count");
   const jobs = await base.clone().orderBy(sortCol, dir).limit(limitNum).offset(offset);
 
-  // Summary stats
-  const [stats] = await db("job_cards")
-    .where({ tenant_id: tenantId, client_id: clientId })
-    .select(
-      db.raw("COUNT(*) as total_jobs"),
-      db.raw("COUNT(CASE WHEN status NOT IN ('delivered','cancelled') THEN 1 END) as active_jobs"),
-      db.raw("COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_jobs"),
-      db.raw("COALESCE(SUM(quoted_price), 0) as total_revenue"),
-      db.raw("COALESCE(SUM(advance_amount), 0) as total_advance"),
-    );
+  // Summary stats — respect same date range as table
+  let statsBase = db("job_cards").where({ tenant_id: tenantId, client_id: clientId });
+  if (from) statsBase = statsBase.where("created_at", ">=", from);
+  if (to)   statsBase = statsBase.where("created_at", "<=", to);
 
-  // Jobs by status breakdown
-  const statusBreakdown = await db("job_cards")
-    .where({ tenant_id: tenantId, client_id: clientId })
+  const [stats] = await statsBase.clone().select(
+    db.raw("COUNT(*) as total_jobs"),
+    db.raw("COUNT(CASE WHEN status NOT IN ('delivered','cancelled') THEN 1 END) as active_jobs"),
+    db.raw("COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_jobs"),
+    db.raw("COALESCE(SUM(quoted_price), 0) as total_revenue"),
+    db.raw("COALESCE(SUM(advance_amount), 0) as total_advance"),
+  );
+
+  // Jobs by status breakdown — respect same date range
+  const statusBreakdown = await statsBase.clone()
     .groupBy("status")
     .select("status", db.raw("COUNT(*) as count"));
 
