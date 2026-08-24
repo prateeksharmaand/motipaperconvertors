@@ -219,11 +219,19 @@ function ClientJobsReport() {
 
   const clientOptions = useMemo(() => clients.map(c => ({ value: c.id, label: c.company_name ? `${c.company_name} (${c.name})` : c.name })), [clients]);
 
-  const params = { clientId, status: status || undefined, from: from || undefined, to: to || undefined, search: search || undefined, page, limit: 20, sortBy, sortDir };
+  // Build params without undefined so queryKey hash is deterministic
+  const apiParams = useMemo(() => {
+    const p: Record<string, string | number> = { clientId, page, limit: 20, sortBy, sortDir };
+    if (status) p.status = status;
+    if (from) p.from = from;
+    if (to) p.to = to;
+    if (search.trim()) p.search = search.trim();
+    return p;
+  }, [clientId, status, from, to, search, page, sortBy, sortDir]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["report-client-jobs", params],
-    queryFn: () => api.get("/admin/reports/client-jobs", { params }).then(r => r.data),
+    queryKey: ["report-client-jobs", apiParams],
+    queryFn: () => api.get("/admin/reports/client-jobs", { params: apiParams }).then(r => r.data),
     enabled: !!clientId,
   });
 
@@ -311,54 +319,6 @@ function ClientJobsReport() {
             <StatCard label="Total Advance" value={"₹" + Number(summary.total_advance ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })} color="#e67700" />
           </div>
 
-          {/* Charts */}
-          {statusBreakdown.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-              <div style={cardStyle}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Jobs by Status</div>
-                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>Click a bar to filter the table by status</div>
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart
-                    data={statusBreakdown.map(s => ({ name: s.status, Jobs: Number(s.count) }))}
-                    margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
-                    onClick={d => { if (d?.activeLabel) { setStatus(st => st === d.activeLabel ? "" : d.activeLabel as string); setPage(1); } }}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <CartesianGrid stroke="#f3f4f6" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6b7280" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="Jobs" radius={[4, 4, 0, 0]}>
-                      {statusBreakdown.map((s, i) => (
-                        <Cell key={i} fill={JOB_STATUS_COLORS[s.status] ?? "#7c3aed"} opacity={status && status !== s.status ? 0.35 : 1} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div style={cardStyle}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 4 }}>Status Distribution</div>
-                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>Click a slice to filter the table by status</div>
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie
-                      data={statusBreakdown.map(s => ({ name: s.status, value: Number(s.count) }))}
-                      dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}
-                      label={({ name, value }) => `${name}(${value})`} labelLine={false}
-                      onClick={(entry) => { const name = String(entry?.name ?? ""); if (name) { setStatus(st => st === name ? "" : name); setPage(1); } }}
-                      style={{ cursor: "pointer" }}
-                    >
-                      {statusBreakdown.map((s, i) => (
-                        <Cell key={i} fill={JOB_STATUS_COLORS[s.status] ?? "#7c3aed"} opacity={status && status !== s.status ? 0.35 : 1} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-
           {/* Table */}
           <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e5e7eb", overflow: "hidden", marginBottom: 16 }}>
             <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -422,6 +382,54 @@ function ClientJobsReport() {
               })}
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ padding: "6px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: page === totalPages ? "default" : "pointer", background: "#fff", fontSize: 13, opacity: page === totalPages ? 0.4 : 1 }}>Next →</button>
               <span style={{ fontSize: 12, color: "#9ca3af", marginLeft: 4 }}>Page {page} of {totalPages} · {total} jobs</span>
+            </div>
+          )}
+
+          {/* Charts — below the list */}
+          {statusBreakdown.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 24 }}>
+              <div style={cardStyle}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 4 }}>Jobs by Status</div>
+                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>Click a bar to filter the table by status</div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart
+                    data={statusBreakdown.map(s => ({ name: s.status, Jobs: Number(s.count) }))}
+                    margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+                    onClick={d => { if (d?.activeLabel) { setStatus(st => st === d.activeLabel ? "" : d.activeLabel as string); setPage(1); } }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <CartesianGrid stroke="#f3f4f6" strokeDasharray="3 3" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6b7280" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="Jobs" radius={[4, 4, 0, 0]}>
+                      {statusBreakdown.map((s, i) => (
+                        <Cell key={i} fill={JOB_STATUS_COLORS[s.status] ?? "#7c3aed"} opacity={status && status !== s.status ? 0.35 : 1} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={cardStyle}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 4 }}>Status Distribution</div>
+                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>Click a slice to filter by status</div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={statusBreakdown.map(s => ({ name: s.status, value: Number(s.count) }))}
+                      dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}
+                      label={({ name, value }) => `${name}(${value})`} labelLine={false}
+                      onClick={(entry) => { const name = String(entry?.name ?? ""); if (name) { setStatus(st => st === name ? "" : name); setPage(1); } }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      {statusBreakdown.map((s, i) => (
+                        <Cell key={i} fill={JOB_STATUS_COLORS[s.status] ?? "#7c3aed"} opacity={status && status !== s.status ? 0.35 : 1} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
         </>
