@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
 import { exportToCsv } from "../lib/exportCsv.ts";
@@ -148,6 +148,48 @@ const JOB_STATUS_COLORS: Record<string, string> = {
   ready: "#2b8a3e", delivered: "#1864ab", cancelled: "#c92a2a",
 };
 
+const reportInputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 13, boxSizing: "border-box" };
+
+function ReportSearchableSelect({ options, value, onChange, placeholder = "— select —" }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const selectedLabel = options.find(o => o.value === value)?.label ?? "";
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setQuery(""); } };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+  const filtered = query.trim() === "" ? options : options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()));
+  return (
+    <div ref={ref} style={{ position: "relative", width: "100%" }}>
+      <input
+        readOnly={!open}
+        value={open ? query : selectedLabel}
+        onChange={e => setQuery(e.target.value)}
+        onClick={() => { setOpen(true); setQuery(""); }}
+        onFocus={() => { setOpen(true); setQuery(""); }}
+        placeholder={placeholder}
+        style={{ ...reportInputStyle, cursor: "pointer" }}
+      />
+      {open && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 2000, background: "#fff", border: "1px solid #ddd", borderRadius: 6, boxShadow: "0 4px 16px rgba(0,0,0,.12)", maxHeight: 220, overflowY: "auto", marginTop: 2 }}>
+          {filtered.length === 0 && <div style={{ padding: "10px 14px", fontSize: 13, color: "#888" }}>No clients found</div>}
+          {filtered.map(opt => (
+            <div key={opt.value} onMouseDown={() => { onChange(opt.value); setOpen(false); setQuery(""); }}
+              style={{ padding: "9px 14px", fontSize: 13, cursor: "pointer", background: opt.value === value ? "#e7ecff" : "transparent", color: opt.value === value ? "#3b5bdb" : "#333", fontWeight: opt.value === value ? 600 : 400 }}
+              onMouseEnter={e => { if (opt.value !== value) (e.currentTarget as HTMLDivElement).style.background = "#f5f7ff"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = opt.value === value ? "#e7ecff" : "transparent"; }}>
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ShimmerRow({ cols }: { cols: number }) {
   return (
     <>{Array.from({ length: 6 }).map((_, i) => (
@@ -178,7 +220,6 @@ function ClientJobsReport() {
   });
 
   const clientOptions = useMemo(() => clients.map(c => ({ value: c.id, label: c.company_name ? `${c.company_name} (${c.name})` : c.name })), [clients]);
-  const [clientSearch, setClientSearch] = useState("");
 
   const params = { clientId, status: status || undefined, from: from || undefined, to: to || undefined, search: search || undefined, page, limit: 20, sortBy, sortDir };
 
@@ -218,23 +259,12 @@ function ClientJobsReport() {
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
           <label style={{ flex: "0 0 300px" }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 4 }}>CLIENT *</span>
-            <input
-              value={clientSearch}
-              onChange={e => setClientSearch(e.target.value)}
-              placeholder="Search client…"
-              style={{ padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "7px 7px 0 0", fontSize: 13, width: "100%", boxSizing: "border-box", borderBottom: "none" }}
-            />
-            <select
+            <ReportSearchableSelect
+              options={clientOptions}
               value={clientId}
-              onChange={e => { setClientId(e.target.value); setPage(1); }}
-              size={4}
-              style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: "0 0 7px 7px", fontSize: 13, padding: "4px 0" }}
-            >
-              <option value="">— select client —</option>
-              {clientOptions.filter(o => o.label.toLowerCase().includes(clientSearch.toLowerCase())).map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+              onChange={v => { setClientId(v); setPage(1); }}
+              placeholder="— search & select client —"
+            />
           </label>
           <label>
             <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 4 }}>STATUS</span>
@@ -288,24 +318,41 @@ function ClientJobsReport() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
               <div style={cardStyle}>
                 <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Jobs by Status</div>
+                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>Click a bar to filter the table by status</div>
                 <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={statusBreakdown.map(s => ({ name: s.status, Jobs: Number(s.count) }))} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                  <BarChart
+                    data={statusBreakdown.map(s => ({ name: s.status, Jobs: Number(s.count) }))}
+                    margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+                    onClick={d => { if (d?.activeLabel) { setStatus(st => st === d.activeLabel ? "" : d.activeLabel as string); setPage(1); } }}
+                    style={{ cursor: "pointer" }}
+                  >
                     <CartesianGrid stroke="#f3f4f6" strokeDasharray="3 3" />
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6b7280" }} />
                     <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} allowDecimals={false} />
                     <Tooltip />
                     <Bar dataKey="Jobs" radius={[4, 4, 0, 0]}>
-                      {statusBreakdown.map((s, i) => <Cell key={i} fill={JOB_STATUS_COLORS[s.status] ?? "#7c3aed"} />)}
+                      {statusBreakdown.map((s, i) => (
+                        <Cell key={i} fill={JOB_STATUS_COLORS[s.status] ?? "#7c3aed"} opacity={status && status !== s.status ? 0.35 : 1} />
+                      ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
               <div style={cardStyle}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Status Distribution</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 4 }}>Status Distribution</div>
+                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>Click a slice to filter the table by status</div>
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={statusBreakdown.map(s => ({ name: s.status, value: Number(s.count) }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, value }) => `${name}(${value})`} labelLine={false}>
-                      {statusBreakdown.map((s, i) => <Cell key={i} fill={JOB_STATUS_COLORS[s.status] ?? "#7c3aed"} />)}
+                    <Pie
+                      data={statusBreakdown.map(s => ({ name: s.status, value: Number(s.count) }))}
+                      dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}
+                      label={({ name, value }) => `${name}(${value})`} labelLine={false}
+                      onClick={(entry: { name: string }) => { setStatus(st => st === entry.name ? "" : entry.name); setPage(1); }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      {statusBreakdown.map((s, i) => (
+                        <Cell key={i} fill={JOB_STATUS_COLORS[s.status] ?? "#7c3aed"} opacity={status && status !== s.status ? 0.35 : 1} />
+                      ))}
                     </Pie>
                     <Tooltip />
                   </PieChart>
