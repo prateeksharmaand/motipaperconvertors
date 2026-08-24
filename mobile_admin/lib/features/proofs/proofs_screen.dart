@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/network/api_client.dart';
+import '../../core/utils/app_toast.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 
@@ -176,8 +177,8 @@ class _ProofsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<ProofsBloc, ProofsState>(
       listener: (ctx, state) {
-        if (state.error != null) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(state.error!), backgroundColor: AppColors.error));
-        if (state.success != null) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(state.success!), backgroundColor: AppColors.success));
+        if (state.error != null) AppToast.error(state.error!);
+        if (state.success != null) AppToast.success(state.success!);
       },
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,

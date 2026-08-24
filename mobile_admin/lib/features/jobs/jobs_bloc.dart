@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../core/network/api_client.dart';
+import '../../core/utils/app_toast.dart';
 import '../../models/job_model.dart';
 import '../../models/pagination_model.dart';
 
@@ -175,8 +176,10 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
         'status': event.newStatus,
         if (event.notes != null) 'notes': event.notes,
       });
+      AppToast.success('Status updated to ${event.newStatus}');
       add(const JobsLoadRequested());
     } catch (e) {
+      AppToast.error('Failed to update status');
       emit(state.copyWith(error: 'Failed to update status'));
     }
   }

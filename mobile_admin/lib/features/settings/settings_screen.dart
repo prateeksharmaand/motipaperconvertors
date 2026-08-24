@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_toast.dart';
+import '../../core/widgets/app_shimmer.dart';
 import '../../features/auth/auth_bloc.dart';
 import '../../features/auth/auth_event.dart';
 
@@ -123,8 +125,8 @@ class _SettingsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<SettingsBloc, SettingsState>(
       listener: (context, state) {
-        if (state.error != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.error!), backgroundColor: AppColors.error));
-        if (state.successMessage != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.successMessage!), backgroundColor: AppColors.success));
+        if (state.error != null) AppToast.error(state.error!);
+        if (state.successMessage != null) AppToast.success(state.successMessage!);
       },
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
@@ -136,7 +138,7 @@ class _SettingsView extends StatelessWidget {
               backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent,
             ),
             if (state.isLoading)
-              const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+              const SliverShimmerList(count: 5, itemBuilder: ShimmerCard.new)
             else
               SliverPadding(
                 padding: const EdgeInsets.all(16),

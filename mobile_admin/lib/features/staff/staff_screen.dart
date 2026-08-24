@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_toast.dart';
+import '../../core/widgets/app_shimmer.dart';
 import '../../models/pagination_model.dart';
 
 // ── Model ─────────────────────────────────────────────────
@@ -183,12 +185,8 @@ class _StaffViewState extends State<_StaffView> {
       backgroundColor: AppColors.background,
       body: BlocConsumer<StaffBloc, StaffState>(
         listener: (context, state) {
-          if (state.error != null) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.error!), backgroundColor: AppColors.error));
-          }
-          if (state.successMessage != null) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.successMessage!), backgroundColor: AppColors.success));
-          }
+          if (state.error != null) AppToast.error(state.error!);
+          if (state.successMessage != null) AppToast.success(state.successMessage!);
         },
         builder: (context, state) => RefreshIndicator(
           onRefresh: () async => context.read<StaffBloc>().add(const StaffLoadRequested()),
@@ -225,7 +223,7 @@ class _StaffViewState extends State<_StaffView> {
               ]),
             )),
             if (state.isLoading)
-              const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+              const SliverShimmerList(count: 8, itemBuilder: ShimmerRow.new)
             else if (state.members.isEmpty)
               SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const Icon(Icons.badge_outlined, size: 56, color: AppColors.textMuted),

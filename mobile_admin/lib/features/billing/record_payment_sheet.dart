@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_toast.dart';
 
 class RecordPaymentSheet extends StatefulWidget {
   final String? invoiceId;
@@ -43,8 +44,10 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
         if (_notesCtrl.text.isNotEmpty) 'notes': _notesCtrl.text,
         'paymentDate': DateTime.now().toIso8601String().substring(0, 10),
       });
+      AppToast.success('Payment recorded successfully');
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
+      AppToast.error('Failed to record payment');
       setState(() { _saving = false; _error = 'Failed to record payment'; });
     }
   }

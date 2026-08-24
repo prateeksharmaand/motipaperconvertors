@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_toast.dart';
+import '../../core/widgets/app_shimmer.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/pagination_model.dart';
 
@@ -125,7 +127,7 @@ class _QuotationsViewState extends State<_QuotationsView> {
               child: Text('${state.total} quotations', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
             )),
             if (state.isLoading)
-              const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+              const SliverShimmerList(count: 6, itemBuilder: ShimmerCard.new)
             else if (state.items.isEmpty)
               SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const Icon(Icons.request_quote_outlined, size: 56, color: AppColors.textMuted),
@@ -269,9 +271,10 @@ class _QuotationsViewState extends State<_QuotationsView> {
                     'discountAmount': discount,
                     'gstPercent': gst,
                   });
+                  AppToast.success('Quotation created successfully');
                   if (ctx.mounted) Navigator.pop(ctx);
                   bloc.add(const QuotationsLoadRequested());
-                } catch (_) {}
+                } catch (_) { AppToast.error('Failed to create quotation'); }
               },
               child: const Text('Create Quotation'),
             ),

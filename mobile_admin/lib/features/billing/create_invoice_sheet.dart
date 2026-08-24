@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_toast.dart';
 import '../../core/utils/formatters.dart';
 
 class LineItem {
@@ -76,8 +77,10 @@ class _CreateInvoiceSheetState extends State<CreateInvoiceSheet> {
         'total': _total,
         if (_dueDate != null) 'dueDate': _dueDate,
       });
+      AppToast.success('Invoice created successfully');
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
+      AppToast.error('Failed to create invoice');
       setState(() { _saving = false; _error = 'Failed to create invoice'; });
     }
   }

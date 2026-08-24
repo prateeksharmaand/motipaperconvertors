@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/notifications/fcm_service.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/app_toast.dart';
 import 'features/auth/auth_bloc.dart';
 import 'features/auth/auth_event.dart';
 
@@ -46,6 +47,7 @@ class _AppViewState extends State<_AppView> {
       title: 'MotiPaper Admin',
       theme: AppTheme.lightTheme,
       routerConfig: _router,
+      scaffoldMessengerKey: scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
     );
   }

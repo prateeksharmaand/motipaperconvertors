@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
+import '../../core/utils/app_toast.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/job_model.dart';
 
@@ -204,11 +205,14 @@ class _JobFormScreenState extends State<JobFormScreen> {
     try {
       if (widget.existing == null) {
         await ApiClient.instance.post('/admin/jobs', data: _data.toJson());
+        AppToast.success('Job card created successfully');
       } else {
         await ApiClient.instance.patch('/admin/jobs/${widget.existing!.id}', data: _data.toJson());
+        AppToast.success('Job card updated successfully');
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
+      AppToast.error('Failed to save job card');
       setState(() { _saving = false; _error = e.toString(); });
     }
   }

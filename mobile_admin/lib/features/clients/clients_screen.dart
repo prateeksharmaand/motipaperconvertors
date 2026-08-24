@@ -4,6 +4,8 @@ import 'package:equatable/equatable.dart';
 import 'package:bloc/bloc.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_toast.dart';
+import '../../core/widgets/app_shimmer.dart';
 import '../../models/pagination_model.dart';
 
 // ── Model ─────────────────────────────────────────────────
@@ -101,8 +103,9 @@ class ClientsBloc extends Bloc<ClientsEvent, ClientsState> {
   Future<void> _onDelete(ClientDeleted event, Emitter<ClientsState> emit) async {
     try {
       await ApiClient.instance.delete('/admin/clients/${event.id}');
+      AppToast.success('Client deleted');
       add(const ClientsLoadRequested());
-    } catch (e) { emit(state.copyWith(error: 'Failed to delete client')); }
+    } catch (e) { AppToast.error('Failed to delete client'); emit(state.copyWith(error: 'Failed to delete client')); }
   }
 }
 
@@ -170,7 +173,7 @@ class _ClientsViewState extends State<_ClientsView> {
               child: Text('${state.total} clients', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
             )),
             if (state.isLoading)
-              const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+              const SliverShimmerList(count: 8, itemBuilder: ShimmerRow.new)
             else if (state.clients.isEmpty)
               SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const Icon(Icons.people_outline, size: 56, color: AppColors.textMuted),
@@ -238,12 +241,15 @@ class _ClientsViewState extends State<_ClientsView> {
                   final data = {'name': nameCtrl.text, 'companyName': companyCtrl.text, 'phone': phoneCtrl.text, 'email': emailCtrl.text, 'city': cityCtrl.text};
                   if (existing == null) {
                     await ApiClient.instance.post('/admin/clients', data: data);
+                    AppToast.success('Client created successfully');
                   } else {
                     await ApiClient.instance.patch('/admin/clients/${existing.id}', data: data);
+                    AppToast.success('Client updated successfully');
                   }
                   if (ctx.mounted) Navigator.pop(ctx);
                   bloc.add(const ClientsLoadRequested());
                 } catch (_) {
+                  AppToast.error('Failed to save client');
                   setModal(() => saving = false);
                 }
               },

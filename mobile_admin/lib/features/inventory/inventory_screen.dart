@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_shimmer.dart';
 import '../../models/pagination_model.dart';
 
 // ── Models ────────────────────────────────────────────────
@@ -260,7 +261,7 @@ class _PaperTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.papersLoading) return const Center(child: CircularProgressIndicator());
+    if (state.papersLoading) return const ShimmerList(count: 6, itemBuilder: ShimmerCard.new);
     if (state.papers.isEmpty) return const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.inventory_2_outlined, size: 56, color: AppColors.textMuted), SizedBox(height: 12), Text('No paper stock', style: TextStyle(color: AppColors.textMuted))]));
 
     return RefreshIndicator(
@@ -324,7 +325,7 @@ class _ItemsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.itemsLoading) return const Center(child: CircularProgressIndicator());
+    if (state.itemsLoading) return const ShimmerList(count: 6, itemBuilder: ShimmerCard.new);
     if (state.items.isEmpty) return const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.category_outlined, size: 56, color: AppColors.textMuted), SizedBox(height: 12), Text('No items', style: TextStyle(color: AppColors.textMuted))]));
 
     return RefreshIndicator(
@@ -374,7 +375,7 @@ class _TransactionsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.txLoading) return const Center(child: CircularProgressIndicator());
+    if (state.txLoading) return const ShimmerList(count: 8, itemBuilder: ShimmerRow.new);
     if (state.transactions.isEmpty) {
       return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         const Icon(Icons.swap_horiz, size: 56, color: AppColors.textMuted),

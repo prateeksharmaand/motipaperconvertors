@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_toast.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/widgets/app_shimmer.dart';
 import '../../models/job_model.dart';
 import 'job_form_screen.dart';
 import 'jobs_bloc.dart';
@@ -102,7 +104,7 @@ class _JobsViewState extends State<_JobsView> {
 
               // Job list
               if (state.isLoading)
-                const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+                const SliverShimmerList(count: 7, itemBuilder: ShimmerListItem.new)
               else if (state.jobs.isEmpty)
                 SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   const Icon(Icons.work_outline, size: 56, color: AppColors.textMuted),

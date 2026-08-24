@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_toast.dart';
+import '../../core/widgets/app_shimmer.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/pagination_model.dart';
 import 'record_payment_sheet.dart';
@@ -377,7 +379,7 @@ class _InvoicesTab extends StatelessWidget {
       ),
       // List
       Expanded(child: state.invoicesLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ShimmerList(count: 6, itemBuilder: ShimmerCard.new)
           : RefreshIndicator(
               onRefresh: () async => context.read<BillingBloc>().add(const InvoicesLoadRequested()),
               child: state.invoices.isEmpty
@@ -619,7 +621,7 @@ class _PaymentsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.paymentsLoading) return const Center(child: CircularProgressIndicator());
+    if (state.paymentsLoading) return const ShimmerList(count: 6, itemBuilder: ShimmerCard.new);
     if (state.payments.isEmpty) return const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.payments_outlined, size: 56, color: AppColors.textMuted), SizedBox(height: 12), Text('No payments recorded', style: TextStyle(color: AppColors.textMuted))]));
 
     return RefreshIndicator(

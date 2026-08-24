@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_toast.dart';
+import '../../core/widgets/app_shimmer.dart';
 
 // ── Model ─────────────────────────────────────────────────
 class Machine extends Equatable {
@@ -108,8 +110,8 @@ class _MachinesView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<MachinesBloc, MachinesState>(
       listener: (ctx, state) {
-        if (state.error != null) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(state.error!), backgroundColor: AppColors.error));
-        if (state.success != null) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(state.success!), backgroundColor: AppColors.success));
+        if (state.error != null) AppToast.error(state.error!);
+        if (state.success != null) AppToast.success(state.success!);
       },
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
@@ -118,7 +120,7 @@ class _MachinesView extends StatelessWidget {
           child: CustomScrollView(slivers: [
             SliverAppBar(floating: true, title: const Text('Machines'), backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent),
             if (state.isLoading)
-              const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+              const SliverShimmerList(count: 5, itemBuilder: ShimmerCard.new)
             else if (state.machines.isEmpty)
               SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const Icon(Icons.precision_manufacturing_outlined, size: 56, color: AppColors.textMuted),
@@ -180,12 +182,14 @@ class _MachinesView extends StatelessWidget {
                 final data = {'name': nameCtrl.text, if (typeCtrl.text.isNotEmpty) 'type': typeCtrl.text, if (modelCtrl.text.isNotEmpty) 'model': modelCtrl.text, if (colorsCtrl.text.isNotEmpty) 'maxColors': int.tryParse(colorsCtrl.text), if (notesCtrl.text.isNotEmpty) 'notes': notesCtrl.text};
                 if (existing == null) {
                   await ApiClient.instance.post('/admin/machines', data: data);
+                  AppToast.success('Machine created');
                 } else {
                   await ApiClient.instance.patch('/admin/machines/${existing.id}', data: data);
+                  AppToast.success('Machine updated');
                 }
                 if (ctx.mounted) Navigator.pop(ctx);
                 bloc.add(const MachinesLoadRequested());
-              } catch (_) { setModal(() => saving = false); }
+              } catch (_) { AppToast.error('Failed to save machine'); setModal(() => saving = false); }
             },
             child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(existing == null ? 'Add Machine' : 'Save'),
           ),

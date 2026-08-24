@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_toast.dart';
+import '../../core/widgets/app_shimmer.dart';
 
 // ── Model ─────────────────────────────────────────────────
 class SubAdmin extends Equatable {
@@ -137,8 +139,8 @@ class _SubAdminsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<SubAdminsBloc, SubAdminsState>(
       listener: (ctx, state) {
-        if (state.error != null) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(state.error!), backgroundColor: AppColors.error));
-        if (state.success != null) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(state.success!), backgroundColor: AppColors.success));
+        if (state.error != null) AppToast.error(state.error!);
+        if (state.success != null) AppToast.success(state.success!);
       },
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
@@ -147,7 +149,7 @@ class _SubAdminsView extends StatelessWidget {
           child: CustomScrollView(slivers: [
             SliverAppBar(floating: true, title: const Text('Sub Admins'), backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent),
             if (state.isLoading)
-              const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+              const SliverShimmerList(count: 6, itemBuilder: ShimmerRow.new)
             else if (state.admins.isEmpty)
               SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const Icon(Icons.admin_panel_settings_outlined, size: 56, color: AppColors.textMuted),
