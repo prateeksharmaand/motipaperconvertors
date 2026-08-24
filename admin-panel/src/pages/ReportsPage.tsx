@@ -48,7 +48,6 @@ const PIE_OUTSTANDING_LABELS: Record<string, string> = {
 type OutstandingInvoice = { id: string; client_name: string; invoice_number: number; balance_due: number; due_date: string; urgency: string; };
 type ProfitabilityJob = { id: string; job_number: number; title: string; client_name: string; quoted_price: number; computed_cost: number; actual_margin: number; margin_percent: number; };
 type MachineRow = { machine_id: string; machine_name: string; total_jobs: number; completed_jobs: number; active_jobs: number; };
-type StaffRow = { operator_id: string; operator_name: string; total_jobs: number; completed_jobs: number; };
 type ClientRevRow = { client_id: string; client_name: string; total_invoices: number; total_billed: number; total_paid: number; total_outstanding: number; };
 type StatusRow = { status: string; count: number; total_value: number; };
 type PaperRow = { paper_stock_id: string; paper_name: string; gsm: number; size: string; unit: string; usage_count: number; total_sheets: number; };
@@ -138,7 +137,6 @@ const TABS = [
   { key: "profitability", label: "Profitability" },
   { key: "paper",       label: "Paper Usage" },
   { key: "machines",    label: "Machines" },
-  { key: "staff",       label: "Staff Output" },
   { key: "client-jobs", label: "Client Jobs" },
 ];
 
@@ -438,13 +436,15 @@ export default function ReportsPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const dateParams = { ...(from && { from }), ...(to && { to }) };
+  // createdFrom/createdTo map to the jobs endpoint's new created_at filter params
+  const jobDateParams = { ...(from && { createdFrom: from }), ...(to && { createdTo: to }) };
   const [drillDown, setDrillDown] = useState<DrillDownConfig | null>(null);
 
   // Drill-down helpers
   const jobCols = [
     { label: "Job #", key: "job_number", fmt: (v: unknown) => `#${v}` },
     { label: "Title", key: "job_type" },
-    { label: "Client", key: "client_company_name" },
+    { label: "Client", key: "client_name" },
     { label: "Status", key: "status" },
     { label: "Qty", key: "quantity" },
     { label: "Quoted", key: "quoted_price", fmt: (v: unknown) => v ? fmt(v as number) : "—" },
@@ -481,7 +481,6 @@ export default function ReportsPage() {
   const { data: profitability } = useQuery({ queryKey: ["report-profitability", dateParams], queryFn: () => api.get("/admin/reports/job-profitability", { params: dateParams }).then(r => r.data) });
   const { data: machines } = useQuery({ queryKey: ["report-machines", dateParams], queryFn: () => api.get("/admin/reports/machine-utilization", { params: dateParams }).then(r => r.data) });
   const { data: outstanding } = useQuery({ queryKey: ["report-outstanding"], queryFn: () => api.get("/admin/reports/outstanding-payments").then(r => r.data) });
-  const { data: staff } = useQuery({ queryKey: ["report-staff", dateParams], queryFn: () => api.get("/admin/reports/staff-output", { params: dateParams }).then(r => r.data) });
   const { data: clientRevenue } = useQuery({ queryKey: ["report-client-revenue", dateParams], queryFn: () => api.get("/admin/reports/revenue-by-client", { params: dateParams }).then(r => r.data) });
   const { data: jobsByStatus } = useQuery({ queryKey: ["report-jobs-status", dateParams], queryFn: () => api.get("/admin/reports/jobs-by-status", { params: dateParams }).then(r => r.data) });
   const { data: paperConsumption } = useQuery({ queryKey: ["report-paper", dateParams], queryFn: () => api.get("/admin/reports/paper-consumption", { params: dateParams }).then(r => r.data) });
@@ -578,7 +577,7 @@ export default function ReportsPage() {
               <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Jobs per Status</div>
               <ResponsiveContainer width="100%" height={Math.max(200, jobsByStatus.length * 44)}>
                 <BarChart data={jobsByStatus.map((r: StatusRow) => ({ name: r.status, Jobs: Number(r.count) }))} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
-                  onClick={(d) => { if (d?.activeLabel) drillJobs(`Jobs — ${d.activeLabel}`, { status: String(d.activeLabel), ...dateParams }); }}>
+                  onClick={(d) => { if (d?.activeLabel) drillJobs(`Jobs — ${d.activeLabel}`, { status: String(d.activeLabel), ...jobDateParams }); }}>
                   <CartesianGrid {...gridStyle} horizontal={false} />
                   <XAxis type="number" tick={axisTickStyle} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={axisTickStyle} width={80} />
@@ -593,7 +592,7 @@ export default function ReportsPage() {
             </div>
             <div>
               {jobsByStatus.map((r: StatusRow) => (
-                <div key={r.status} onClick={() => drillJobs(`Jobs — ${r.status}`, { status: r.status, ...dateParams })}
+                <div key={r.status} onClick={() => drillJobs(`Jobs — ${r.status}`, { status: r.status, ...jobDateParams })}
                   style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "12px 16px", marginBottom: 8, borderLeft: `4px solid ${STATUS_COLOR[r.status] ?? "#868e96"}`, cursor: "pointer", transition: "box-shadow 0.15s" }}
                   onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.12)")}
                   onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
@@ -672,7 +671,7 @@ export default function ReportsPage() {
               </tr></thead>
               <tbody>
                 {outstanding.invoices.map((i: OutstandingInvoice) => (
-                  <tr key={i.id} onClick={() => drillInvoices(`Invoices — ${i.client_name}`, { clientId: "" })} style={{ borderBottom: "1px solid #f0f0f0", background: i.urgency === "overdue" ? "#fff5f5" : "#fff", cursor: "pointer" }}
+                  <tr key={i.id} onClick={() => drillInvoices(`Invoices — ${i.client_name}`, { clientId: (i as unknown as { client_id: string }).client_id })} style={{ borderBottom: "1px solid #f0f0f0", background: i.urgency === "overdue" ? "#fff5f5" : "#fff", cursor: "pointer" }}
                     onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")} onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
                     <td style={{ padding: "12px 16px", fontWeight: 500 }}>{i.client_name}</td>
                     <td style={{ padding: "12px 16px", fontSize: 13 }}>#{i.invoice_number}</td>
@@ -700,7 +699,7 @@ export default function ReportsPage() {
                   <PieChart width={180} height={180}>
                     <Pie data={pieData} cx={90} cy={90} innerRadius={44} outerRadius={78} dataKey="value" paddingAngle={3}
                       style={{ cursor: "pointer" }}
-                      onClick={(entry: { name: string }) => { const urgency = Object.entries(PIE_OUTSTANDING_LABELS).find(([, v]) => v === entry.name)?.[0]; if (urgency) drillInvoices(`Outstanding — ${entry.name}`, { status: urgency === "overdue" ? "partially_paid,issued" : "issued" }); }}>
+                      onClick={(entry: { name: string }) => { drillInvoices(`Outstanding — ${entry.name}`, {}); }}>
                       {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Pie>
                     <Tooltip formatter={(v) => moneyFmt(v as number)} />
@@ -737,7 +736,7 @@ export default function ReportsPage() {
               <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Quoted vs Actual Cost per Job</div>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={profitability.jobs.map((j: ProfitabilityJob) => ({ name: j.title ? j.title.slice(0, 15) : `#${j.job_number}`, jobId: j.id, jobNumber: j.job_number, Quoted: Number(j.quoted_price) || 0, "Actual Cost": Number(j.computed_cost) || 0 }))} margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
-                  onClick={(d) => { const j = profitability.jobs.find((x: ProfitabilityJob) => (x.title ? x.title.slice(0,15) : `#${x.job_number}`) === d?.activeLabel); if (j) drillJobs(`Job #${j.job_number} — ${j.title || ""}`, { jobId: j.id }); }}
+                  onClick={(d) => { const j = profitability.jobs.find((x: ProfitabilityJob) => (x.title ? x.title.slice(0,15) : `#${x.job_number}`) === d?.activeLabel); if (j) drillJobs(`Job #${j.job_number} — ${j.title || ""}`, { search: String(j.job_number) }); }}
                   style={{ cursor: "pointer" }}>
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="name" tick={axisTickStyle} />
@@ -758,7 +757,7 @@ export default function ReportsPage() {
             </tr></thead>
             <tbody>
               {profitability.jobs.map((j: ProfitabilityJob) => (
-                <tr key={j.id} onClick={() => drillJobs(`Job #${j.job_number} — ${j.title}`, { jobId: j.id })} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer" }}
+                <tr key={j.id} onClick={() => drillJobs(`Job #${j.job_number} — ${j.title}`, { search: String(j.job_number) })} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer" }}
                   onMouseEnter={e => (e.currentTarget.style.background = "#faf5ff")} onMouseLeave={e => (e.currentTarget.style.background = "")}>
                   <td style={{ padding: "12px 16px", fontSize: 13, color: "#888" }}>#{j.job_number}</td>
                   <td style={{ padding: "12px 16px", fontWeight: 500 }}>{j.title}</td>
@@ -827,7 +826,7 @@ export default function ReportsPage() {
             <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Jobs per Machine</div>
             <ResponsiveContainer width="100%" height={Math.max(180, machines.length * 48)}>
               <BarChart data={machines.map((m: MachineRow) => ({ name: m.machine_name, Jobs: Number(m.total_jobs) }))} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
-                onClick={(d) => { const m = machines.find((x: MachineRow) => x.machine_name === d?.activeLabel); if (m) drillJobs(`Jobs on ${m.machine_name}`, { machineId: m.machine_id, ...dateParams }); }}>
+                onClick={(d) => { const m = machines.find((x: MachineRow) => x.machine_name === d?.activeLabel); if (m) drillJobs(`Jobs on ${m.machine_name}`, { machineId: m.machine_id, ...jobDateParams }); }}>
                 <CartesianGrid {...gridStyle} horizontal={false} />
                 <XAxis type="number" tick={axisTickStyle} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" tick={axisTickStyle} width={110} />
@@ -838,7 +837,7 @@ export default function ReportsPage() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 12 }}>
             {machines.map((m: MachineRow) => (
-              <div key={m.machine_id} onClick={() => drillJobs(`Jobs on ${m.machine_name}`, { machineId: m.machine_id, ...dateParams })}
+              <div key={m.machine_id} onClick={() => drillJobs(`Jobs on ${m.machine_name}`, { machineId: m.machine_id, ...jobDateParams })}
                 style={{ background: "#fff", padding: 18, borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,.06)", borderTop: "3px solid #7c3aed", cursor: "pointer" }}
                 onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 4px 12px rgba(124,58,237,0.15)")} onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.06)")}>
                 <div style={{ fontWeight: 700, marginBottom: 8 }}>{m.machine_name}</div>
@@ -854,40 +853,6 @@ export default function ReportsPage() {
       {/* 9. Client Jobs */}
       {activeTab === "client-jobs" && <ClientJobsReport />}
 
-      {/* 8. Staff Output */}
-      {activeTab === "staff" && staff && staff.length > 0 && (
-        <div style={{ marginBottom: 32 }}>
-          {sectionHead("Staff Output",
-            <button className="no-print" onClick={() => exportCsv("staff-output", staff)} style={exportBtnStyle}>⬇ Export</button>
-          )}
-          <div style={cardStyle}>
-            <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Jobs per Operator</div>
-            <ResponsiveContainer width="100%" height={Math.max(180, staff.length * 44)}>
-              <BarChart data={staff.map((r: StaffRow) => ({ name: r.operator_name, Total: Number(r.total_jobs), Completed: Number(r.completed_jobs) }))} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
-                onClick={(d) => { const s = staff.find((x: StaffRow) => x.operator_name === d?.activeLabel); if (s) drillJobs(`Jobs by ${s.operator_name}`, { assignedOperatorId: s.operator_id, ...dateParams }); }}>
-                <CartesianGrid {...gridStyle} horizontal={false} />
-                <XAxis type="number" tick={axisTickStyle} allowDecimals={false} />
-                <YAxis type="category" dataKey="name" tick={axisTickStyle} width={110} />
-                <Tooltip formatter={(v) => countFmt(v as number)} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="Total" fill="#7c3aed" radius={[0, 3, 3, 0]} />
-                <Bar dataKey="Completed" fill="#10b981" radius={[0, 3, 3, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 12 }}>
-            {staff.map((r: StaffRow) => (
-              <div key={r.operator_id} onClick={() => drillJobs(`Jobs by ${r.operator_name}`, { assignedOperatorId: r.operator_id, ...dateParams })}
-                style={{ background: "#fff", padding: 18, borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,.06)", borderTop: "3px solid #10b981", cursor: "pointer" }}
-                onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 4px 12px rgba(16,185,129,0.15)")} onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.06)")}>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>{r.operator_name}</div>
-                <div style={{ fontSize: 13, color: "#555", marginBottom: 4 }}>Total Jobs: <strong>{r.total_jobs}</strong></div>
-                <div style={{ fontSize: 13, color: "#2b8a3e" }}>Completed: <strong>{r.completed_jobs}</strong></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

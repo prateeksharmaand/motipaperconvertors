@@ -126,6 +126,7 @@ router.get("/outstanding-payments", requirePermission("reports.view_financial"),
       "invoices.balance_due",
       "invoices.due_date",
       "invoices.issue_date",
+      "invoices.client_id",
       "clients.name as client_name",
       "clients.phone as client_phone",
       db.raw(`
