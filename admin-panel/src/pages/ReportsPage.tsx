@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
 import { exportToCsv } from "../lib/exportCsv.ts";
@@ -139,7 +139,251 @@ const TABS = [
   { key: "paper",       label: "Paper Usage" },
   { key: "machines",    label: "Machines" },
   { key: "staff",       label: "Staff Output" },
+  { key: "client-jobs", label: "Client Jobs" },
 ];
+
+const JOB_STATUS_COLORS: Record<string, string> = {
+  draft: "#868e96", enquiry: "#adb5bd", quotation: "#1971c2", design: "#7048e8",
+  approval: "#f59f00", print: "#2f9e44", finishing: "#0c8599", qc: "#e67700",
+  ready: "#2b8a3e", delivered: "#1864ab", cancelled: "#c92a2a",
+};
+
+function ShimmerRow({ cols }: { cols: number }) {
+  return (
+    <>{Array.from({ length: 6 }).map((_, i) => (
+      <tr key={i}>
+        {Array.from({ length: cols }).map((__, j) => (
+          <td key={j} style={{ padding: "12px 16px" }}>
+            <div style={{ height: 14, borderRadius: 4, background: "linear-gradient(90deg,#f3f4f6 25%,#e5e7eb 50%,#f3f4f6 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.2s infinite" }} />
+          </td>
+        ))}
+      </tr>
+    ))}</>
+  );
+}
+
+function ClientJobsReport() {
+  const [clientId, setClientId] = useState("");
+  const [status, setStatus] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const { data: clients = [] } = useQuery<{ id: string; name: string; company_name: string }[]>({
+    queryKey: ["clients-mini-report"],
+    queryFn: () => api.get("/admin/clients", { params: { limit: 500 } }).then(r => r.data.data ?? []),
+  });
+
+  const clientOptions = useMemo(() => clients.map(c => ({ value: c.id, label: c.company_name ? `${c.company_name} (${c.name})` : c.name })), [clients]);
+  const [clientSearch, setClientSearch] = useState("");
+
+  const params = { clientId, status: status || undefined, from: from || undefined, to: to || undefined, search: search || undefined, page, limit: 20, sortBy, sortDir };
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["report-client-jobs", params],
+    queryFn: () => api.get("/admin/reports/client-jobs", { params }).then(r => r.data),
+    enabled: !!clientId,
+  });
+
+  const jobs: Record<string, unknown>[] = data?.data ?? [];
+  const summary = data?.summary;
+  const statusBreakdown: { status: string; count: number }[] = data?.statusBreakdown ?? [];
+  const totalPages: number = data?.totalPages ?? 1;
+  const total: number = data?.total ?? 0;
+
+  function toggleSort(col: string) {
+    if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortBy(col); setSortDir("desc"); }
+    setPage(1);
+  }
+
+  function SortIcon({ col }: { col: string }) {
+    if (sortBy !== col) return <span style={{ color: "#d1d5db", marginLeft: 4 }}>↕</span>;
+    return <span style={{ color: "#7c3aed", marginLeft: 4 }}>{sortDir === "asc" ? "↑" : "↓"}</span>;
+  }
+
+  const thStyle: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "2px solid #e5e7eb", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
+  const tdStyle: React.CSSProperties = { padding: "11px 14px", fontSize: 13, borderBottom: "1px solid #f3f4f6" };
+
+  return (
+    <div>
+      {/* shimmer keyframes */}
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+
+      {/* Client selector + filters */}
+      <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e5e7eb", padding: "16px 20px", marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <label style={{ flex: "0 0 300px" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 4 }}>CLIENT *</span>
+            <input
+              value={clientSearch}
+              onChange={e => setClientSearch(e.target.value)}
+              placeholder="Search client…"
+              style={{ padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "7px 7px 0 0", fontSize: 13, width: "100%", boxSizing: "border-box", borderBottom: "none" }}
+            />
+            <select
+              value={clientId}
+              onChange={e => { setClientId(e.target.value); setPage(1); }}
+              size={4}
+              style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: "0 0 7px 7px", fontSize: 13, padding: "4px 0" }}
+            >
+              <option value="">— select client —</option>
+              {clientOptions.filter(o => o.label.toLowerCase().includes(clientSearch.toLowerCase())).map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 4 }}>STATUS</span>
+            <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }} style={{ padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 7, fontSize: 13, minWidth: 130 }}>
+              <option value="">All Statuses</option>
+              {["draft","enquiry","quotation","design","approval","print","finishing","qc","ready","delivered","cancelled"].map(s => (
+                <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 4 }}>FROM</span>
+            <input type="date" value={from} onChange={e => { setFrom(e.target.value); setPage(1); }} style={{ padding: "8px 10px", border: "1px solid #e5e7eb", borderRadius: 7, fontSize: 13 }} />
+          </label>
+          <label>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 4 }}>TO</span>
+            <input type="date" value={to} onChange={e => { setTo(e.target.value); setPage(1); }} style={{ padding: "8px 10px", border: "1px solid #e5e7eb", borderRadius: 7, fontSize: 13 }} />
+          </label>
+          <label style={{ flex: "1 1 200px" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 4 }}>SEARCH</span>
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search title, job type…" style={{ padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 7, fontSize: 13, width: "100%" }} />
+          </label>
+          {(status || from || to || search) && (
+            <button onClick={() => { setStatus(""); setFrom(""); setTo(""); setSearch(""); setPage(1); }}
+              style={{ padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 7, background: "#fff", fontSize: 13, cursor: "pointer", color: "#6b7280" }}>
+              Clear Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {!clientId && (
+        <div style={{ background: "#f9fafb", borderRadius: 10, border: "1px dashed #d1d5db", padding: "48px 32px", textAlign: "center", color: "#9ca3af", fontSize: 15 }}>
+          Select a client above to view their job cards
+        </div>
+      )}
+
+      {clientId && summary && (
+        <>
+          {/* Summary stat cards */}
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
+            <StatCard label="Total Jobs" value={String(summary.total_jobs ?? 0)} color="#7c3aed" />
+            <StatCard label="Active Jobs" value={String(summary.active_jobs ?? 0)} color="#1971c2" />
+            <StatCard label="Delivered" value={String(summary.delivered_jobs ?? 0)} color="#2b8a3e" />
+            <StatCard label="Total Revenue" value={"₹" + Number(summary.total_revenue ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })} color="#0c8599" />
+            <StatCard label="Total Advance" value={"₹" + Number(summary.total_advance ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })} color="#e67700" />
+          </div>
+
+          {/* Charts */}
+          {statusBreakdown.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+              <div style={cardStyle}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Jobs by Status</div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={statusBreakdown.map(s => ({ name: s.status, Jobs: Number(s.count) }))} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                    <CartesianGrid stroke="#f3f4f6" strokeDasharray="3 3" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6b7280" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="Jobs" radius={[4, 4, 0, 0]}>
+                      {statusBreakdown.map((s, i) => <Cell key={i} fill={JOB_STATUS_COLORS[s.status] ?? "#7c3aed"} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={cardStyle}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 12 }}>Status Distribution</div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie data={statusBreakdown.map(s => ({ name: s.status, value: Number(s.count) }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, value }) => `${name}(${value})`} labelLine={false}>
+                      {statusBreakdown.map((s, i) => <Cell key={i} fill={JOB_STATUS_COLORS[s.status] ?? "#7c3aed"} />)}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Table */}
+          <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e5e7eb", overflow: "hidden", marginBottom: 16 }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontWeight: 700, fontSize: 14 }}>Job Cards <span style={{ color: "#9ca3af", fontWeight: 400 }}>({total})</span></span>
+              {jobs.length > 0 && (
+                <button onClick={() => exportToCsv(`client-jobs-${new Date().toISOString().slice(0,10)}.csv`, jobs)}
+                  style={{ padding: "6px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: "pointer", background: "#fff", fontSize: 12, fontWeight: 500 }}>⬇ Export</button>
+              )}
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#f9fafb" }}>
+                    <th style={thStyle} onClick={() => toggleSort("job_number")}>#<SortIcon col="job_number" /></th>
+                    <th style={thStyle}>Title</th>
+                    <th style={thStyle} onClick={() => toggleSort("status")}>Status<SortIcon col="status" /></th>
+                    <th style={thStyle} onClick={() => toggleSort("quantity")}>Qty<SortIcon col="quantity" /></th>
+                    <th style={thStyle}>Machine</th>
+                    <th style={thStyle} onClick={() => toggleSort("quoted_price")}>Quoted<SortIcon col="quoted_price" /></th>
+                    <th style={thStyle}>Advance</th>
+                    <th style={thStyle} onClick={() => toggleSort("due_date")}>Due Date<SortIcon col="due_date" /></th>
+                    <th style={thStyle} onClick={() => toggleSort("created_at")}>Created<SortIcon col="created_at" /></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading && <ShimmerRow cols={9} />}
+                  {!isLoading && jobs.map((j, i) => (
+                    <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                      <td style={{ ...tdStyle, fontWeight: 700, color: "#7c3aed" }}>#{String(j.job_number)}</td>
+                      <td style={{ ...tdStyle, maxWidth: 180 }}>{String(j.job_type || j.title || "—")}</td>
+                      <td style={tdStyle}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: (JOB_STATUS_COLORS[String(j.status)] ?? "#868e96") + "22", color: JOB_STATUS_COLORS[String(j.status)] ?? "#868e96" }}>
+                          {String(j.status ?? "—").toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>{j.quantity != null ? String(j.quantity) + " pcs" : "—"}</td>
+                      <td style={tdStyle}>{String(j.machine_name || "—")}</td>
+                      <td style={tdStyle}>{j.quoted_price != null ? "₹" + Number(j.quoted_price).toLocaleString("en-IN") : "—"}</td>
+                      <td style={tdStyle}>{j.advance_amount != null ? "₹" + Number(j.advance_amount).toLocaleString("en-IN") : "—"}</td>
+                      <td style={tdStyle}>{j.due_date ? fmtDate(String(j.due_date)) : "—"}</td>
+                      <td style={tdStyle}>{j.created_at ? fmtDate(String(j.created_at)) : "—"}</td>
+                    </tr>
+                  ))}
+                  {!isLoading && jobs.length === 0 && (
+                    <tr><td colSpan={9} style={{ ...tdStyle, textAlign: "center", color: "#9ca3af", padding: 32 }}>No jobs found for this client</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ padding: "6px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: page === 1 ? "default" : "pointer", background: "#fff", fontSize: 13, opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
+              {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+                const p = totalPages <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= totalPages - 3 ? totalPages - 6 + i : page - 3 + i;
+                return (
+                  <button key={p} onClick={() => setPage(p)} style={{ padding: "6px 12px", border: "1px solid " + (p === page ? "#7c3aed" : "#e5e7eb"), borderRadius: 7, cursor: "pointer", background: p === page ? "#7c3aed" : "#fff", color: p === page ? "#fff" : "#374151", fontSize: 13, fontWeight: p === page ? 700 : 400 }}>{p}</button>
+                );
+              })}
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ padding: "6px 14px", border: "1px solid #e5e7eb", borderRadius: 7, cursor: page === totalPages ? "default" : "pointer", background: "#fff", fontSize: 13, opacity: page === totalPages ? 0.4 : 1 }}>Next →</button>
+              <span style={{ fontSize: 12, color: "#9ca3af", marginLeft: 4 }}>Page {page} of {totalPages} · {total} jobs</span>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 // ── main ──────────────────────────────────────────────────
 export default function ReportsPage() {
@@ -553,6 +797,9 @@ export default function ReportsPage() {
           </div>
         </div>
       )}
+
+      {/* 9. Client Jobs */}
+      {activeTab === "client-jobs" && <ClientJobsReport />}
 
       {/* 8. Staff Output */}
       {activeTab === "staff" && staff && staff.length > 0 && (

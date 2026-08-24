@@ -112,7 +112,7 @@ router.get("/machine-utilization", requirePermission("production.view"), async (
 });
 
 // ── GET /reports/outstanding-payments ────────────────────
-router.get("/outstanding-payments", requirePermission("billing.view"), async (req, res) => {
+router.get("/outstanding-payments", requirePermission("reports.view_financial"), async (req, res) => {
   const tenantId = req.user.tenantId!;
   const invoices = await db("invoices")
     .where({ "invoices.tenant_id": tenantId })
@@ -284,6 +284,66 @@ router.get("/summary", requirePermission("jobs.view"), async (req, res) => {
     jobs: jobStats,
     billing: billingStats,
     low_stock_alerts: Number(stockAlerts.count),
+  });
+});
+
+// ── GET /reports/client-jobs ──────────────────────────────
+router.get("/client-jobs", requirePermission("jobs.view"), async (req, res) => {
+  const tenantId = req.user.tenantId!;
+  const { clientId, status, from, to, search, page = "1", limit = "20", sortBy = "created_at", sortDir = "desc" } = req.query as Record<string, string>;
+
+  if (!clientId) { res.status(400).json({ error: "clientId is required" }); return; }
+
+  const pageNum = Math.max(1, parseInt(page));
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+  const offset = (pageNum - 1) * limitNum;
+
+  let base = db("job_cards")
+    .where({ "job_cards.tenant_id": tenantId, "job_cards.client_id": clientId })
+    .leftJoin("machines", "job_cards.machine_id", "machines.id")
+    .select("job_cards.*", "machines.name as machine_name");
+
+  if (status) base = base.where("job_cards.status", status);
+  if (from)   base = base.where("job_cards.created_at", ">=", from);
+  if (to)     base = base.where("job_cards.created_at", "<=", to);
+  if (search) base = base.where(function () {
+    this.whereILike("job_cards.title", `%${search}%`)
+        .orWhereILike("job_cards.job_type", `%${search}%`);
+  });
+
+  const allowedSort = ["created_at", "due_date", "job_number", "status", "quoted_price", "quantity"];
+  const sortCol = allowedSort.includes(sortBy) ? `job_cards.${sortBy}` : "job_cards.created_at";
+  const dir = sortDir === "asc" ? "asc" : "desc";
+
+  const [{ count }] = await base.clone().clearSelect().count("job_cards.id as count");
+  const jobs = await base.clone().orderBy(sortCol, dir).limit(limitNum).offset(offset);
+
+  // Summary stats
+  const [stats] = await db("job_cards")
+    .where({ tenant_id: tenantId, client_id: clientId })
+    .select(
+      db.raw("COUNT(*) as total_jobs"),
+      db.raw("COUNT(CASE WHEN status NOT IN ('delivered','cancelled') THEN 1 END) as active_jobs"),
+      db.raw("COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_jobs"),
+      db.raw("COALESCE(SUM(quoted_price), 0) as total_revenue"),
+      db.raw("COALESCE(SUM(advance_amount), 0) as total_advance"),
+    );
+
+  // Jobs by status breakdown
+  const statusBreakdown = await db("job_cards")
+    .where({ tenant_id: tenantId, client_id: clientId })
+    .groupBy("status")
+    .select("status", db.raw("COUNT(*) as count"));
+
+  const total = Number(count);
+  res.json({
+    data: jobs,
+    page: pageNum,
+    limit: limitNum,
+    total,
+    totalPages: Math.ceil(total / limitNum),
+    summary: stats,
+    statusBreakdown,
   });
 });
 
