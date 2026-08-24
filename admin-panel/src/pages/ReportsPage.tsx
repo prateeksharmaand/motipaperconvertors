@@ -347,7 +347,7 @@ function ClientJobsReport() {
                       data={statusBreakdown.map(s => ({ name: s.status, value: Number(s.count) }))}
                       dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}
                       label={({ name, value }) => `${name}(${value})`} labelLine={false}
-                      onClick={(entry: { name: string }) => { setStatus(st => st === entry.name ? "" : entry.name); setPage(1); }}
+                      onClick={(entry) => { const name = String(entry?.name ?? ""); if (name) { setStatus(st => st === name ? "" : name); setPage(1); } }}
                       style={{ cursor: "pointer" }}
                     >
                       {statusBreakdown.map((s, i) => (
