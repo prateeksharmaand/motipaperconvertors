@@ -86,17 +86,6 @@ class _DashboardViewState extends State<_DashboardView> {
                 ])))
               else if (state is DashboardLoaded) ...[
 
-                // ── Charts ───────────────────────────────────
-                if (state.jobsByStatus.isNotEmpty || state.monthlyJobs.isNotEmpty)
-                  SliverToBoxAdapter(child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                    child: Text('Analytics', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                  )),
-                if (state.jobsByStatus.isNotEmpty)
-                  SliverToBoxAdapter(child: _StatusDonutChart(data: state.jobsByStatus)),
-                if (state.monthlyJobs.isNotEmpty)
-                  SliverToBoxAdapter(child: _MonthlyBarChart(data: state.monthlyJobs)),
-
                 // ── Stats Cards ──────────────────────────────
                 SliverToBoxAdapter(child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
@@ -116,6 +105,17 @@ class _DashboardViewState extends State<_DashboardView> {
                     ]),
                   ),
                 ),
+
+                // ── Charts ───────────────────────────────────
+                if (state.jobsByStatus.isNotEmpty || state.monthlyJobs.isNotEmpty)
+                  SliverToBoxAdapter(child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                    child: Text('Analytics', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  )),
+                if (state.jobsByStatus.isNotEmpty)
+                  SliverToBoxAdapter(child: _StatusDonutChart(data: state.jobsByStatus)),
+                if (state.monthlyJobs.isNotEmpty)
+                  SliverToBoxAdapter(child: _MonthlyBarChart(data: state.monthlyJobs)),
 
                 // ── Recent Jobs ──────────────────────────────
                 SliverToBoxAdapter(child: Padding(
