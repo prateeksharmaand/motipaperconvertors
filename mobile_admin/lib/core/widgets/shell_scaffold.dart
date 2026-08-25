@@ -61,7 +61,7 @@ class ShellScaffold extends StatelessWidget {
   }
 }
 
-// ── Drawer layout (phones) ─────────────────────────────────
+// ── Drawer + Bottom Nav layout (phones) ───────────────────
 class _DrawerLayout extends StatelessWidget {
   final List<_NavItem> items;
   final Widget child;
@@ -69,9 +69,77 @@ class _DrawerLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final path = _currentPath(context);
+
+    final bottomItems = <_NavItem>[
+      items.firstWhere((i) => i.path == '/'),
+      if (items.any((i) => i.path == '/jobs')) items.firstWhere((i) => i.path == '/jobs'),
+      if (items.any((i) => i.path == '/billing')) items.firstWhere((i) => i.path == '/billing'),
+      if (items.any((i) => i.path == '/clients')) items.firstWhere((i) => i.path == '/clients'),
+    ];
+
+    final selectedIndex = bottomItems.indexWhere((i) => _isActive(i, path));
+
     return Scaffold(
       drawer: _AppDrawer(items: items),
-      body: child,
+      body: SafeArea(bottom: false, child: child),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: const Border(top: BorderSide(color: AppColors.border, width: 1)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4))],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(children: [
+              ...bottomItems.asMap().entries.map((e) {
+                final active = selectedIndex == e.key;
+                final item = e.value;
+                return Expanded(child: _BottomNavItem(
+                  icon: active ? item.activeIcon : item.icon,
+                  label: item.label,
+                  active: active,
+                  onTap: () => context.go(item.path),
+                ));
+              }),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _BottomNavItem({required this.icon, required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            color: active ? const Color(0xFFF5F0FF) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Icon(icon, color: active ? const Color(0xFF7C3AED) : AppColors.textMuted, size: 22),
+        ),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(
+          fontSize: 10, fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+          color: active ? const Color(0xFF7C3AED) : AppColors.textMuted,
+        )),
+      ]),
     );
   }
 }
