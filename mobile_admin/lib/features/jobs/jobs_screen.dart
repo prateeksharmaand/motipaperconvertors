@@ -148,38 +148,47 @@ class _JobsViewState extends State<_JobsView> {
         return Padding(
           padding: const EdgeInsets.all(20),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Sort Jobs', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            const Text('Sort Jobs', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF1F2937))),
             const SizedBox(height: 16),
-            const Text('Sort By', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+            const Text('Sort By', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: sortOptions.map(((String, String) opt) {
               final selected = sortBy == opt.$1;
               return ChoiceChip(
-                label: Text(opt.$2, style: TextStyle(fontSize: 12, color: selected ? Colors.white : AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                label: Text(opt.$2, style: TextStyle(fontSize: 12, color: selected ? Colors.white : const Color(0xFF1F2937), fontWeight: FontWeight.w600)),
                 selected: selected,
                 onSelected: (_) => setM(() => sortBy = opt.$1),
-                selectedColor: AppColors.primary,
+                selectedColor: const Color(0xFF7C3AED),
+                backgroundColor: const Color(0xFFF5F0FF),
+                side: BorderSide(color: selected ? const Color(0xFF7C3AED) : AppColors.border),
               );
             }).toList()),
             const SizedBox(height: 16),
-            const Text('Direction', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+            const Text('Direction', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
             const SizedBox(height: 8),
             Row(children: [
               Expanded(child: OutlinedButton(
                 onPressed: () => setM(() => sortDir = 'desc'),
-                style: OutlinedButton.styleFrom(side: BorderSide(color: sortDir == 'desc' ? AppColors.primary : AppColors.border), backgroundColor: sortDir == 'desc' ? AppColors.primaryLight : null),
-                child: Text('Newest First', style: TextStyle(color: sortDir == 'desc' ? AppColors.primary : AppColors.textMuted)),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: sortDir == 'desc' ? const Color(0xFF7C3AED) : AppColors.border, width: sortDir == 'desc' ? 2 : 1),
+                  backgroundColor: sortDir == 'desc' ? const Color(0xFFF5F0FF) : null,
+                ),
+                child: Text('Newest First', style: TextStyle(color: sortDir == 'desc' ? const Color(0xFF7C3AED) : const Color(0xFF1F2937), fontWeight: sortDir == 'desc' ? FontWeight.w700 : FontWeight.normal)),
               )),
               const SizedBox(width: 12),
               Expanded(child: OutlinedButton(
                 onPressed: () => setM(() => sortDir = 'asc'),
-                style: OutlinedButton.styleFrom(side: BorderSide(color: sortDir == 'asc' ? AppColors.primary : AppColors.border), backgroundColor: sortDir == 'asc' ? AppColors.primaryLight : null),
-                child: Text('Oldest First', style: TextStyle(color: sortDir == 'asc' ? AppColors.primary : AppColors.textMuted)),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: sortDir == 'asc' ? const Color(0xFF7C3AED) : AppColors.border, width: sortDir == 'asc' ? 2 : 1),
+                  backgroundColor: sortDir == 'asc' ? const Color(0xFFF5F0FF) : null,
+                ),
+                child: Text('Oldest First', style: TextStyle(color: sortDir == 'asc' ? const Color(0xFF7C3AED) : const Color(0xFF1F2937), fontWeight: sortDir == 'asc' ? FontWeight.w700 : FontWeight.normal)),
               )),
             ]),
             const SizedBox(height: 20),
             SizedBox(width: double.infinity, child: ElevatedButton(
               onPressed: () { Navigator.pop(ctx); bloc.add(JobsSortChanged(sortBy, sortDir)); },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED)),
               child: const Text('Apply Sort'),
             )),
           ]),
