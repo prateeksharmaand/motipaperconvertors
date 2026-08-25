@@ -3,8 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
-import '../auth/auth_bloc.dart';
-import '../auth/auth_state.dart';
 import 'dashboard_bloc.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -35,9 +33,6 @@ class _DashboardView extends StatelessWidget {
         builder: (context, state) => RefreshIndicator(
           onRefresh: () async => context.read<DashboardBloc>().add(const DashboardRefreshRequested()),
           child: CustomScrollView(slivers: [
-            // ── Hero Banner ──────────────────────────────
-            SliverToBoxAdapter(child: _HeroBanner(state: state)),
-
             if (state is DashboardLoading)
               const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
             else if (state is DashboardError)
@@ -119,62 +114,6 @@ class _DashboardView extends StatelessWidget {
   }
 }
 
-// ── Hero Banner ───────────────────────────────────────────
-class _HeroBanner extends StatelessWidget {
-  final DashboardState state;
-  const _HeroBanner({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    final loaded = state is DashboardLoaded ? state as DashboardLoaded : null;
-    final authState = context.watch<AuthBloc>().state;
-    final role = authState is AuthAuthenticated ? authState.user.role : 'admin';
-    final initial = role.isNotEmpty ? role[0].toUpperCase() : 'A';
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1F2937), Color(0xFF374151)],
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          CircleAvatar(backgroundColor: Colors.white.withValues(alpha: 0.2), radius: 20,
-            child: Text(initial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16))),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Good Day,', style: TextStyle(color: Colors.white70, fontSize: 12)),
-            Text('MotiPaper ${role[0].toUpperCase()}${role.substring(1).replaceAll('_', ' ')}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15), overflow: TextOverflow.ellipsis),
-          ])),
-        ]),
-        const SizedBox(height: 20),
-        // Total billed card
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-          child: Row(children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Total Billed', style: TextStyle(color: Colors.white70, fontSize: 12)),
-              Text(
-                loaded != null ? Fmt.money(loaded.summary.totalBilled) : '—',
-                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
-              ),
-            ])),
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              const Text('Total Jobs', style: TextStyle(color: Colors.white70, fontSize: 12)),
-              Text(
-                loaded != null ? '${loaded.summary.totalJobs}' : '—',
-                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
-              ),
-            ]),
-          ]),
-        ),
-      ]),
-    );
-  }
-}
 
 // ── Stat Card ─────────────────────────────────────────────
 class _StatCard extends StatelessWidget {
