@@ -47,13 +47,13 @@ class _JobsViewState extends State<_JobsView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF7C3AED),
         onPressed: () async {
           final created = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => BlocProvider.value(value: context.read<JobsBloc>(), child: const JobFormScreen())));
           if (created == true && context.mounted) context.read<JobsBloc>().add(const JobsLoadRequested());
         },
-        icon: const Icon(Icons.add),
-        label: const Text('New Job'),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
       ),
       body: BlocBuilder<JobsBloc, JobsState>(
         builder: (context, state) {
