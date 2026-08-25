@@ -106,7 +106,7 @@ class _DashboardViewState extends State<_DashboardView> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverGrid(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.65,
+                      crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.5,
                     ),
                     delegate: SliverChildListDelegate([
                       _StatCard(label: 'Active Jobs', value: '${state.summary.activeJobs}', icon: Icons.pending_actions_rounded, color: AppColors.primary),
@@ -206,8 +206,9 @@ class _StatCard extends StatelessWidget {
       Container(padding: const EdgeInsets.all(7), decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, color: color, size: 18)),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color)),
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w500)),
+        FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft,
+          child: Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color))),
+        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
       ]),
     ]),
   );
