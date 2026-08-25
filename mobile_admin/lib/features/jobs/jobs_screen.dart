@@ -139,12 +139,12 @@ class _JobsViewState extends State<_JobsView> {
       ('status', 'Status'),
       ('quoted_price', 'Price'),
     ];
+    String sortBy = state.sortBy;
+    String sortDir = state.sortDir;
     showModalBottomSheet(
       context: ctx,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => StatefulBuilder(builder: (ctx, setM) {
-        String sortBy = state.sortBy;
-        String sortDir = state.sortDir;
         return Padding(
           padding: const EdgeInsets.all(20),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
