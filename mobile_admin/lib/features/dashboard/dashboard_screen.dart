@@ -32,6 +32,7 @@ class _DashboardView extends StatelessWidget {
               pinned: true,
               backgroundColor: const Color(0xFF1F2937),
               surfaceTintColor: Colors.transparent,
+              title: const Text('Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
               flexibleSpace: FlexibleSpaceBar(
                 background: _HeroBanner(state: state),
                 collapseMode: CollapseMode.pin,
@@ -155,7 +156,6 @@ class _HeroBanner extends StatelessWidget {
             const Text('Good Day,', style: TextStyle(color: Colors.white70, fontSize: 12)),
             Text('MotiPaper ${role[0].toUpperCase()}${role.substring(1).replaceAll('_', ' ')}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15), overflow: TextOverflow.ellipsis),
           ])),
-          const Icon(Icons.print_rounded, color: Colors.white38, size: 32),
         ]),
         const SizedBox(height: 20),
         // Total billed card
