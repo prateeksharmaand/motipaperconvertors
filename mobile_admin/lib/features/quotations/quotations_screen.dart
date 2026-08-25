@@ -122,7 +122,7 @@ class _QuotationsViewState extends State<_QuotationsView> {
         body: RefreshIndicator(
           onRefresh: () async => context.read<QuotationsBloc>().add(const QuotationsLoadRequested()),
           child: CustomScrollView(controller: _scrollCtrl, slivers: [
-            SliverAppBar(floating: true, leading: IconButton(icon: const Icon(Icons.menu), color: AppColors.textPrimary, onPressed: () => drawerScaffoldKey.currentState?.openDrawer()), title: const Text('Quotations'), backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent),
+            SliverAppBar(pinned: true, leading: IconButton(icon: const Icon(Icons.menu), color: Colors.white, onPressed: () => drawerScaffoldKey.currentState?.openDrawer()), title: const Text('Quotations'), ),
             SliverToBoxAdapter(child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
               child: Text('${state.total} quotations', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),

@@ -148,8 +148,8 @@ class _ClientsViewState extends State<_ClientsView> {
           onRefresh: () async => context.read<ClientsBloc>().add(const ClientsLoadRequested()),
           child: CustomScrollView(controller: _scrollCtrl, slivers: [
             SliverAppBar(
-              floating: true, title: const Text('Clients'),
-              backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent,
+              pinned: true, title: const Text('Clients'),
+               
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(56),
                 child: Padding(

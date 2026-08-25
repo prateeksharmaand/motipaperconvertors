@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/widgets/app_shimmer.dart';
 import '../../core/widgets/shell_scaffold.dart';
 import 'dashboard_bloc.dart';
 
@@ -75,7 +76,18 @@ class _DashboardViewState extends State<_DashboardView> {
             onRefresh: () async => context.read<DashboardBloc>().add(const DashboardRefreshRequested()),
             child: CustomScrollView(controller: _scrollCtrl, slivers: [
               if (state is DashboardLoading)
-                const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+                SliverToBoxAdapter(child: Column(children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                    child: GridView.count(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.5, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+                      children: List.generate(4, (_) => const ShimmerStatCard())),
+                  ),
+                  const ShimmerCard(height: 180),
+                  const SizedBox(height: 12),
+                  const ShimmerCard(height: 180),
+                  const SizedBox(height: 12),
+                  ...List.generate(4, (_) => const Padding(padding: EdgeInsets.symmetric(vertical: 4, horizontal: 0), child: ShimmerListItem())),
+                ]))
               else if (state is DashboardError)
                 SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   const Icon(Icons.error_outline, size: 48, color: AppColors.error),

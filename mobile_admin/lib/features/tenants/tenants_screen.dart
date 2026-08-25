@@ -173,7 +173,7 @@ class _TenantsViewState extends State<_TenantsView> {
           onRefresh: () async => context.read<TenantsBloc>().add(const TenantsLoadRequested()),
           child: CustomScrollView(controller: _scrollCtrl, slivers: [
             SliverAppBar(
-              floating: true,
+              pinned: true,
               title: Row(children: [
                 const Text('Tenants'),
                 const SizedBox(width: 8),

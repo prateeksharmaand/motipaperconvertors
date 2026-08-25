@@ -272,8 +272,8 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
         appBar: AppBar(
           leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
           title: const Text('Billing'),
-          backgroundColor: AppColors.surface,
-          surfaceTintColor: Colors.transparent,
+          
+          
           bottom: TabBar(
             controller: _tabCtrl,
             tabs: const [Tab(text: 'Invoices'), Tab(text: 'Payments'), Tab(text: 'Ledger')],

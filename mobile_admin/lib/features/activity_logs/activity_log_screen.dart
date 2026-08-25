@@ -190,8 +190,8 @@ class _ActivityLogViewState extends State<_ActivityLogView> {
           onRefresh: () async => context.read<ActivityLogBloc>().add(const ActivityLogLoadRequested()),
           child: CustomScrollView(controller: _scrollCtrl, slivers: [
             SliverAppBar(
-              floating: true, title: const Text('Activity Log'),
-              backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent,
+              pinned: true, title: const Text('Activity Log'),
+               
               actions: [
                 if (state.hasActiveFilters)
                   TextButton(onPressed: () { _searchCtrl.clear(); context.read<ActivityLogBloc>().add(const ActivityLogFiltersCleared()); }, child: const Text('Clear', style: TextStyle(color: AppColors.error))),

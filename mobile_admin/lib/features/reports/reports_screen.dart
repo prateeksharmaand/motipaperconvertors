@@ -135,7 +135,7 @@ class _ReportsViewState extends State<_ReportsView> with SingleTickerProviderSta
         appBar: AppBar(
           leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
           title: const Text('Reports'),
-          backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent,
+           
           actions: [
             IconButton(icon: const Icon(Icons.refresh_outlined), onPressed: () => context.read<ReportsBloc>().add(const ReportsLoadRequested())),
             const SizedBox(width: 8),

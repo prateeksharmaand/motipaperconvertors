@@ -223,7 +223,7 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
               ),
             ],
           ]),
-          backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent,
+           
           bottom: TabBar(
             controller: _tabCtrl,
             tabs: const [Tab(text: 'Paper Stock'), Tab(text: 'Ink & Plates'), Tab(text: 'Transactions')],

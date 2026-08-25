@@ -119,7 +119,7 @@ class _MachinesView extends StatelessWidget {
         body: RefreshIndicator(
           onRefresh: () async => context.read<MachinesBloc>().add(const MachinesLoadRequested()),
           child: CustomScrollView(slivers: [
-            SliverAppBar(floating: true, leading: IconButton(icon: const Icon(Icons.menu), color: AppColors.textPrimary, onPressed: () => drawerScaffoldKey.currentState?.openDrawer()), title: const Text('Machines'), backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent),
+            SliverAppBar(pinned: true, leading: IconButton(icon: const Icon(Icons.menu), color: Colors.white, onPressed: () => drawerScaffoldKey.currentState?.openDrawer()), title: const Text('Machines'), ),
             if (state.isLoading)
               const SliverShimmerList(count: 5, itemBuilder: ShimmerCard.new)
             else if (state.machines.isEmpty)

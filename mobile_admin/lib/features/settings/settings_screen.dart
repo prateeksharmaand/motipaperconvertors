@@ -136,7 +136,7 @@ class _SettingsView extends StatelessWidget {
           child: CustomScrollView(slivers: [
             SliverAppBar(
               pinned: true, title: const Text('Settings'),
-              backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent,
+               
             ),
             if (state.isLoading)
               const SliverShimmerList(count: 5, itemBuilder: ShimmerCard.new)

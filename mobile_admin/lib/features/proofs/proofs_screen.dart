@@ -186,8 +186,8 @@ class _ProofsView extends StatelessWidget {
         appBar: AppBar(
           leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
           title: const Text('Proofs'),
-          backgroundColor: AppColors.surface,
-          surfaceTintColor: Colors.transparent,
+          
+          
         ),
         body: Column(children: [
           // Job selector

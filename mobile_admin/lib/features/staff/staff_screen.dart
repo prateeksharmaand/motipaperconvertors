@@ -193,8 +193,8 @@ class _StaffViewState extends State<_StaffView> {
           onRefresh: () async => context.read<StaffBloc>().add(const StaffLoadRequested()),
           child: CustomScrollView(slivers: [
             SliverAppBar(
-              floating: true, title: const Text('Staff'),
-              backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent,
+              pinned: true, title: const Text('Staff'),
+               
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(56),
                 child: Padding(

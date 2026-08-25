@@ -62,7 +62,7 @@ class _JobsViewState extends State<_JobsView> {
             child: CustomScrollView(controller: _scrollCtrl, slivers: [
               // AppBar
               SliverAppBar(
-                floating: true, pinned: false,
+                floating: false, pinned: true,
                 title: const Text('Job Cards'),
                 backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent,
                 actions: [
