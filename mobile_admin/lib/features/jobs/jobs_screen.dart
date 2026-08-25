@@ -94,6 +94,7 @@ class _JobsViewState extends State<_JobsView> {
               SliverAppBar(
                 floating: false, pinned: true,
                 title: const Text('Job Cards'),
+                leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
                 actions: [
                   if (state.hasActiveFilters)
                     TextButton(onPressed: () => context.read<JobsBloc>().add(const JobsFilterCleared()), child: const Text('Clear', style: TextStyle(color: AppColors.error))),
