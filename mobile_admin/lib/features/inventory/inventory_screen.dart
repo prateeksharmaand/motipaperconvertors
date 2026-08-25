@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../core/widgets/shell_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
@@ -210,6 +211,7 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
+          leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
           title: Row(children: [
             const Text('Inventory'),
             if (state.lowStockCount > 0) ...[

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/widgets/shell_scaffold.dart';
 import 'dashboard_bloc.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -24,6 +25,7 @@ class _DashboardView extends StatelessWidget {
         title: const Text('Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
         backgroundColor: const Color(0xFF1F2937),
         surfaceTintColor: Colors.transparent,
+        leading: IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
         actions: [
           IconButton(icon: const Icon(Icons.notifications_outlined, color: Colors.white), onPressed: () {}),
           const SizedBox(width: 8),

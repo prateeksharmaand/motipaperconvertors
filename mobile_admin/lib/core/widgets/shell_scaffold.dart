@@ -34,6 +34,9 @@ const _allNavItems = [
 ];
 
 
+// Global key so any screen can open the drawer
+final drawerScaffoldKey = GlobalKey<ScaffoldState>();
+
 String _currentPath(BuildContext context) => GoRouterState.of(context).matchedLocation;
 bool _isActive(_NavItem item, String path) =>
     item.path == path || (item.path != '/' && path.startsWith(item.path));
@@ -81,6 +84,7 @@ class _DrawerLayout extends StatelessWidget {
     final selectedIndex = bottomItems.indexWhere((i) => _isActive(i, path));
 
     return Scaffold(
+      key: drawerScaffoldKey,
       drawer: _AppDrawer(items: items),
       body: SafeArea(bottom: false, child: child),
       bottomNavigationBar: Container(

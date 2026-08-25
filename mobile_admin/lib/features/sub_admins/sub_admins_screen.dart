@@ -1,3 +1,4 @@
+import '../../core/widgets/shell_scaffold.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -147,7 +148,7 @@ class _SubAdminsView extends StatelessWidget {
         body: RefreshIndicator(
           onRefresh: () async => context.read<SubAdminsBloc>().add(const SubAdminsLoadRequested()),
           child: CustomScrollView(slivers: [
-            SliverAppBar(floating: true, title: const Text('Sub Admins'), backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent),
+            SliverAppBar(floating: true, leading: IconButton(icon: const Icon(Icons.menu), color: AppColors.textPrimary, onPressed: () => drawerScaffoldKey.currentState?.openDrawer()), title: const Text('Sub Admins'), backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent),
             if (state.isLoading)
               const SliverShimmerList(count: 6, itemBuilder: ShimmerRow.new)
             else if (state.admins.isEmpty)

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../core/widgets/shell_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
@@ -269,6 +270,7 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
+          leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
           title: const Text('Billing'),
           backgroundColor: AppColors.surface,
           surfaceTintColor: Colors.transparent,

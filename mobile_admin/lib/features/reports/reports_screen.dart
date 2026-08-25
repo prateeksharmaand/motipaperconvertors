@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../core/widgets/shell_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/network/api_client.dart';
@@ -132,6 +133,7 @@ class _ReportsViewState extends State<_ReportsView> with SingleTickerProviderSta
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
+          leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
           title: const Text('Reports'),
           backgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent,
           actions: [

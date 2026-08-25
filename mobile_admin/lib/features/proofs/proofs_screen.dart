@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../core/widgets/shell_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -183,6 +184,7 @@ class _ProofsView extends StatelessWidget {
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
+          leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
           title: const Text('Proofs'),
           backgroundColor: AppColors.surface,
           surfaceTintColor: Colors.transparent,
