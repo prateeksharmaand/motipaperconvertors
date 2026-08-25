@@ -231,6 +231,7 @@ class _JobsViewState extends State<_JobsView> {
             const SizedBox(height: 24),
             SizedBox(width: double.infinity, child: ElevatedButton(
               onPressed: () { Navigator.pop(context); bloc.add(JobsFilterChanged(status: selectedStatus)); },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED)),
               child: const Text('Apply Filter'),
             )),
             SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
