@@ -33,8 +33,6 @@ const _allNavItems = [
   _NavItem(label: 'Tenants',      icon: Icons.business_outlined,          activeIcon: Icons.business_rounded,       path: '/tenants'),
 ];
 
-// Bottom nav shows exactly 4 slots: Home, Jobs, Billing, More
-const _bottomPrimary = ['/', '/jobs', '/billing'];
 
 String _currentPath(BuildContext context) => GoRouterState.of(context).matchedLocation;
 bool _isActive(_NavItem item, String path) =>
@@ -57,183 +55,86 @@ class ShellScaffold extends StatelessWidget {
 
         if (Responsive.showSidebar(context))       return _SidebarLayout(items: items, child: child);
         if (Responsive.showNavigationRail(context)) return _RailLayout(items: items, child: child);
-        return _BottomNavLayout(items: items, child: child);
+        return _DrawerLayout(items: items, child: child);
       },
     );
   }
 }
 
-// ── Bottom Nav (phones) ────────────────────────────────────
-class _BottomNavLayout extends StatelessWidget {
+// ── Drawer layout (phones) ─────────────────────────────────
+class _DrawerLayout extends StatelessWidget {
   final List<_NavItem> items;
   final Widget child;
-  const _BottomNavLayout({required this.items, required this.child});
+  const _DrawerLayout({required this.items, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      drawer: _AppDrawer(items: items),
+      body: child,
+    );
+  }
+}
+
+// ── App Drawer ─────────────────────────────────────────────
+class _AppDrawer extends StatelessWidget {
+  final List<_NavItem> items;
+  const _AppDrawer({required this.items});
 
   @override
   Widget build(BuildContext context) {
     final path = _currentPath(context);
-
-    // Build 4 bottom destinations: Home, Jobs (if permitted), Billing (if permitted), More
-    final bottomItems = <_NavItem>[
-      items.firstWhere((i) => i.path == '/'),
-      if (items.any((i) => i.path == '/jobs')) items.firstWhere((i) => i.path == '/jobs'),
-      if (items.any((i) => i.path == '/billing')) items.firstWhere((i) => i.path == '/billing'),
-    ];
-
-    final isMoreActive = !_bottomPrimary.any((p) => path == p || (p != '/' && path.startsWith(p)));
-    final selectedIndex = () {
-      for (int i = 0; i < bottomItems.length; i++) {
-        if (_isActive(bottomItems[i], path)) return i;
-      }
-      return isMoreActive ? bottomItems.length : 0;
-    }();
-
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: const Border(top: BorderSide(color: AppColors.border, width: 1)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4))],
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(children: [
-              // Primary items
-              ...bottomItems.asMap().entries.map((e) {
-                final i = e.key;
-                final item = e.value;
-                final active = selectedIndex == i;
-                return Expanded(child: _BottomNavItem(
-                  icon: active ? item.activeIcon : item.icon,
-                  label: item.label,
-                  active: active,
-                  onTap: () => context.go(item.path),
-                ));
-              }),
-              // More
-              Expanded(child: _BottomNavItem(
-                icon: isMoreActive ? Icons.grid_view_rounded : Icons.grid_view_outlined,
-                label: 'More',
-                active: isMoreActive,
-                onTap: () => _showMoreSheet(context, items, path),
-              )),
-            ]),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showMoreSheet(BuildContext context, List<_NavItem> items, String path) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _MoreSheet(items: items, currentPath: path),
-    );
-  }
-}
-
-class _BottomNavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  const _BottomNavItem({required this.icon, required this.label, required this.active, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: active ? AppColors.primaryLight : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Icon(icon, color: active ? AppColors.primary : AppColors.textMuted, size: 22),
-        ),
-        const SizedBox(height: 2),
-        Text(label, style: TextStyle(
-          fontSize: 10, fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-          color: active ? AppColors.primary : AppColors.textMuted,
-        )),
-      ]),
-    );
-  }
-}
-
-// ── More Sheet ─────────────────────────────────────────────
-class _MoreSheet extends StatelessWidget {
-  final List<_NavItem> items;
-  final String currentPath;
-  const _MoreSheet({required this.items, required this.currentPath});
-
-  static const _primaryPaths = ['/', '/jobs', '/billing'];
-
-  @override
-  Widget build(BuildContext context) {
-    final secondary = items.where((i) => !_primaryPaths.contains(i.path)).toList();
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    return Drawer(
+      backgroundColor: AppColors.sidebarBg,
       child: SafeArea(
-        top: false,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const SizedBox(height: 12),
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
+        child: Column(children: [
+          // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
             child: Row(children: [
-              const Text('Menu', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-              const Spacer(),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: AppColors.textMuted)),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: const Color(0xFF7C3AED), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.print_rounded, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('MotiPaper', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                Text('Admin Panel', style: TextStyle(color: AppColors.sidebarText, fontSize: 11)),
+              ]),
             ]),
           ),
-          const Divider(height: 1),
-          LimitedBox(
-            maxHeight: 480,
+          const Divider(color: Colors.white12, height: 1),
+          // Nav items
+          Expanded(
             child: ListView(
-              shrinkWrap: true,
               padding: const EdgeInsets.symmetric(vertical: 8),
-              children: [
-                ...secondary.map((item) {
-                  final active = _isActive(item, currentPath);
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: active ? AppColors.primaryLight : AppColors.borderLight,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(active ? item.activeIcon : item.icon, size: 20, color: active ? AppColors.primary : AppColors.textMuted),
-                    ),
-                    title: Text(item.label, style: TextStyle(fontSize: 14, fontWeight: active ? FontWeight.w700 : FontWeight.w500, color: active ? AppColors.primary : AppColors.textPrimary)),
-                    trailing: active ? const Icon(Icons.circle, size: 8, color: AppColors.primary) : const Icon(Icons.chevron_right_rounded, color: AppColors.textDisabled, size: 20),
+              children: items.map((item) {
+                final active = _isActive(item, path);
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: active ? const Color(0xFF7C3AED).withValues(alpha: 0.25) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ListTile(
+                    dense: true,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    leading: Icon(active ? item.activeIcon : item.icon, color: active ? Colors.white : AppColors.sidebarText, size: 20),
+                    title: Text(item.label, style: TextStyle(color: active ? Colors.white : AppColors.sidebarText, fontWeight: active ? FontWeight.w700 : FontWeight.normal, fontSize: 13)),
+                    trailing: active ? Container(width: 4, height: 20, decoration: BoxDecoration(color: const Color(0xFF7C3AED), borderRadius: BorderRadius.circular(2))) : null,
                     onTap: () { Navigator.pop(context); context.go(item.path); },
-                  );
-                }),
-              ],
+                  ),
+                );
+              }).toList(),
             ),
           ),
-          const Divider(height: 1),
+          const Divider(color: Colors.white12, height: 1),
+          // Logout
           ListTile(
-            contentPadding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: AppColors.errorLight, borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.logout_rounded, size: 20, color: AppColors.error),
-            ),
-            title: const Text('Sign Out', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.error)),
+            dense: true,
+            leading: const Icon(Icons.logout_rounded, color: AppColors.sidebarText, size: 20),
+            title: const Text('Sign Out', style: TextStyle(color: AppColors.sidebarText, fontSize: 13)),
             onTap: () { Navigator.pop(context); context.read<AuthBloc>().add(const AuthLogoutRequested()); },
           ),
           const SizedBox(height: 8),
