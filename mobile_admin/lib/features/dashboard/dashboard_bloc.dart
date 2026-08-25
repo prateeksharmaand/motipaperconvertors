@@ -43,7 +43,9 @@ class DashboardLoading extends DashboardState { const DashboardLoading(); }
 class DashboardLoaded extends DashboardState {
   final DashboardSummary summary;
   final List<Map<String, dynamic>> recentJobs;
-  const DashboardLoaded({required this.summary, required this.recentJobs});
+  final List<Map<String, dynamic>> jobsByStatus;   // [{status, count}]
+  final List<Map<String, dynamic>> monthlyJobs;    // [{month, count}]
+  const DashboardLoaded({required this.summary, required this.recentJobs, this.jobsByStatus = const [], this.monthlyJobs = const []});
   @override List<Object?> get props => [summary];
 }
 class DashboardError extends DashboardState {
@@ -70,13 +72,36 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   Future<void> _onLoad(DashboardEvent event, Emitter<DashboardState> emit) async {
     if (state is! DashboardLoaded) emit(const DashboardLoading());
     try {
-      final results = await Future.wait([
+      // Fetch core data; chart endpoints may fail (permissions) — catch gracefully
+      final core = await Future.wait([
         ApiClient.instance.get('/admin/reports/summary'),
         ApiClient.instance.get('/admin/jobs', queryParameters: {'limit': 5, 'sortBy': 'created_at', 'sortDir': 'desc'}),
       ]);
-      final summary = DashboardSummary.fromJson(results[0].data as Map<String, dynamic>);
-      final recentJobs = List<Map<String, dynamic>>.from((results[1].data['data'] as List? ?? []));
-      emit(DashboardLoaded(summary: summary, recentJobs: recentJobs));
+
+      List<Map<String, dynamic>> jobsByStatus = [];
+      List<Map<String, dynamic>> monthlyJobs = [];
+      try {
+        final statusRes = await ApiClient.instance.get('/admin/reports/jobs-by-status');
+        jobsByStatus = List<Map<String, dynamic>>.from(statusRes.data as List? ?? []);
+      } catch (_) {}
+      try {
+        final allRes = await ApiClient.instance.get('/admin/jobs', queryParameters: {'limit': 1000, 'sortBy': 'created_at', 'sortDir': 'desc'});
+        final allJobs = List<Map<String, dynamic>>.from(allRes.data['data'] as List? ?? []);
+        final monthMap = <String, int>{};
+        for (final j in allJobs) {
+          final raw = j['created_at'] as String?;
+          if (raw == null || raw.length < 7) continue;
+          final month = raw.substring(0, 7);
+          monthMap[month] = (monthMap[month] ?? 0) + 1;
+        }
+        final sortedMonths = monthMap.keys.toList()..sort();
+        final last6 = sortedMonths.length > 6 ? sortedMonths.sublist(sortedMonths.length - 6) : sortedMonths;
+        monthlyJobs = last6.map((m) => {'month': m, 'count': monthMap[m]!}).toList();
+      } catch (_) {}
+
+      final summary = DashboardSummary.fromJson(core[0].data as Map<String, dynamic>);
+      final recentJobs = List<Map<String, dynamic>>.from((core[1].data['data'] as List? ?? []));
+      emit(DashboardLoaded(summary: summary, recentJobs: recentJobs, jobsByStatus: jobsByStatus, monthlyJobs: monthlyJobs));
     } catch (e) {
       emit(DashboardError(e.toString()));
     }

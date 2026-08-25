@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -86,6 +87,17 @@ class _DashboardView extends StatelessWidget {
                   ],
                 ),
               )),
+
+              // ── Charts ───────────────────────────────────
+              if (state.jobsByStatus.isNotEmpty || state.monthlyJobs.isNotEmpty)
+                SliverToBoxAdapter(child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                  child: Text('Analytics', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                )),
+              if (state.jobsByStatus.isNotEmpty)
+                SliverToBoxAdapter(child: _StatusDonutChart(data: state.jobsByStatus)),
+              if (state.monthlyJobs.isNotEmpty)
+                SliverToBoxAdapter(child: _MonthlyBarChart(data: state.monthlyJobs)),
 
               // ── Recent Jobs ──────────────────────────────
               SliverToBoxAdapter(child: Padding(
@@ -196,6 +208,96 @@ class _RecentJobTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Jobs by Status — Donut Chart ──────────────────────────
+class _StatusDonutChart extends StatelessWidget {
+  final List<Map<String, dynamic>> data;
+  const _StatusDonutChart({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = data.where((d) => (int.tryParse(d['count']?.toString() ?? '') ?? 0) > 0).toList();
+    final sections = filtered.map((d) {
+      final status = d['status'] as String? ?? '';
+      final count = int.tryParse(d['count']?.toString() ?? '') ?? 0;
+      final color = AppColors.statusColors[status] ?? AppColors.textMuted;
+      return PieChartSectionData(value: count.toDouble(), color: color, title: '', radius: 36);
+    }).toList();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Jobs by Status', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+        const SizedBox(height: 12),
+        Row(children: [
+          SizedBox(
+            height: 120, width: 120,
+            child: PieChart(PieChartData(sections: sections, centerSpaceRadius: 32, sectionsSpace: 2)),
+          ),
+          const SizedBox(width: 16),
+          Expanded(child: Wrap(spacing: 8, runSpacing: 6, children: filtered.map((d) {
+            final status = d['status'] as String? ?? '';
+            final count = d['count'];
+            final color = AppColors.statusColors[status] ?? AppColors.textMuted;
+            return Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(width: 4),
+              Text('${Fmt.statusLabel(status)} ($count)', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+            ]);
+          }).toList())),
+        ]),
+      ]),
+    );
+  }
+}
+
+// ── Jobs per Month — Bar Chart ────────────────────────────
+class _MonthlyBarChart extends StatelessWidget {
+  final List<Map<String, dynamic>> data;
+  const _MonthlyBarChart({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final bars = data.asMap().entries.map((e) => BarChartGroupData(
+      x: e.key,
+      barRods: [BarChartRodData(
+        toY: (int.tryParse(e.value['count']?.toString() ?? '') ?? 0).toDouble(),
+        color: const Color(0xFF7C3AED),
+        width: 18,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+      )],
+    )).toList();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Jobs Created (Last 6 Months)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+        const SizedBox(height: 16),
+        SizedBox(height: 140, child: BarChart(BarChartData(
+          barGroups: bars,
+          gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 1, getDrawingHorizontalLine: (_) => const FlLine(color: AppColors.border, strokeWidth: 1)),
+          borderData: FlBorderData(show: false),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28, getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 10, color: AppColors.textMuted)))),
+            bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
+              final idx = v.toInt();
+              if (idx < 0 || idx >= data.length) return const SizedBox.shrink();
+              final month = (data[idx]['month'] as String? ?? '').replaceFirst(RegExp(r'^\d{4}-'), '');
+              return Padding(padding: const EdgeInsets.only(top: 4), child: Text(month, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)));
+            })),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          barTouchData: BarTouchData(touchTooltipData: BarTouchTooltipData(getTooltipItem: (_, __, rod, ___) => BarTooltipItem(rod.toY.toInt().toString(), const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)))),
+        ))),
+      ]),
     );
   }
 }
