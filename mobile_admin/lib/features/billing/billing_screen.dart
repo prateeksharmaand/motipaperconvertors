@@ -277,9 +277,9 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
           bottom: TabBar(
             controller: _tabCtrl,
             tabs: const [Tab(text: 'Invoices'), Tab(text: 'Payments'), Tab(text: 'Ledger')],
-            labelColor: AppColors.primary,
-            unselectedLabelColor: AppColors.textMuted,
-            indicatorColor: AppColors.primary,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white60,
+            indicatorColor: Colors.white,
           ),
         ),
         body: TabBarView(
