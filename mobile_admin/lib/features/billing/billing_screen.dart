@@ -290,46 +290,78 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
             _LedgerTab(state: state),
           ],
         ),
-        floatingActionButton: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            FloatingActionButton.extended(
-              heroTag: 'fab-invoice',
-              backgroundColor: AppColors.secondary,
-              onPressed: () async {
-                final created = await showModalBottomSheet<bool>(
-                  context: context, isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-                  builder: (_) => const CreateInvoiceSheet(),
-                );
-                if (created == true && context.mounted) context.read<BillingBloc>().add(const InvoicesLoadRequested());
-              },
-              icon: const Icon(Icons.receipt_long_outlined),
-              label: const Text('New Invoice'),
-            ),
-            const SizedBox(height: 10),
-            FloatingActionButton.extended(
-              heroTag: 'fab-payment',
-              onPressed: () async {
-                final recorded = await showModalBottomSheet<bool>(
-                  context: context, isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-                  builder: (_) => const RecordPaymentSheet(),
-                );
-                if (recorded == true && context.mounted) {
-                  context.read<BillingBloc>().add(const PaymentsLoadRequested());
-                  context.read<BillingBloc>().add(const InvoicesLoadRequested());
-                }
-              },
-              icon: const Icon(Icons.payments_outlined),
-              label: const Text('Record Payment'),
-            ),
-          ],
-        ),
+        floatingActionButton: _BillingFab(bloc: context.read<BillingBloc>()),
       ),
     );
   }
+}
+
+// ── Billing Speed-Dial FAB ────────────────────────────────
+class _BillingFab extends StatefulWidget {
+  final BillingBloc bloc;
+  const _BillingFab({required this.bloc});
+  @override State<_BillingFab> createState() => _BillingFabState();
+}
+
+class _BillingFabState extends State<_BillingFab> {
+  bool _open = false;
+
+  void _toggle() => setState(() => _open = !_open);
+
+  Future<void> _openInvoice() async {
+    _toggle();
+    final created = await showModalBottomSheet<bool>(
+      context: context, isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => const CreateInvoiceSheet(),
+    );
+    if (created == true && mounted) widget.bloc.add(const InvoicesLoadRequested());
+  }
+
+  Future<void> _openPayment() async {
+    _toggle();
+    final recorded = await showModalBottomSheet<bool>(
+      context: context, isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => const RecordPaymentSheet(),
+    );
+    if (recorded == true && mounted) {
+      widget.bloc.add(const PaymentsLoadRequested());
+      widget.bloc.add(const InvoicesLoadRequested());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+      if (_open) ...[
+        _item(Icons.receipt_long_outlined, 'New Invoice', const Color(0xFF7048E8), _openInvoice),
+        const SizedBox(height: 10),
+        _item(Icons.payments_outlined, 'Record Payment', const Color(0xFF2B8A3E), _openPayment),
+        const SizedBox(height: 10),
+      ],
+      FloatingActionButton(
+        heroTag: 'billing-main',
+        backgroundColor: const Color(0xFF7C3AED),
+        onPressed: _toggle,
+        child: AnimatedRotation(
+          turns: _open ? 0.125 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _item(IconData icon, String label, Color color, VoidCallback onTap) => Row(mainAxisSize: MainAxisSize.min, children: [
+    Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 6, offset: const Offset(0, 2))]),
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+    ),
+    const SizedBox(width: 10),
+    FloatingActionButton.small(heroTag: label, backgroundColor: color, onPressed: onTap, child: Icon(icon, color: Colors.white, size: 20)),
+  ]);
 }
 
 // ── Invoices Tab ──────────────────────────────────────────
