@@ -180,8 +180,8 @@ class _QuickActionsFab extends StatelessWidget {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 6, offset: const Offset(0, 2))]),
-            child: Text(a.label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            decoration: BoxDecoration(color: const Color(0xFF1F2937), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 6, offset: const Offset(0, 2))]),
+            child: Text(a.label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
           ),
           const SizedBox(width: 10),
           FloatingActionButton.small(
