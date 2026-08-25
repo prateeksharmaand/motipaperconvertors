@@ -149,7 +149,7 @@ class _ClientsViewState extends State<_ClientsView> {
           child: CustomScrollView(controller: _scrollCtrl, slivers: [
             SliverAppBar(
               pinned: true, title: const Text('Clients'),
-              leading: IconButton(icon: const Icon(Icons.menu), color: AppColors.textPrimary, onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
+              leading: IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(56),
                 child: Padding(
