@@ -54,11 +54,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 40),
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(color: const Color(0xFF7C3AED), borderRadius: BorderRadius.circular(16)),
                       child: const Icon(Icons.print_rounded, size: 40, color: Colors.white),
                     ),
                     const SizedBox(height: 20),
-                    Text('MotiPaper Convertors', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppColors.primary)),
+                    Text('MotiPaper Convertors', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: const Color(0xFF7C3AED))),
                     const SizedBox(height: 6),
                     Text('Admin Panel', style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 40),
