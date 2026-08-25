@@ -22,29 +22,21 @@ class _DashboardView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
+        backgroundColor: const Color(0xFF1F2937),
+        surfaceTintColor: Colors.transparent,
+        actions: [
+          IconButton(icon: const Icon(Icons.notifications_outlined, color: Colors.white), onPressed: () {}),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: BlocBuilder<DashboardBloc, DashboardState>(
         builder: (context, state) => RefreshIndicator(
           onRefresh: () async => context.read<DashboardBloc>().add(const DashboardRefreshRequested()),
           child: CustomScrollView(slivers: [
-            // ── Hero App Bar ────────────────────────────────
-            SliverAppBar(
-              expandedHeight: 200,
-              pinned: true,
-              backgroundColor: const Color(0xFF1F2937),
-              surfaceTintColor: Colors.transparent,
-              title: const Text('Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
-              flexibleSpace: FlexibleSpaceBar(
-                background: _HeroBanner(state: state),
-                collapseMode: CollapseMode.pin,
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                  onPressed: () {},
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
+            // ── Hero Banner ──────────────────────────────
+            SliverToBoxAdapter(child: _HeroBanner(state: state)),
 
             if (state is DashboardLoading)
               const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
