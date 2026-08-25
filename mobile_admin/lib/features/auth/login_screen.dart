@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/responsive.dart';
 import 'auth_bloc.dart';
@@ -99,6 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 24),
                               ElevatedButton(
                                 onPressed: loading ? null : _submit,
+                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1F2937)),
                                 child: loading
                                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                                     : const Text('Sign In'),
@@ -107,12 +107,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'API: ${AppConstants.baseUrl}',
-                      style: const TextStyle(fontSize: 10, color: AppColors.textDisabled),
-                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
                   ],
