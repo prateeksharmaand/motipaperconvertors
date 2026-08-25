@@ -86,7 +86,7 @@ class _DrawerLayout extends StatelessWidget {
     return Scaffold(
       key: drawerScaffoldKey,
       drawer: _AppDrawer(items: items),
-      body: SafeArea(bottom: false, child: child),
+      body: child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -224,11 +224,11 @@ class _SidebarLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: Row(children: [
+    body: SafeArea(child: Row(children: [
       _Sidebar(items: items),
       const VerticalDivider(width: 1, thickness: 1),
       Expanded(child: child),
-    ]),
+    ])),
   );
 }
 

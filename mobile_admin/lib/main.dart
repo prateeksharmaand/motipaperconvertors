@@ -52,6 +52,10 @@ class _AppViewState extends State<_AppView> {
       routerConfig: _router,
       scaffoldMessengerKey: scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+        child: SafeArea(top: false, bottom: false, child: child ?? const SizedBox.shrink()),
+      ),
     );
   }
 }
