@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -69,9 +70,8 @@ class _DashboardViewState extends State<_DashboardView> {
           ),
         ),
       ),
-      body: GestureDetector(
-        onTap: () { if (_fabExpanded) setState(() => _fabExpanded = false); },
-        child: BlocBuilder<DashboardBloc, DashboardState>(
+      body: Stack(children: [
+        BlocBuilder<DashboardBloc, DashboardState>(
           builder: (context, state) => RefreshIndicator(
             onRefresh: () async => context.read<DashboardBloc>().add(const DashboardRefreshRequested()),
             child: CustomScrollView(controller: _scrollCtrl, slivers: [
@@ -154,7 +154,17 @@ class _DashboardViewState extends State<_DashboardView> {
             ]),
           ),
         ),
-      ),
+        // ── Blur overlay when FAB expanded ───────────────
+        if (_fabExpanded)
+          GestureDetector(
+            onTap: () => setState(() => _fabExpanded = false),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+              child: Container(color: Colors.black.withValues(alpha: 0.3)),
+            ),
+          ),
+      ]),
+
     );
   }
 }

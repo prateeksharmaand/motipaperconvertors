@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:equatable/equatable.dart';
 import '../../core/widgets/shell_scaffold.dart';
 import 'package:flutter/material.dart';
@@ -242,6 +243,7 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
   final _searchCtrl = TextEditingController();
   final _invoiceScrollCtrl = ScrollController();
   final _paymentScrollCtrl = ScrollController();
+  bool _fabOpen = false;
 
   @override
   void initState() {
@@ -282,15 +284,25 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
             indicatorColor: Colors.white,
           ),
         ),
-        body: TabBarView(
-          controller: _tabCtrl,
-          children: [
-            _InvoicesTab(state: state, scrollCtrl: _invoiceScrollCtrl, searchCtrl: _searchCtrl),
-            _PaymentsTab(state: state, scrollCtrl: _paymentScrollCtrl),
-            _LedgerTab(state: state),
-          ],
-        ),
-        floatingActionButton: _BillingFab(bloc: context.read<BillingBloc>()),
+        body: Stack(children: [
+          TabBarView(
+            controller: _tabCtrl,
+            children: [
+              _InvoicesTab(state: state, scrollCtrl: _invoiceScrollCtrl, searchCtrl: _searchCtrl),
+              _PaymentsTab(state: state, scrollCtrl: _paymentScrollCtrl),
+              _LedgerTab(state: state),
+            ],
+          ),
+          if (_fabOpen)
+            GestureDetector(
+              onTap: () => setState(() => _fabOpen = false),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                child: Container(color: Colors.black.withValues(alpha: 0.3)),
+              ),
+            ),
+        ]),
+        floatingActionButton: _BillingFab(bloc: context.read<BillingBloc>(), fabOpen: _fabOpen, onToggle: (v) => setState(() => _fabOpen = v)),
       ),
     );
   }
@@ -299,14 +311,16 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
 // ── Billing Speed-Dial FAB ────────────────────────────────
 class _BillingFab extends StatefulWidget {
   final BillingBloc bloc;
-  const _BillingFab({required this.bloc});
+  final bool fabOpen;
+  final ValueChanged<bool> onToggle;
+  const _BillingFab({required this.bloc, required this.fabOpen, required this.onToggle});
   @override State<_BillingFab> createState() => _BillingFabState();
 }
 
 class _BillingFabState extends State<_BillingFab> {
-  bool _open = false;
+  bool get _open => widget.fabOpen;
 
-  void _toggle() => setState(() => _open = !_open);
+  void _toggle() => widget.onToggle(!_open);
 
   Future<void> _openInvoice() async {
     _toggle();
