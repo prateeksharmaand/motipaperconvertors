@@ -30,7 +30,7 @@ class _DashboardView extends StatelessWidget {
             SliverAppBar(
               expandedHeight: 200,
               pinned: true,
-              backgroundColor: AppColors.primary,
+              backgroundColor: const Color(0xFF1F2937),
               surfaceTintColor: Colors.transparent,
               flexibleSpace: FlexibleSpaceBar(
                 background: _HeroBanner(state: state),
@@ -140,8 +140,8 @@ class _HeroBanner extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.75)],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1F2937), Color(0xFF374151)],
           begin: Alignment.topLeft, end: Alignment.bottomRight,
         ),
       ),
