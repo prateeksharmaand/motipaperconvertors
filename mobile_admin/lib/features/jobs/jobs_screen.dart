@@ -274,10 +274,9 @@ class _JobCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: color.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(16),
-        border: Border(left: BorderSide(color: color, width: 4)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
       ),
       child: InkWell(
         onTap: () => context.push('/jobs/${job.id}'),
