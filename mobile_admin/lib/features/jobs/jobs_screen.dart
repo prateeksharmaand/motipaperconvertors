@@ -1,3 +1,4 @@
+import 'dart:ui';
 import '../../core/widgets/shell_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,6 +30,7 @@ class _JobsView extends StatefulWidget {
 class _JobsViewState extends State<_JobsView> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+  bool _fabOpen = false;
 
   @override
   void initState() {
@@ -43,19 +45,47 @@ class _JobsViewState extends State<_JobsView> {
   @override
   void dispose() { _searchCtrl.dispose(); _scrollCtrl.dispose(); super.dispose(); }
 
+  void _closeFab() => setState(() => _fabOpen = false);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF7C3AED),
-        onPressed: () async {
-          final created = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => BlocProvider.value(value: context.read<JobsBloc>(), child: const JobFormScreen())));
-          if (created == true && context.mounted) context.read<JobsBloc>().add(const JobsLoadRequested());
-        },
-        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
-      ),
-      body: BlocBuilder<JobsBloc, JobsState>(
+      floatingActionButton: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+        if (_fabOpen) ...[
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: const Color(0xFF1F2937), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 6, offset: const Offset(0, 2))]),
+              child: const Text('New Job', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+            ),
+            const SizedBox(width: 10),
+            FloatingActionButton.small(
+              heroTag: 'new-job',
+              backgroundColor: const Color(0xFF7C3AED),
+              onPressed: () async {
+                _closeFab();
+                final created = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => BlocProvider.value(value: context.read<JobsBloc>(), child: const JobFormScreen())));
+                if (created == true && context.mounted) context.read<JobsBloc>().add(const JobsLoadRequested());
+              },
+              child: const Icon(Icons.work_rounded, color: Colors.white, size: 20),
+            ),
+          ]),
+          const SizedBox(height: 10),
+        ],
+        FloatingActionButton(
+          heroTag: 'jobs-main',
+          backgroundColor: const Color(0xFF7C3AED),
+          onPressed: () => setState(() => _fabOpen = !_fabOpen),
+          child: AnimatedRotation(
+            turns: _fabOpen ? 0.125 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+          ),
+        ),
+      ]),
+      body: Stack(children: [
+        BlocBuilder<JobsBloc, JobsState>(
         builder: (context, state) {
           return RefreshIndicator(
             onRefresh: () async => context.read<JobsBloc>().add(const JobsLoadRequested()),
@@ -126,6 +156,16 @@ class _JobsViewState extends State<_JobsView> {
           );
         },
       ),
+      // Blur overlay when FAB is open
+      if (_fabOpen)
+        GestureDetector(
+          onTap: _closeFab,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+            child: Container(color: Colors.black.withValues(alpha: 0.3)),
+          ),
+        ),
+      ]),
     );
   }
 
