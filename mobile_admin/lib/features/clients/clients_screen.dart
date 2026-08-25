@@ -275,7 +275,7 @@ class _ClientTile extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: AppColors.primaryLight,
-          child: Text((client.companyName ?? client.name).substring(0, 1).toUpperCase(),
+          child: Text(((client.companyName ?? client.name).isNotEmpty ? (client.companyName ?? client.name)[0] : '?').toUpperCase(),
               style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
         ),
         title: Text(client.companyName ?? client.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
