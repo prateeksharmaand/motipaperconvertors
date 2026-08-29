@@ -134,10 +134,6 @@ class _SettingsView extends StatelessWidget {
         body: RefreshIndicator(
           onRefresh: () async => context.read<SettingsBloc>().add(const SettingsLoadRequested()),
           child: CustomScrollView(slivers: [
-            SliverAppBar(
-              pinned: true, title: const Text('Settings'),
-               
-            ),
             if (state.isLoading)
               const SliverShimmerList(count: 5, itemBuilder: ShimmerCard.new)
             else
@@ -175,6 +171,7 @@ class _SettingsView extends StatelessWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
             onPressed: () { if (ctrl.text.isNotEmpty) { Navigator.pop(context); bloc.add(SettingsItemAdded(key, ctrl.text.trim())); } },
             child: const Text('Add'),
           ),

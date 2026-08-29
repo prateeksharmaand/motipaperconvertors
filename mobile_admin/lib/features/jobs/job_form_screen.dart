@@ -224,10 +224,14 @@ class _JobFormScreenState extends State<JobFormScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(widget.existing == null ? 'New Job Card' : 'Edit Job Card'),
-        backgroundColor: AppColors.surface,
+        title: Text(
+          widget.existing == null ? 'New Job Card' : 'Edit Job Card',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17),
+        ),
+        backgroundColor: const Color(0xFF1F2937),
         surfaceTintColor: Colors.transparent,
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _loadingMeta
           ? const Center(child: CircularProgressIndicator())
@@ -263,6 +267,7 @@ class _JobFormScreenState extends State<JobFormScreen> {
                     Expanded(child: OutlinedButton(onPressed: _back, child: const Text('Back'))),
                   if (_step > 0) const SizedBox(width: 12),
                   Expanded(flex: 2, child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
                     onPressed: _saving ? null : _next,
                     child: _saving
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))

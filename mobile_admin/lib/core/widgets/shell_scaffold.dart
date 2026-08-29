@@ -29,7 +29,6 @@ const _allNavItems = [
   _NavItem(label: 'Activity Log', icon: Icons.history_outlined,           activeIcon: Icons.history_rounded,        path: '/activity-logs', permission: 'activity_log.view'),
   _NavItem(label: 'Sub Admins',   icon: Icons.admin_panel_settings_outlined, activeIcon: Icons.admin_panel_settings_rounded, path: '/sub-admins', permission: 'settings.edit'),
   _NavItem(label: 'Machines',     icon: Icons.precision_manufacturing_outlined, activeIcon: Icons.precision_manufacturing_rounded, path: '/machines', permission: 'settings.edit'),
-  _NavItem(label: 'Settings',     icon: Icons.settings_outlined,          activeIcon: Icons.settings_rounded,       path: '/settings',      permission: 'settings.view'),
   _NavItem(label: 'Tenants',      icon: Icons.business_outlined,          activeIcon: Icons.business_rounded,       path: '/tenants'),
 ];
 
@@ -41,25 +40,45 @@ String _currentPath(BuildContext context) => GoRouterState.of(context).matchedLo
 bool _isActive(_NavItem item, String path) =>
     item.path == path || (item.path != '/' && path.startsWith(item.path));
 
-class ShellScaffold extends StatelessWidget {
+class ShellScaffold extends StatefulWidget {
   final Widget child;
   const ShellScaffold({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, state) {
-        final user = state is AuthAuthenticated ? state.user : null;
-        final items = _allNavItems.where((i) {
-          if (i.path == '/tenants') return user?.isSuperAdmin ?? false;
-          if (i.permission == null) return true;
-          return user?.hasPerm(i.permission!) ?? false;
-        }).toList();
+  State<ShellScaffold> createState() => _ShellScaffoldState();
+}
 
-        if (Responsive.showSidebar(context))       return _SidebarLayout(items: items, child: child);
-        if (Responsive.showNavigationRail(context)) return _RailLayout(items: items, child: child);
-        return _DrawerLayout(items: items, child: child);
-      },
+class _ShellScaffoldState extends State<ShellScaffold> {
+  late List<_NavItem> _cachedItems;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateItems();
+  }
+
+  void _updateItems() {
+    final authBloc = context.read<AuthBloc>();
+    final authState = authBloc.state;
+    final user = authState is AuthAuthenticated ? authState.user : null;
+    _cachedItems = _allNavItems.where((i) {
+      if (i.path == '/tenants') return user?.isSuperAdmin ?? false;
+      if (i.permission == null) return true;
+      return user?.hasPerm(i.permission!) ?? false;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) => _updateItems(),
+      child: Builder(
+        builder: (context) {
+          if (Responsive.showSidebar(context))       return _SidebarLayout(items: _cachedItems, child: widget.child);
+          if (Responsive.showNavigationRail(context)) return _RailLayout(items: _cachedItems, child: widget.child);
+          return _DrawerLayout(items: _cachedItems, child: widget.child);
+        },
+      ),
     );
   }
 }

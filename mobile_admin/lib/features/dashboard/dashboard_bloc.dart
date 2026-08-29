@@ -70,7 +70,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   }
 
   Future<void> _onLoad(DashboardEvent event, Emitter<DashboardState> emit) async {
-    if (state is! DashboardLoaded) emit(const DashboardLoading());
+    if (event is DashboardRefreshRequested || state is! DashboardLoaded) {
+      emit(const DashboardLoading());
+    }
     try {
       // Fetch core data; chart endpoints may fail (permissions) — catch gracefully
       final core = await Future.wait([

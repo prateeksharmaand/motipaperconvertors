@@ -98,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 24),
                               ElevatedButton(
                                 onPressed: loading ? null : _submit,
-                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED)),
+                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
                                 child: loading
                                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                                     : const Text('Sign In'),

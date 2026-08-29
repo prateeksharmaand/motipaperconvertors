@@ -87,9 +87,10 @@ class _CreateInvoiceSheetState extends State<CreateInvoiceSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.92, maxChildSize: 0.97, minChildSize: 0.5, expand: false,
-      builder: (_, ctrl) => Column(children: [
+    return SafeArea(
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.92, maxChildSize: 0.97, minChildSize: 0.5, expand: false,
+        builder: (_, ctrl) => Column(children: [
         // Handle
         Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)), margin: const EdgeInsets.only(top: 12, bottom: 4))),
         // Header
@@ -234,7 +235,8 @@ class _CreateInvoiceSheetState extends State<CreateInvoiceSheet> {
                 child: _saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Create Invoice'),
               ),
             ])),
-      ]),
+        ]),
+      ),
     );
   }
 

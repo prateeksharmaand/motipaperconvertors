@@ -172,20 +172,6 @@ class _TenantsViewState extends State<_TenantsView> {
         body: RefreshIndicator(
           onRefresh: () async => context.read<TenantsBloc>().add(const TenantsLoadRequested()),
           child: CustomScrollView(controller: _scrollCtrl, slivers: [
-            SliverAppBar(
-              pinned: true,
-              title: Row(children: [
-                const Text('Tenants'),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
-                  child: Text('${state.total}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary)),
-                ),
-              ]),
-              backgroundColor: AppColors.surface,
-              surfaceTintColor: Colors.transparent,
-            ),
             if (state.isLoading)
               const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
             else if (state.tenants.isEmpty)
@@ -229,10 +215,11 @@ class _TenantsViewState extends State<_TenantsView> {
     showModalBottomSheet(
       context: context, isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => StatefulBuilder(builder: (ctx, setModal) => Padding(
-        padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-        child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('Create New Tenant', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+      builder: (_) => StatefulBuilder(builder: (ctx, setModal) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('Create New Tenant', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
           TextField(controller: pressCtrl, decoration: const InputDecoration(labelText: 'Press Name *')),
           const SizedBox(height: 12),
@@ -247,6 +234,7 @@ class _TenantsViewState extends State<_TenantsView> {
           TextField(controller: cityCtrl, decoration: const InputDecoration(labelText: 'City')),
           const SizedBox(height: 20),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
             onPressed: saving ? null : () async {
               if ([pressCtrl, ownerCtrl, emailCtrl, phoneCtrl, passCtrl].any((c) => c.text.isEmpty)) return;
               setModal(() => saving = true);
@@ -256,6 +244,7 @@ class _TenantsViewState extends State<_TenantsView> {
             child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Create Tenant'),
           ),
         ])),
+        ),
       )),
     );
   }

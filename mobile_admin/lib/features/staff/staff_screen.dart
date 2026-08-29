@@ -1,3 +1,4 @@
+﻿import 'dart:ui' show ImageFilter;
 import '../../core/widgets/shell_scaffold.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +9,7 @@ import '../../core/utils/app_toast.dart';
 import '../../core/widgets/app_shimmer.dart';
 import '../../models/pagination_model.dart';
 
-// ── Model ─────────────────────────────────────────────────
+// â”€â”€ Model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class StaffMember extends Equatable {
   final String id;
   final String name;
@@ -33,7 +34,7 @@ class StaffMember extends Equatable {
   @override List<Object?> get props => [id];
 }
 
-// ── Events ────────────────────────────────────────────────
+// â”€â”€ Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 abstract class StaffEvent extends Equatable {
   const StaffEvent();
   @override List<Object?> get props => [];
@@ -67,7 +68,7 @@ class StaffPasswordChanged extends StaffEvent {
   @override List<Object?> get props => [id];
 }
 
-// ── State ─────────────────────────────────────────────────
+// â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class StaffState extends Equatable {
   final List<StaffMember> members;
   final bool isLoading;
@@ -91,7 +92,7 @@ class StaffState extends Equatable {
   @override List<Object?> get props => [members, isLoading, search, roleFilter];
 }
 
-// ── BLoC ─────────────────────────────────────────────────
+// â”€â”€ BLoC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class StaffBloc extends Bloc<StaffEvent, StaffState> {
   StaffBloc() : super(const StaffState()) {
     on<StaffLoadRequested>(_onLoad);
@@ -158,7 +159,7 @@ class StaffBloc extends Bloc<StaffEvent, StaffState> {
   }
 }
 
-// ── Screen ────────────────────────────────────────────────
+// â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class StaffScreen extends StatelessWidget {
   const StaffScreen({super.key});
   @override
@@ -176,77 +177,111 @@ class _StaffView extends StatefulWidget {
 class _StaffViewState extends State<_StaffView> {
   final _searchCtrl = TextEditingController();
   final _roles = ['staff', 'operator', 'sub_admin'];
+  bool _fabOpen = false;
 
   @override
   void dispose() { _searchCtrl.dispose(); super.dispose(); }
+
+  void _closeFab() => setState(() => _fabOpen = false);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: BlocConsumer<StaffBloc, StaffState>(
-        listener: (context, state) {
-          if (state.error != null) AppToast.error(state.error!);
-          if (state.successMessage != null) AppToast.success(state.successMessage!);
-        },
-        builder: (context, state) => RefreshIndicator(
-          onRefresh: () async => context.read<StaffBloc>().add(const StaffLoadRequested()),
-          child: CustomScrollView(slivers: [
-            SliverAppBar(
-              pinned: true, title: const Text('Staff'),
-               
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(56),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: TextField(
-                    controller: _searchCtrl,
-                    onChanged: (v) => context.read<StaffBloc>().add(StaffSearchChanged(v)),
-                    decoration: InputDecoration(
-                      hintText: 'Search staff…',
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      isDense: true,
-                      suffixIcon: _searchCtrl.text.isNotEmpty
-                          ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { _searchCtrl.clear(); context.read<StaffBloc>().add(const StaffSearchChanged('')); })
-                          : null,
-                    ),
+      floatingActionButton: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+        if (_fabOpen) ...[
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: const Color(0xFF1F2937), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 6, offset: const Offset(0, 2))]),
+              child: const Text('Add Staff', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+            ),
+            const SizedBox(width: 10),
+            FloatingActionButton.small(
+              heroTag: 'add-staff',
+              backgroundColor: AppColors.primary,
+              onPressed: () {
+                _closeFab();
+                _showCreateSheet(context);
+              },
+              child: const Icon(Icons.person_add_outlined, color: Colors.white, size: 20),
+            ),
+          ]),
+          const SizedBox(height: 10),
+        ],
+        FloatingActionButton(
+          heroTag: 'staff-main',
+          backgroundColor: AppColors.primary,
+          onPressed: () => setState(() => _fabOpen = !_fabOpen),
+          child: AnimatedRotation(
+            turns: _fabOpen ? 0.125 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+          ),
+        ),
+      ]),
+      body: Stack(children: [
+        BlocConsumer<StaffBloc, StaffState>(
+          listener: (context, state) {
+            if (state.error != null) AppToast.error(state.error!);
+            if (state.successMessage != null) AppToast.success(state.successMessage!);
+          },
+          builder: (context, state) => RefreshIndicator(
+            onRefresh: () async => context.read<StaffBloc>().add(const StaffLoadRequested()),
+            child: CustomScrollView(slivers: [
+              // Search bar
+              SliverToBoxAdapter(child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: (v) => context.read<StaffBloc>().add(StaffSearchChanged(v)),
+                  decoration: InputDecoration(
+                    hintText: 'Search staffâ€¦',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    isDense: true,
+                    suffixIcon: _searchCtrl.text.isNotEmpty
+                        ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { _searchCtrl.clear(); context.read<StaffBloc>().add(const StaffSearchChanged('')); })
+                        : null,
                   ),
                 ),
-              ),
-            ),
-            // Role filter chips
-            SliverToBoxAdapter(child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: Row(children: [
-                _roleChip(context, state, null, 'All'),
-                ..._roles.map((r) => _roleChip(context, state, r, _roleLabel(r))),
-              ]),
-            )),
-            if (state.isLoading)
-              const SliverShimmerList(count: 8, itemBuilder: ShimmerRow.new)
-            else if (state.members.isEmpty)
-              SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.badge_outlined, size: 56, color: AppColors.textMuted),
-                const SizedBox(height: 12),
-                const Text('No staff members found', style: TextStyle(color: AppColors.textMuted)),
-              ])))
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                sliver: SliverList(delegate: SliverChildBuilderDelegate(
-                  (_, i) => _StaffCard(member: state.members[i], onEdit: () => _showEditSheet(context, state.members[i])),
-                  childCount: state.members.length,
-                )),
-              ),
-          ]),
+              )),
+              // Role filter chips
+              SliverToBoxAdapter(child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                child: Row(children: [
+                  _roleChip(context, state, null, 'All'),
+                  ..._roles.map((r) => _roleChip(context, state, r, _roleLabel(r))),
+                ]),
+              )),
+              if (state.isLoading)
+                const SliverShimmerList(count: 8, itemBuilder: ShimmerRow.new)
+              else if (state.members.isEmpty)
+                SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.badge_outlined, size: 56, color: AppColors.textMuted),
+                  const SizedBox(height: 12),
+                  const Text('No staff members found', style: TextStyle(color: AppColors.textMuted)),
+                ])))
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  sliver: SliverList(delegate: SliverChildBuilderDelegate(
+                    (_, i) => _StaffCard(member: state.members[i], onEdit: () => _showEditSheet(context, state.members[i])),
+                    childCount: state.members.length,
+                  )),
+                ),
+            ]),
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateSheet(context),
-        icon: const Icon(Icons.person_add_outlined),
-        label: const Text('Add Staff'),
-      ),
+        if (_fabOpen)
+          GestureDetector(
+            onTap: _closeFab,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+              child: Container(color: Colors.black.withValues(alpha: 0.3)),
+            ),
+          ),
+      ]),
     );
   }
 
@@ -258,15 +293,17 @@ class _StaffViewState extends State<_StaffView> {
 
   Widget _roleChip(BuildContext context, StaffState state, String? role, String label) {
     final selected = state.roleFilter == role;
+    final color = AppColors.primary;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
-        label: Text(label, style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w700 : FontWeight.normal)),
+        label: Text(label, style: TextStyle(fontSize: 12, color: selected ? Colors.white : color, fontWeight: FontWeight.w600)),
         selected: selected,
-        onSelected: (_) => context.read<StaffBloc>().add(StaffRoleFilterChanged(role)),
-        selectedColor: AppColors.primary,
-        labelStyle: selected ? const TextStyle(color: Colors.white) : null,
+        onSelected: (_) => context.read<StaffBloc>().add(StaffRoleFilterChanged(selected ? null : role)),
+        selectedColor: color,
+        backgroundColor: color.withValues(alpha: 0.1),
         checkmarkColor: Colors.white,
+        side: BorderSide(color: color.withValues(alpha: 0.4)),
       ),
     );
   }
@@ -282,10 +319,11 @@ class _StaffViewState extends State<_StaffView> {
     showModalBottomSheet(
       context: context, isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => StatefulBuilder(builder: (ctx, setModal) => Padding(
-        padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('Add Staff Member', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+      builder: (_) => StatefulBuilder(builder: (ctx, setModal) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('Add Staff Member', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
           TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Full Name *')),
           const SizedBox(height: 12),
@@ -305,6 +343,7 @@ class _StaffViewState extends State<_StaffView> {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
             onPressed: saving ? null : () async {
               if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty || passCtrl.text.isEmpty) return;
               setModal(() => saving = true);
@@ -317,6 +356,7 @@ class _StaffViewState extends State<_StaffView> {
             child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Create'),
           ),
         ]),
+        ),
       )),
     );
   }
@@ -324,16 +364,17 @@ class _StaffViewState extends State<_StaffView> {
   void _showEditSheet(BuildContext context, StaffMember member) {
     final bloc = context.read<StaffBloc>();
     final passCtrl = TextEditingController();
+    bool changingPass = false;
 
     showModalBottomSheet(
       context: context, isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => StatefulBuilder(builder: (ctx, setModal) {
-        bool changingPass = false;
-        return Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(children: [
               CircleAvatar(backgroundColor: AppColors.primaryLight, child: Text(member.name.substring(0, 1).toUpperCase(), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -374,11 +415,13 @@ class _StaffViewState extends State<_StaffView> {
               TextField(controller: passCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'New Password')),
               const SizedBox(height: 12),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
                 onPressed: passCtrl.text.length < 6 ? null : () { Navigator.pop(ctx); bloc.add(StaffPasswordChanged(member.id, passCtrl.text)); },
                 child: const Text('Update Password'),
               ),
             ],
           ]),
+          ),
         );
       }),
     );
@@ -419,8 +462,8 @@ class _StaffCard extends StatelessWidget {
           ),
         ]),
         subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(member.email, style: const TextStyle(fontSize: 12)),
-          if (member.staffType != null) Text(member.staffType!, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+          Text(member.email, style: const TextStyle(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+          if (member.staffType != null) Text(member.staffType!, style: const TextStyle(fontSize: 11, color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
         ]),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
           Container(
@@ -434,3 +477,4 @@ class _StaffCard extends StatelessWidget {
     );
   }
 }
+

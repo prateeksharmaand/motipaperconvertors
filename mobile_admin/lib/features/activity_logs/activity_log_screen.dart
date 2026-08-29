@@ -189,31 +189,26 @@ class _ActivityLogViewState extends State<_ActivityLogView> {
         body: RefreshIndicator(
           onRefresh: () async => context.read<ActivityLogBloc>().add(const ActivityLogLoadRequested()),
           child: CustomScrollView(controller: _scrollCtrl, slivers: [
-            SliverAppBar(
-              pinned: true, title: const Text('Activity Log'),
-               
-              actions: [
-                if (state.hasActiveFilters)
-                  TextButton(onPressed: () { _searchCtrl.clear(); context.read<ActivityLogBloc>().add(const ActivityLogFiltersCleared()); }, child: const Text('Clear', style: TextStyle(color: AppColors.error))),
-                IconButton(icon: const Icon(Icons.filter_list_outlined), onPressed: () => _showFilters(context, state)),
-                const SizedBox(width: 8),
-              ],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(56),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: TextField(
-                    controller: _searchCtrl,
-                    onChanged: (v) => context.read<ActivityLogBloc>().add(ActivityLogSearchChanged(v)),
-                    decoration: InputDecoration(
-                      hintText: 'Search user, action, entity…',
-                      prefixIcon: const Icon(Icons.search, size: 20), isDense: true,
-                      suffixIcon: _searchCtrl.text.isNotEmpty ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { _searchCtrl.clear(); context.read<ActivityLogBloc>().add(const ActivityLogSearchChanged('')); }) : null,
-                    ),
+            // Search bar with filters
+            SliverToBoxAdapter(child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(children: [
+                Expanded(child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: (v) => context.read<ActivityLogBloc>().add(ActivityLogSearchChanged(v)),
+                  decoration: InputDecoration(
+                    hintText: 'Search user, action, entity…',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    isDense: true,
+                    suffixIcon: _searchCtrl.text.isNotEmpty ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { _searchCtrl.clear(); context.read<ActivityLogBloc>().add(const ActivityLogSearchChanged('')); }) : null,
                   ),
-                ),
-              ),
-            ),
+                )),
+                const SizedBox(width: 8),
+                if (state.hasActiveFilters)
+                  TextButton(onPressed: () { _searchCtrl.clear(); context.read<ActivityLogBloc>().add(const ActivityLogFiltersCleared()); }, child: const Text('Clear', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600))),
+                IconButton(icon: const Icon(Icons.filter_list_outlined), onPressed: () => _showFilters(context, state)),
+              ]),
+            )),
 
             // Summary stats
             if (state.summary.isNotEmpty)
@@ -276,19 +271,21 @@ class _ActivityLogViewState extends State<_ActivityLogView> {
     showModalBottomSheet(
       context: context, isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => StatefulBuilder(builder: (ctx, setModal) => Padding(
-        padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const Text('Filter Activity Logs', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-            TextButton(onPressed: () { Navigator.pop(ctx); bloc.add(const ActivityLogFiltersCleared()); }, child: const Text('Reset')),
-          ]),
+      builder: (_) => StatefulBuilder(builder: (ctx, setModal) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              const Text('Filter Activity Logs', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              TextButton(onPressed: () { Navigator.pop(ctx); bloc.add(const ActivityLogFiltersCleared()); }, child: const Text('Reset')),
+            ]),
           const SizedBox(height: 16),
           const Text('Category', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 8, children: _categories.map((c) {
             final sel = selCat == c;
-            return FilterChip(label: Text(c, style: TextStyle(fontSize: 12, color: sel ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.w600)), selected: sel, onSelected: (_) => setModal(() => selCat = sel ? null : c), selectedColor: AppColors.primary, checkmarkColor: Colors.white);
+            final color = AppColors.primary;
+            return FilterChip(label: Text(c, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)), selected: sel, onSelected: (_) => setModal(() => selCat = sel ? null : c), selectedColor: color, backgroundColor: color.withValues(alpha: 0.1), checkmarkColor: color, side: BorderSide(color: color.withValues(alpha: 0.4)));
           }).toList()),
           const SizedBox(height: 16),
           const Text('Status', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
@@ -296,7 +293,7 @@ class _ActivityLogViewState extends State<_ActivityLogView> {
           Wrap(spacing: 8, runSpacing: 8, children: _statuses.map((s) {
             final sel = selStatus == s;
             final c = s == 'SUCCESS' ? AppColors.success : s == 'FAILED' ? AppColors.error : AppColors.warning;
-            return FilterChip(label: Text(s, style: TextStyle(fontSize: 12, color: sel ? Colors.white : c, fontWeight: FontWeight.w600)), selected: sel, onSelected: (_) => setModal(() => selStatus = sel ? null : s), selectedColor: c, checkmarkColor: Colors.white, backgroundColor: c.withValues(alpha: 0.1), side: BorderSide(color: c.withValues(alpha: 0.4)));
+            return FilterChip(label: Text(s, style: TextStyle(fontSize: 12, color: c, fontWeight: FontWeight.w600)), selected: sel, onSelected: (_) => setModal(() => selStatus = sel ? null : s), selectedColor: c, checkmarkColor: c, backgroundColor: c.withValues(alpha: 0.1), side: BorderSide(color: c.withValues(alpha: 0.4)));
           }).toList()),
           const SizedBox(height: 24),
           SizedBox(width: double.infinity, child: ElevatedButton(
@@ -304,6 +301,7 @@ class _ActivityLogViewState extends State<_ActivityLogView> {
             child: const Text('Apply'),
           )),
         ]),
+        ),
       )),
     );
   }
@@ -404,9 +402,10 @@ class _LogCard extends StatelessWidget {
     showModalBottomSheet(
       context: context, isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.6, maxChildSize: 0.95, minChildSize: 0.4, expand: false,
-        builder: (_, ctrl) => ListView(controller: ctrl, padding: const EdgeInsets.all(20), children: [
+      builder: (_) => SafeArea(
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.6, maxChildSize: 0.95, minChildSize: 0.4, expand: false,
+          builder: (_, ctrl) => ListView(controller: ctrl, padding: const EdgeInsets.all(20), children: [
           Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)), margin: const EdgeInsets.only(bottom: 16))),
           Text('Activity Log Detail', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
@@ -445,6 +444,7 @@ class _LogCard extends StatelessWidget {
             ])),
           ],
         ]),
+        ),
       ),
     );
   }

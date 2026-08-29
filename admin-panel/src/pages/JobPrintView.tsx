@@ -1,4 +1,4 @@
-﻿import { useEffect } from "react";
+import { useEffect } from "react";
 import { fmtDate } from "../lib/fmtDate.ts";
 
 interface Job {
@@ -20,26 +20,36 @@ interface Job {
   delivery_quantity: number; challan_number: string; challan_date: string;
 }
 
-interface PrintTemplate { header: string | null; footer: string | null; signature: string | null; }
+interface PrintTemplate { header: string | null; footer: string | null; signature: string | null; printFontSize?: number; }
 
 export default function JobPrintView({ job, template, onClose }: { job: Job; template: PrintTemplate; onClose: () => void }) {
+  const printFontSize = template.printFontSize ?? 11;
+
   useEffect(() => {
     const style = document.createElement("style");
     style.id = "print-hide";
-    style.textContent = "@media print { .no-print { display: none !important; } body { margin: 0; } }";
+    style.textContent = `@media print { .no-print { display: none !important; } body { margin: 0; } .print-content { font-size: var(--print-font-size, 11px) !important; } }`;
     document.head.appendChild(style);
     return () => { document.getElementById("print-hide")?.remove(); };
   }, []);
 
   const fmt = (n: number | null | undefined) => n ? "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 }) : "—";
-  const row = (label: string, value: string | number | boolean | null | undefined) => (
-    <tr>
-      <td style={{ padding: "5px 10px", fontSize: 12, color: "#6b7280", width: "30%", borderBottom: "1px solid #f3f4f6" }}>{label}</td>
-      <td style={{ padding: "5px 10px", fontSize: 13, fontWeight: 500, borderBottom: "1px solid #f3f4f6" }}>{value != null && value !== "" && value !== false ? value : "—"}</td>
-    </tr>
+
+  // A single label+value cell used in the 2-column grid
+  const cell = (label: string, value: string | number | boolean | null | undefined) => (
+    <div style={{ padding: "6px 10px", borderBottom: "1px solid #f3f4f6" }}>
+      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: printFontSize, fontWeight: 500, color: "#1f2937" }}>
+        {value != null && value !== "" && value !== false ? String(value) : "—"}
+      </div>
+    </div>
   );
+
+  // Section header spanning both columns
   const section = (title: string) => (
-    <tr><td colSpan={2} style={{ background: "#f9fafb", padding: "8px 10px", fontSize: 11, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px", borderTop: "2px solid #e5e7eb" }}>{title}</td></tr>
+    <div style={{ gridColumn: "1 / -1", background: "#f9fafb", padding: "8px 10px", fontSize: 11, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px", borderTop: "2px solid #e5e7eb" }}>
+      {title}
+    </div>
   );
 
   const finishingItems = [
@@ -61,7 +71,16 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
         <button onClick={() => window.print()} style={{ padding: "8px 20px", background: "#7c3aed", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Print</button>
       </div>
 
-      <div style={{ maxWidth: 800, margin: "24px auto", background: "#fff", boxShadow: "0 4px 24px rgba(0,0,0,0.12)", borderRadius: 8, overflow: "hidden" }}>
+      <div
+        className="print-content"
+        style={{
+          maxWidth: 800, margin: "24px auto", background: "#fff",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.12)", borderRadius: 8, overflow: "hidden",
+          fontSize: `${printFontSize}px`,
+          // @ts-ignore CSS custom property
+          "--print-font-size": `${printFontSize}px`,
+        }}
+      >
         {template.header && <img src={template.header} alt="Header" style={{ width: "100%", display: "block" }} />}
 
         <div style={{ padding: "20px 28px" }}>
@@ -89,50 +108,57 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
             </div>
           </div>
 
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <tbody>
-              {section("Basic Information")}
-              {row("Created Date", fmtDate(job.created_at))}
-              {row("Job Title", job.job_type)}
-              {row("Order Type", job.order_type)}
-              {row("Quantity", job.quantity ? (job.quantity + " PCS") : "—")}
-              {section("Paper & Machine")}
-              {row("Machine", job.machine_name)}
-              {row("Paper Type", job.paper_type)}
-              {row("Paper GSM", job.paper_gsm ? (job.paper_gsm + " GSM") : "—")}
-              {row("Sheet Size", job.sheet_size)}
-              {row("Sheet Count", job.sheet_count)}
-              {section("Pre-Print Process")}
-              {row("Composing Date", fmtDate(job.composing_date))}
-              {row("Composing Amount", fmt(job.composing_amount))}
-              {row("Plate Cost", fmt(job.plate_cost))}
-              {row("Die Cost", fmt(job.die_cost))}
-              {row("Plate Source", job.plate_source)}
-              {row("Approved Rate", fmt(job.approved_rate))}
-              {row("Hela Cost", fmt(job.hela_cost))}
-              {row("Other Cost", fmt(job.other_cost))}
-              {row("Proof Required", job.proof_required ? "Yes" : "No")}
-              {section("Print Process")}
-              {row("Print Type", [job.is_offset && "Offset", job.is_digital && "Digital", job.is_screen && "Screen"].filter(Boolean).join(", ") || "—")}
-              {row("Print Colors", job.print_colors)}
-              {row("Print Operator", job.print_operator_name || job.print_operator)}
-              {row("Print Date", fmtDate(job.print_date))}
-              {section("Post-Print Process")}
-              {row("Finishing", finishingItems || "None")}
-              {row("Binding Operator", job.binding_operator)}
-              {row("Packing Operator", job.packing_operator)}
-              {row("Post-Print Date", fmtDate(job.post_print_date))}
-              {section("Financial & Delivery")}
-              {row("Quoted Price", fmt(job.quoted_price))}
-              {row("Advance Amount", fmt(job.advance_amount))}
-              {row("Balance Due", fmt(balance))}
-              {row("Quotation Ref", job.quotation_ref)}
-              {row("Indent Number", job.indent_number)}
-              {row("Delivery Quantity", job.delivery_quantity)}
-              {row("Challan Number", job.challan_number)}
-              {row("Challan Date", fmtDate(job.challan_date))}
-            </tbody>
-          </table>
+          {/* 2-column info grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+            {section("Basic Information")}
+            {cell("Created Date", fmtDate(job.created_at))}
+            {cell("Job Title", job.job_type)}
+            {cell("Order Type", job.order_type)}
+            {cell("Quantity", job.quantity ? (job.quantity + " PCS") : "—")}
+
+            {section("Paper & Machine")}
+            {cell("Machine", job.machine_name)}
+            {cell("Paper Type", job.paper_type)}
+            {cell("Paper GSM", job.paper_gsm ? (job.paper_gsm + " GSM") : "—")}
+            {cell("Sheet Size", job.sheet_size)}
+            {cell("Sheet Count", job.sheet_count)}
+            {/* Pad to even columns */}
+            <div style={{ padding: "6px 10px", borderBottom: "1px solid #f3f4f6" }} />
+
+            {section("Pre-Print Process")}
+            {cell("Composing Date", fmtDate(job.composing_date))}
+            {cell("Composing Amount", fmt(job.composing_amount))}
+            {cell("Plate Cost", fmt(job.plate_cost))}
+            {cell("Die Cost", fmt(job.die_cost))}
+            {cell("Plate Source", job.plate_source)}
+            {cell("Approved Rate", fmt(job.approved_rate))}
+            {cell("Hela Cost", fmt(job.hela_cost))}
+            {cell("Other Cost", fmt(job.other_cost))}
+            {cell("Proof Required", job.proof_required ? "Yes" : "No")}
+            <div style={{ padding: "6px 10px", borderBottom: "1px solid #f3f4f6" }} />
+
+            {section("Print Process")}
+            {cell("Print Type", [job.is_offset && "Offset", job.is_digital && "Digital", job.is_screen && "Screen"].filter(Boolean).join(", ") || "—")}
+            {cell("Print Colors", job.print_colors)}
+            {cell("Print Operator", job.print_operator_name || job.print_operator)}
+            {cell("Print Date", fmtDate(job.print_date))}
+
+            {section("Post-Print Process")}
+            {cell("Finishing", finishingItems || "None")}
+            {cell("Binding Operator", job.binding_operator)}
+            {cell("Packing Operator", job.packing_operator)}
+            {cell("Post-Print Date", fmtDate(job.post_print_date))}
+
+            {section("Financial & Delivery")}
+            {cell("Quoted Price", fmt(job.quoted_price))}
+            {cell("Advance Amount", fmt(job.advance_amount))}
+            {cell("Balance Due", fmt(balance))}
+            {cell("Quotation Ref", job.quotation_ref)}
+            {cell("Indent Number", job.indent_number)}
+            {cell("Delivery Quantity", job.delivery_quantity)}
+            {cell("Challan Number", job.challan_number)}
+            {cell("Challan Date", fmtDate(job.challan_date))}
+          </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 32, paddingTop: 16, borderTop: "1px solid #e5e7eb" }}>
             <div style={{ textAlign: "center" }}>

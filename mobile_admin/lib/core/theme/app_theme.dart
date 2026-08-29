@@ -5,14 +5,14 @@ import 'package:google_fonts/google_fonts.dart';
 class AppColors {
   AppColors._();
 
-  // Primary blue – matches screenshots
-  static const primary      = Color(0xFF2563EB);
-  static const primaryDark  = Color(0xFF1D4ED8);
-  static const primaryLight = Color(0xFFEFF6FF);
-  static const primaryGlow  = Color(0xFF3B82F6);
+  // Primary purple
+  static const primary      = Color(0xFF7C3AED);
+  static const primaryDark  = Color(0xFF6D28D9);
+  static const primaryLight = Color(0xFFF5F3FF);
+  static const primaryGlow  = Color(0xFF8B5CF6);
 
   // Secondary / accent
-  static const secondary    = Color(0xFF7C3AED);
+  static const secondary    = Color(0xFF2563EB);
 
   // Semantic
   static const success      = Color(0xFF16A34A);
@@ -42,7 +42,7 @@ class AppColors {
   // Sidebar (tablet/desktop)
   static const sidebarBg     = Color(0xFF0F172A);
   static const sidebarText   = Color(0xFFCBD5E1);
-  static const sidebarActive = Color(0xFF2563EB);
+  static const sidebarActive = Color(0xFF7C3AED);
 
   // Job status
   static const Map<String, Color> statusColors = {

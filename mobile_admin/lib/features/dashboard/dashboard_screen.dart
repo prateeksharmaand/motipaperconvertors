@@ -1,4 +1,3 @@
-import 'dart:ui' show ImageFilter;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_shimmer.dart';
-import '../../core/widgets/shell_scaffold.dart';
+import '../jobs/job_detail_screen.dart';
+import '../jobs/jobs_bloc.dart';
 import 'dashboard_bloc.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -26,19 +26,6 @@ class _DashboardView extends StatefulWidget {
 
 class _DashboardViewState extends State<_DashboardView> {
   final _scrollCtrl = ScrollController();
-  bool _fabVisible = true;
-  bool _fabExpanded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollCtrl.addListener(() {
-      final scrollingDown = _scrollCtrl.position.userScrollDirection.name == 'reverse';
-      final scrollingUp = _scrollCtrl.position.userScrollDirection.name == 'forward';
-      if (scrollingDown && _fabVisible) setState(() => _fabVisible = false);
-      if (scrollingUp && !_fabVisible) setState(() => _fabVisible = true);
-    });
-  }
 
   @override
   void dispose() { _scrollCtrl.dispose(); super.dispose(); }
@@ -47,29 +34,6 @@ class _DashboardViewState extends State<_DashboardView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
-        backgroundColor: const Color(0xFF1F2937),
-        surfaceTintColor: Colors.transparent,
-        leading: IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
-        actions: [
-          IconButton(icon: const Icon(Icons.notifications_outlined, color: Colors.white), onPressed: () {}),
-          const SizedBox(width: 8),
-        ],
-      ),
-      floatingActionButton: AnimatedSlide(
-        duration: const Duration(milliseconds: 250),
-        offset: _fabVisible ? Offset.zero : const Offset(0, 2),
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 250),
-          opacity: _fabVisible ? 1 : 0,
-          child: _fabExpanded ? _QuickActionsFab(onClose: () => setState(() => _fabExpanded = false)) : FloatingActionButton(
-            backgroundColor: const Color(0xFF7C3AED),
-            child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
-            onPressed: () => setState(() => _fabExpanded = true),
-          ),
-        ),
-      ),
       body: Stack(children: [
         BlocBuilder<DashboardBloc, DashboardState>(
           builder: (context, state) => RefreshIndicator(
@@ -154,64 +118,10 @@ class _DashboardViewState extends State<_DashboardView> {
             ]),
           ),
         ),
-        // ── Blur overlay when FAB expanded ───────────────
-        if (_fabExpanded)
-          GestureDetector(
-            onTap: () => setState(() => _fabExpanded = false),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-              child: Container(color: Colors.black.withValues(alpha: 0.3)),
-            ),
-          ),
       ]),
-
     );
   }
 }
-
-// ── Quick Actions Speed Dial ──────────────────────────────
-class _QuickActionsFab extends StatelessWidget {
-  final VoidCallback onClose;
-  const _QuickActionsFab({required this.onClose});
-
-  static const _actions = [
-    (icon: Icons.work_rounded,        label: 'New Job',    color: Color(0xFF7C3AED), path: '/jobs'),
-    (icon: Icons.person_add_rounded,  label: 'New Client', color: Color(0xFF1971C2), path: '/clients'),
-    (icon: Icons.receipt_rounded,     label: 'Invoice',    color: Color(0xFF7048E8), path: '/billing'),
-    (icon: Icons.inventory_rounded,   label: 'Inventory',  color: Color(0xFF2B8A3E), path: '/inventory'),
-    (icon: Icons.bar_chart_rounded,   label: 'Reports',    color: Color(0xFF0C8599), path: '/reports'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
-      ..._actions.map((a) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: const Color(0xFF1F2937), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 6, offset: const Offset(0, 2))]),
-            child: Text(a.label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
-          ),
-          const SizedBox(width: 10),
-          FloatingActionButton.small(
-            heroTag: a.label,
-            backgroundColor: a.color,
-            onPressed: () { onClose(); context.go(a.path); },
-            child: Icon(a.icon, color: Colors.white, size: 20),
-          ),
-        ]),
-      )),
-      FloatingActionButton(
-        heroTag: 'main-fab',
-        backgroundColor: const Color(0xFF7C3AED),
-        onPressed: onClose,
-        child: const Icon(Icons.close_rounded, color: Colors.white),
-      ),
-    ]);
-  }
-}
-
 
 // ── Stat Card ─────────────────────────────────────────────
 class _StatCard extends StatelessWidget {
@@ -248,7 +158,7 @@ class _RecentJobTile extends StatelessWidget {
     final status = job['status'] as String? ?? 'draft';
     final color = AppColors.statusColors[status] ?? AppColors.textMuted;
     return GestureDetector(
-      onTap: () => context.go('/jobs/${job['id']}'),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BlocProvider(create: (_) => JobsBloc(), child: JobDetailScreen(jobId: job['id'] as String)))),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(

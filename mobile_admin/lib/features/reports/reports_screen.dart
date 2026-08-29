@@ -132,21 +132,18 @@ class _ReportsViewState extends State<_ReportsView> with SingleTickerProviderSta
     return BlocBuilder<ReportsBloc, ReportsState>(
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
-          title: const Text('Reports'),
-           
-          actions: [
-            IconButton(icon: const Icon(Icons.refresh_outlined), onPressed: () => context.read<ReportsBloc>().add(const ReportsLoadRequested())),
-            const SizedBox(width: 8),
-          ],
-          bottom: TabBar(
-            controller: _tabCtrl, isScrollable: true, tabAlignment: TabAlignment.start,
+        body: Column(children: [
+          // TabBar
+          TabBar(
+            controller: _tabCtrl,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: _tabs.map((t) => Tab(text: t)).toList(),
-            labelColor: AppColors.primary, unselectedLabelColor: AppColors.textMuted, indicatorColor: AppColors.primary,
+            labelColor: AppColors.primary,
+            unselectedLabelColor: AppColors.textMuted,
+            indicatorColor: AppColors.primary,
           ),
-        ),
-        body: state.isLoading
+          Expanded(child: state.isLoading
             ? const Center(child: CircularProgressIndicator())
             : state.error != null
                 ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -169,6 +166,8 @@ class _ReportsViewState extends State<_ReportsView> with SingleTickerProviderSta
                       const _ClientJobsTab(),
                     ],
                   ),
+          ),
+        ]),
       ),
     );
   }
@@ -209,11 +208,13 @@ class _PipelineTab extends StatelessWidget {
           final row = data[i];
           final status = row['status'] as String? ?? '';
           final color = AppColors.statusColors[status] ?? AppColors.textMuted;
+          final count = int.tryParse(row['count']?.toString() ?? '') ?? 0;
+          final totalValue = double.tryParse(row['total_value']?.toString() ?? '') ?? 0;
           return Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text(Fmt.statusLabel(status), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
-            Text('${row['count'] ?? 0}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: color)),
-            if ((row['total_value'] as num? ?? 0) > 0)
-              Text(Fmt.money(row['total_value']), style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+            Text('$count', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: color)),
+            if (totalValue > 0)
+              Text(Fmt.money(totalValue), style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
           ])));
         },
       ),
@@ -224,7 +225,8 @@ class _PipelineTab extends StatelessWidget {
         child: BarChart(BarChartData(
           barGroups: data.asMap().entries.map((e) {
             final color = AppColors.statusColors[e.value['status'] as String? ?? ''] ?? AppColors.textMuted;
-            return BarChartGroupData(x: e.key, barRods: [BarChartRodData(toY: (e.value['count'] as num? ?? 0).toDouble(), color: color, width: 20, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))]);
+            final count = int.tryParse(e.value['count']?.toString() ?? '') ?? 0;
+            return BarChartGroupData(x: e.key, barRods: [BarChartRodData(toY: count.toDouble(), color: color, width: 20, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))]);
           }).toList(),
           titlesData: FlTitlesData(
             bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
@@ -328,6 +330,7 @@ class _ClientsTab extends StatelessWidget {
         ]));
         final r = data[i - 1];
         final outstanding = double.tryParse(r['total_outstanding']?.toString() ?? '0') ?? 0;
+        final totalBilled = double.tryParse(r['total_billed']?.toString() ?? '0') ?? 0;
         return Card(margin: const EdgeInsets.only(bottom: 8), child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
           CircleAvatar(radius: 16, backgroundColor: AppColors.primaryLight, child: Text((r['client_name'] as String? ?? '?').substring(0, 1).toUpperCase(), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13))),
           const SizedBox(width: 10),
@@ -337,7 +340,7 @@ class _ClientsTab extends StatelessWidget {
           ])),
           const SizedBox(width: 8),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(Fmt.money(r['total_billed']), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
+            Text(Fmt.money(totalBilled), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
             Text(Fmt.money(outstanding), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: outstanding > 0 ? AppColors.error : AppColors.success)),
           ]),
         ])));
@@ -357,11 +360,12 @@ class _OutstandingTab extends StatelessWidget {
     final summary = data['summary'] as Map? ?? {};
     if (invoices.isEmpty) return const Center(child: Text('No outstanding invoices', style: TextStyle(color: AppColors.textMuted)));
 
+    final totalOutstanding = double.tryParse(summary['total_outstanding']?.toString() ?? '0') ?? 0;
     return ListView(padding: const EdgeInsets.all(16), children: [
       Row(children: [
         Expanded(child: Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Total Outstanding', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
-          Text(Fmt.money(summary['total_outstanding']), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.error)),
+          Text(Fmt.money(totalOutstanding), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.error)),
         ])))),
         const SizedBox(width: 10),
         Expanded(child: Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -373,6 +377,7 @@ class _OutstandingTab extends StatelessWidget {
       ...invoices.map((inv) {
         final urgency = inv['urgency'] as String? ?? 'upcoming';
         final urgencyColor = urgency == 'overdue' ? AppColors.error : urgency == 'due_today' ? AppColors.warning : AppColors.info;
+        final balanceDue = double.tryParse(inv['balance_due']?.toString() ?? '0') ?? 0;
         return Card(margin: const EdgeInsets.only(bottom: 8), child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
           Container(width: 4, height: 48, decoration: BoxDecoration(color: urgencyColor, borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 12),
@@ -382,7 +387,7 @@ class _OutstandingTab extends StatelessWidget {
             if (inv['due_date'] != null) Text('Due: ${Fmt.date(inv['due_date'])}', style: TextStyle(fontSize: 11, color: urgencyColor, fontWeight: FontWeight.w500)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(Fmt.money(inv['balance_due']), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: urgencyColor)),
+            Text(Fmt.money(balanceDue), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: urgencyColor)),
             Container(margin: const EdgeInsets.only(top: 4), padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2), decoration: BoxDecoration(color: urgencyColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(5)), child: Text(urgency.replaceAll('_', ' ').toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: urgencyColor))),
           ]),
         ])));
@@ -406,6 +411,7 @@ class _ProfitabilityTab extends StatelessWidget {
         final j = data[i];
         final margin = double.tryParse(j['actual_margin']?.toString() ?? '0') ?? 0;
         final pct = double.tryParse(j['margin_percent']?.toString() ?? '0') ?? 0;
+        final quotedPrice = double.tryParse(j['quoted_price']?.toString() ?? '0') ?? 0;
         final color = margin >= 0 ? AppColors.success : AppColors.error;
         return Card(margin: const EdgeInsets.only(bottom: 8), child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
@@ -416,7 +422,7 @@ class _ProfitabilityTab extends StatelessWidget {
           ]),
           const SizedBox(height: 8),
           Row(children: [
-            Expanded(child: _statRow('Quoted', Fmt.money(j['quoted_price']))),
+            Expanded(child: _statRow('Quoted', Fmt.money(quotedPrice))),
             const SizedBox(width: 16),
             Expanded(child: _statRow('Margin', Fmt.money(margin), valueColor: color)),
           ]),
@@ -475,9 +481,9 @@ class _MachinesTab extends StatelessWidget {
       itemCount: data.length,
       itemBuilder: (_, i) {
         final m = data[i];
-        final total = m['total_jobs'] as int? ?? 0;
-        final done = m['completed_jobs'] as int? ?? 0;
-        final active = m['active_jobs'] as int? ?? 0;
+        final total = int.tryParse(m['total_jobs']?.toString() ?? '') ?? 0;
+        final done = int.tryParse(m['completed_jobs']?.toString() ?? '') ?? 0;
+        final active = int.tryParse(m['active_jobs']?.toString() ?? '') ?? 0;
         final pct = total > 0 ? done / total : 0.0;
         return Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
@@ -516,14 +522,17 @@ class _StaffTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (data.isEmpty) return const Center(child: Text('No data', style: TextStyle(color: AppColors.textMuted)));
-    final maxJobs = data.fold(0, (m, r) => (r['total_jobs'] as int? ?? 0) > m ? (r['total_jobs'] as int? ?? 0) : m);
+    final maxJobs = data.fold(0, (m, r) {
+      final totalJobs = int.tryParse(r['total_jobs']?.toString() ?? '') ?? 0;
+      return totalJobs > m ? totalJobs : m;
+    });
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: data.length,
       itemBuilder: (_, i) {
         final r = data[i];
-        final total = r['total_jobs'] as int? ?? 0;
-        final done = r['completed_jobs'] as int? ?? 0;
+        final total = int.tryParse(r['total_jobs']?.toString() ?? '') ?? 0;
+        final done = int.tryParse(r['completed_jobs']?.toString() ?? '') ?? 0;
         final pct = maxJobs > 0 ? total / maxJobs : 0.0;
         return Card(margin: const EdgeInsets.only(bottom: 8), child: Padding(padding: const EdgeInsets.all(14), child: Row(children: [
           CircleAvatar(backgroundColor: AppColors.successLight, child: Text((r['operator_name'] as String? ?? '?').substring(0, 1).toUpperCase(), style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w700))),
@@ -622,9 +631,10 @@ class _ClientJobsTabState extends State<_ClientJobsTab> with AutomaticKeepAliveC
     final ctrl = TextEditingController();
     showModalBottomSheet(
       context: context, isScrollControlled: true,
-      builder: (_) => DraggableScrollableSheet(
-        expand: false, initialChildSize: 0.75, maxChildSize: 0.95,
-        builder: (ctx, scroll) => StatefulBuilder(builder: (sCtx, setSt) => Column(children: [
+      builder: (_) => SafeArea(
+        child: DraggableScrollableSheet(
+          expand: false, initialChildSize: 0.75, maxChildSize: 0.95,
+          builder: (ctx, scroll) => StatefulBuilder(builder: (sCtx, setSt) => Column(children: [
           const SizedBox(height: 12),
           Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
           Padding(padding: const EdgeInsets.all(16), child: TextField(
@@ -655,6 +665,7 @@ class _ClientJobsTabState extends State<_ClientJobsTab> with AutomaticKeepAliveC
             );
           })),
         ])),
+        ),
       ),
     );
   }

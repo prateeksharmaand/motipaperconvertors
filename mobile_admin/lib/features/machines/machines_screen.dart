@@ -1,5 +1,5 @@
-// ignore_for_file: use_build_context_synchronously
-import '../../core/widgets/shell_scaffold.dart';
+﻿// ignore_for_file: use_build_context_synchronously
+import 'dart:ui' show ImageFilter;
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,7 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_toast.dart';
 import '../../core/widgets/app_shimmer.dart';
 
-// ── Model ─────────────────────────────────────────────────
+// â”€â”€ Model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class Machine extends Equatable {
   final String id;
   final String name;
@@ -33,7 +33,7 @@ class Machine extends Equatable {
   @override List<Object?> get props => [id];
 }
 
-// ── BLoC ─────────────────────────────────────────────────
+// â”€â”€ BLoC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 abstract class MachinesEvent extends Equatable {
   const MachinesEvent();
   @override List<Object?> get props => [];
@@ -94,7 +94,7 @@ class MachinesBloc extends Bloc<MachinesEvent, MachinesState> {
   }
 }
 
-// ── Screen ────────────────────────────────────────────────
+// â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class MachinesScreen extends StatelessWidget {
   const MachinesScreen({super.key});
   @override
@@ -104,8 +104,17 @@ class MachinesScreen extends StatelessWidget {
       );
 }
 
-class _MachinesView extends StatelessWidget {
+class _MachinesView extends StatefulWidget {
   const _MachinesView();
+
+  @override
+  State<_MachinesView> createState() => _MachinesViewState();
+}
+
+class _MachinesViewState extends State<_MachinesView> {
+  bool _fabOpen = false;
+
+  void _closeFab() => setState(() => _fabOpen = false);
 
   @override
   Widget build(BuildContext context) {
@@ -116,33 +125,69 @@ class _MachinesView extends StatelessWidget {
       },
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
-        body: RefreshIndicator(
-          onRefresh: () async => context.read<MachinesBloc>().add(const MachinesLoadRequested()),
-          child: CustomScrollView(slivers: [
-            SliverAppBar(pinned: true, leading: IconButton(icon: const Icon(Icons.menu), color: Colors.white, onPressed: () => drawerScaffoldKey.currentState?.openDrawer()), title: const Text('Machines'), ),
-            if (state.isLoading)
-              const SliverShimmerList(count: 5, itemBuilder: ShimmerCard.new)
-            else if (state.machines.isEmpty)
-              SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.precision_manufacturing_outlined, size: 56, color: AppColors.textMuted),
-                const SizedBox(height: 12),
-                const Text('No machines yet', style: TextStyle(color: AppColors.textMuted)),
-              ])))
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                sliver: SliverList(delegate: SliverChildBuilderDelegate(
-                  (_, i) => _MachineCard(machine: state.machines[i], onEdit: () => _showForm(context, state.machines[i])),
-                  childCount: state.machines.length,
-                )),
+        floatingActionButton: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+          if (_fabOpen) ...[
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: const Color(0xFF1F2937), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 6, offset: const Offset(0, 2))]),
+                child: const Text('Add Machine', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
               ),
-          ]),
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _showForm(context),
-          icon: const Icon(Icons.add),
-          label: const Text('Add Machine'),
-        ),
+              const SizedBox(width: 10),
+              FloatingActionButton.small(
+                heroTag: 'add-machine',
+                backgroundColor: AppColors.primary,
+                onPressed: () {
+                  _closeFab();
+                  _showForm(context);
+                },
+                child: const Icon(Icons.precision_manufacturing_outlined, color: Colors.white, size: 20),
+              ),
+            ]),
+            const SizedBox(height: 10),
+          ],
+          FloatingActionButton(
+            heroTag: 'machines-main',
+            backgroundColor: AppColors.primary,
+            onPressed: () => setState(() => _fabOpen = !_fabOpen),
+            child: AnimatedRotation(
+              turns: _fabOpen ? 0.125 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+            ),
+          ),
+        ]),
+        body: Stack(children: [
+          RefreshIndicator(
+            onRefresh: () async => context.read<MachinesBloc>().add(const MachinesLoadRequested()),
+            child: CustomScrollView(slivers: [
+              if (state.isLoading)
+                const SliverShimmerList(count: 5, itemBuilder: ShimmerCard.new)
+              else if (state.machines.isEmpty)
+                SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.precision_manufacturing_outlined, size: 56, color: AppColors.textMuted),
+                  const SizedBox(height: 12),
+                  const Text('No machines yet', style: TextStyle(color: AppColors.textMuted)),
+                ])))
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                  sliver: SliverList(delegate: SliverChildBuilderDelegate(
+                    (_, i) => _MachineCard(machine: state.machines[i], onEdit: () => _showForm(context, state.machines[i])),
+                    childCount: state.machines.length,
+                  )),
+                ),
+            ]),
+          ),
+          if (_fabOpen)
+            GestureDetector(
+              onTap: _closeFab,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                child: Container(color: Colors.black.withValues(alpha: 0.3)),
+              ),
+            ),
+        ]),
       ),
     );
   }
@@ -159,10 +204,11 @@ class _MachinesView extends StatelessWidget {
     showModalBottomSheet(
       context: context, isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => StatefulBuilder(builder: (ctx, setModal) => Padding(
-        padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(existing == null ? 'Add Machine' : 'Edit Machine', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+      builder: (_) => StatefulBuilder(builder: (ctx, setModal) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text(existing == null ? 'Add Machine' : 'Edit Machine', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
           TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Machine Name *')),
           const SizedBox(height: 12),
@@ -177,6 +223,7 @@ class _MachinesView extends StatelessWidget {
           TextField(controller: notesCtrl, decoration: const InputDecoration(labelText: 'Notes'), maxLines: 2),
           const SizedBox(height: 20),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
             onPressed: saving || nameCtrl.text.isEmpty ? null : () async {
               setModal(() => saving = true);
               try {
@@ -195,12 +242,13 @@ class _MachinesView extends StatelessWidget {
             child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(existing == null ? 'Add Machine' : 'Save'),
           ),
         ]),
+        ),
       )),
     );
   }
 }
 
-// ── Machine card ──────────────────────────────────────────
+// â”€â”€ Machine card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _MachineCard extends StatelessWidget {
   final Machine machine;
   final VoidCallback onEdit;
@@ -233,7 +281,7 @@ class _MachineCard extends StatelessWidget {
               ),
             ]),
             if (machine.type != null || machine.model != null)
-              Text([if (machine.type != null) machine.type!, if (machine.model != null) machine.model!].join(' · '), style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              Text([if (machine.type != null) machine.type!, if (machine.model != null) machine.model!].join(' Â· '), style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
             if (machine.maxColors != null)
               Text('${machine.maxColors} colors max', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
           ])),
@@ -271,3 +319,4 @@ class _MachineCard extends StatelessWidget {
     );
   }
 }
+

@@ -1,15 +1,14 @@
-import '../../core/widgets/shell_scaffold.dart';
+﻿import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:bloc/bloc.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_toast.dart';
 import '../../core/widgets/app_shimmer.dart';
 import '../../models/pagination_model.dart';
 
-// ── Model ─────────────────────────────────────────────────
+// â”€â”€ Model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class Client extends Equatable {
   final String id;
   final String name;
@@ -38,7 +37,7 @@ class Client extends Equatable {
   @override List<Object?> get props => [id];
 }
 
-// ── BLoC ─────────────────────────────────────────────────
+// â”€â”€ BLoC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 abstract class ClientsEvent extends Equatable {
   const ClientsEvent();
   @override List<Object?> get props => [];
@@ -110,7 +109,7 @@ class ClientsBloc extends Bloc<ClientsEvent, ClientsState> {
   }
 }
 
-// ── Screen ────────────────────────────────────────────────
+// â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class ClientsScreen extends StatelessWidget {
   const ClientsScreen({super.key});
   @override
@@ -128,6 +127,7 @@ class _ClientsView extends StatefulWidget {
 class _ClientsViewState extends State<_ClientsView> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+  bool _fabOpen = false;
   @override
   void initState() {
     super.initState();
@@ -138,70 +138,99 @@ class _ClientsViewState extends State<_ClientsView> {
     });
   }
   @override void dispose() { _searchCtrl.dispose(); _scrollCtrl.dispose(); super.dispose(); }
+  void _closeFab() => setState(() => _fabOpen = false);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: BlocBuilder<ClientsBloc, ClientsState>(
-        builder: (context, state) => RefreshIndicator(
-          onRefresh: () async => context.read<ClientsBloc>().add(const ClientsLoadRequested()),
-          child: CustomScrollView(controller: _scrollCtrl, slivers: [
-            SliverAppBar(
-              pinned: true, title: const Text('Clients'),
-              leading: IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(56),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: TextField(
-                    controller: _searchCtrl,
-                    onChanged: (v) => context.read<ClientsBloc>().add(ClientsSearchChanged(v)),
-                    decoration: InputDecoration(
-                      hintText: 'Search name, phone, company…',
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      isDense: true,
-                      suffixIcon: _searchCtrl.text.isNotEmpty
-                          ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { _searchCtrl.clear(); context.read<ClientsBloc>().add(const ClientsSearchChanged('')); })
-                          : null,
-                    ),
+      body: Stack(children: [
+        BlocBuilder<ClientsBloc, ClientsState>(
+          builder: (context, state) => RefreshIndicator(
+            onRefresh: () async => context.read<ClientsBloc>().add(const ClientsLoadRequested()),
+            child: CustomScrollView(controller: _scrollCtrl, slivers: [
+              SliverToBoxAdapter(child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: (v) => context.read<ClientsBloc>().add(ClientsSearchChanged(v)),
+                  decoration: InputDecoration(
+                    hintText: 'Search name, phone, companyâ€¦',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    isDense: true,
+                    suffixIcon: _searchCtrl.text.isNotEmpty
+                        ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { _searchCtrl.clear(); context.read<ClientsBloc>().add(const ClientsSearchChanged('')); })
+                        : null,
                   ),
                 ),
-              ),
-            ),
-            SliverToBoxAdapter(child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: Text('${state.total} clients', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-            )),
-            if (state.isLoading)
-              const SliverShimmerList(count: 8, itemBuilder: ShimmerRow.new)
-            else if (state.clients.isEmpty)
-              SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.people_outline, size: 56, color: AppColors.textMuted),
-                const SizedBox(height: 12),
-                Text(state.search.isNotEmpty ? 'No clients match "${state.search}"' : 'No clients yet', style: const TextStyle(color: AppColors.textMuted)),
-              ])))
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                sliver: SliverList(delegate: SliverChildBuilderDelegate(
-                  (_, i) {
-                    if (i == state.clients.length) {
-                      return state.isLoadingMore ? const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator(strokeWidth: 2))) : const SizedBox.shrink();
-                    }
-                    return _ClientTile(client: state.clients[i]);
-                  },
-                  childCount: state.clients.length + 1,
-                )),
-              ),
-          ]),
+              )),
+              SliverToBoxAdapter(child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Text('${state.total} clients', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              )),
+              if (state.isLoading)
+                const SliverShimmerList(count: 8, itemBuilder: ShimmerRow.new)
+              else if (state.clients.isEmpty)
+                SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.people_outline, size: 56, color: AppColors.textMuted),
+                  const SizedBox(height: 12),
+                  Text(state.search.isNotEmpty ? 'No clients match "${state.search}"' : 'No clients yet', style: const TextStyle(color: AppColors.textMuted)),
+                ])))
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  sliver: SliverList(delegate: SliverChildBuilderDelegate(
+                    (_, i) {
+                      if (i == state.clients.length) {
+                        return state.isLoadingMore ? const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator(strokeWidth: 2))) : const SizedBox.shrink();
+                      }
+                      return _ClientTile(client: state.clients[i]);
+                    },
+                    childCount: state.clients.length + 1,
+                  )),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 80)),
+            ]),
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showClientForm(context),
-        icon: const Icon(Icons.add),
-        label: const Text('New Client'),
-      ),
+        if (_fabOpen)
+          GestureDetector(
+            onTap: _closeFab,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+              child: Container(color: Colors.black.withValues(alpha: 0.3)),
+            ),
+          ),
+      ]),
+      floatingActionButton: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+        if (_fabOpen) ...[
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: const Color(0xFF1F2937), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 6, offset: const Offset(0, 2))]),
+              child: const Text('New Client', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+            ),
+            const SizedBox(width: 10),
+            FloatingActionButton.small(
+              heroTag: 'new-client',
+              backgroundColor: AppColors.primary,
+              onPressed: () { _closeFab(); _showClientForm(context); },
+              child: const Icon(Icons.add, color: Colors.white, size: 20),
+            ),
+          ]),
+          const SizedBox(height: 10),
+        ],
+        FloatingActionButton(
+          heroTag: 'clients-main',
+          backgroundColor: AppColors.primary,
+          onPressed: () => setState(() => _fabOpen = !_fabOpen),
+          child: AnimatedRotation(
+            turns: _fabOpen ? 0.125 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -218,9 +247,10 @@ class _ClientsViewState extends State<_ClientsView> {
       context: context, isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => StatefulBuilder(builder: (ctx, setModal) {
-        return Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Text(existing == null ? 'New Client' : 'Edit Client', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name *')),
@@ -257,6 +287,7 @@ class _ClientsViewState extends State<_ClientsView> {
               child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(existing == null ? 'Create Client' : 'Save Changes'),
             ),
           ]),
+            ),
         );
       }),
     );
@@ -304,3 +335,4 @@ class _ClientTile extends StatelessWidget {
     );
   }
 }
+

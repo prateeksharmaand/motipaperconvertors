@@ -1,4 +1,4 @@
-import '../../core/widgets/shell_scaffold.dart';
+﻿import 'dart:ui' show ImageFilter;
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,7 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_toast.dart';
 import '../../core/widgets/app_shimmer.dart';
 
-// ── Model ─────────────────────────────────────────────────
+// â”€â”€ Model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class SubAdmin extends Equatable {
   final String id;
   final String name;
@@ -30,7 +30,7 @@ class SubAdmin extends Equatable {
   @override List<Object?> get props => [id];
 }
 
-// ── Permission matrix definition ──────────────────────────
+// â”€â”€ Permission matrix definition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const _permissionGroups = [
   (group: 'Jobs',       perms: ['jobs.view', 'jobs.create', 'jobs.edit', 'jobs.delete']),
   (group: 'Quotations', perms: ['quotation.view', 'quotation.create', 'quotation.edit_rates']),
@@ -46,7 +46,7 @@ const _permissionGroups = [
 
 String _permLabel(String p) => p.split('.').last.replaceAll('_', ' ').split(' ').map((w) => w[0].toUpperCase() + w.substring(1)).join(' ');
 
-// ── Events & State ────────────────────────────────────────
+// â”€â”€ Events & State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 abstract class SubAdminsEvent extends Equatable {
   const SubAdminsEvent();
   @override List<Object?> get props => [];
@@ -80,7 +80,7 @@ class SubAdminsState extends Equatable {
   @override List<Object?> get props => [admins, isLoading];
 }
 
-// ── BLoC ─────────────────────────────────────────────────
+// â”€â”€ BLoC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class SubAdminsBloc extends Bloc<SubAdminsEvent, SubAdminsState> {
   SubAdminsBloc() : super(const SubAdminsState()) {
     on<SubAdminsLoadRequested>(_onLoad);
@@ -123,7 +123,7 @@ class SubAdminsBloc extends Bloc<SubAdminsEvent, SubAdminsState> {
   }
 }
 
-// ── Screen ────────────────────────────────────────────────
+// â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class SubAdminsScreen extends StatelessWidget {
   const SubAdminsScreen({super.key});
   @override
@@ -133,8 +133,14 @@ class SubAdminsScreen extends StatelessWidget {
       );
 }
 
-class _SubAdminsView extends StatelessWidget {
+class _SubAdminsView extends StatefulWidget {
   const _SubAdminsView();
+  @override State<_SubAdminsView> createState() => _SubAdminsViewState();
+}
+
+class _SubAdminsViewState extends State<_SubAdminsView> {
+  bool _fabOpen = false;
+  void _closeFab() => setState(() => _fabOpen = false);
 
   @override
   Widget build(BuildContext context) {
@@ -145,33 +151,69 @@ class _SubAdminsView extends StatelessWidget {
       },
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
-        body: RefreshIndicator(
-          onRefresh: () async => context.read<SubAdminsBloc>().add(const SubAdminsLoadRequested()),
-          child: CustomScrollView(slivers: [
-            SliverAppBar(pinned: true, leading: IconButton(icon: const Icon(Icons.menu), color: Colors.white, onPressed: () => drawerScaffoldKey.currentState?.openDrawer()), title: const Text('Sub Admins'), ),
-            if (state.isLoading)
-              const SliverShimmerList(count: 6, itemBuilder: ShimmerRow.new)
-            else if (state.admins.isEmpty)
-              SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.admin_panel_settings_outlined, size: 56, color: AppColors.textMuted),
-                const SizedBox(height: 12),
-                const Text('No sub admins yet', style: TextStyle(color: AppColors.textMuted)),
-              ])))
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                sliver: SliverList(delegate: SliverChildBuilderDelegate(
-                  (_, i) => _SubAdminCard(admin: state.admins[i]),
-                  childCount: state.admins.length,
-                )),
+        body: Stack(children: [
+          RefreshIndicator(
+            onRefresh: () async => context.read<SubAdminsBloc>().add(const SubAdminsLoadRequested()),
+            child: CustomScrollView(slivers: [
+              if (state.isLoading)
+                const SliverShimmerList(count: 6, itemBuilder: ShimmerRow.new)
+              else if (state.admins.isEmpty)
+                SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.admin_panel_settings_outlined, size: 56, color: AppColors.textMuted),
+                  const SizedBox(height: 12),
+                  const Text('No sub admins yet', style: TextStyle(color: AppColors.textMuted)),
+                ])))
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                  sliver: SliverList(delegate: SliverChildBuilderDelegate(
+                    (_, i) => _SubAdminCard(admin: state.admins[i]),
+                    childCount: state.admins.length,
+                  )),
+                ),
+            ]),
+          ),
+          if (_fabOpen)
+            GestureDetector(
+              onTap: _closeFab,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                child: Container(color: Colors.black.withValues(alpha: 0.3)),
               ),
-          ]),
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _showCreateSheet(context),
-          icon: const Icon(Icons.person_add_outlined),
-          label: const Text('Add Sub Admin'),
-        ),
+            ),
+        ]),
+        floatingActionButton: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+          if (_fabOpen) ...[
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: const Color(0xFF1F2937), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 6, offset: const Offset(0, 2))]),
+                child: const Text('Add Sub Admin', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+              ),
+              const SizedBox(width: 10),
+              FloatingActionButton.small(
+                heroTag: 'add-subadmin',
+                backgroundColor: AppColors.primary,
+                onPressed: () {
+                  _closeFab();
+                  _showCreateSheet(context);
+                },
+                child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 20),
+              ),
+            ]),
+            const SizedBox(height: 10),
+          ],
+          FloatingActionButton(
+            heroTag: 'subadmin-main',
+            backgroundColor: AppColors.primary,
+            onPressed: () => setState(() => _fabOpen = !_fabOpen),
+            child: AnimatedRotation(
+              turns: _fabOpen ? 0.125 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+            ),
+          ),
+        ]),
       ),
     );
   }
@@ -186,10 +228,11 @@ class _SubAdminsView extends StatelessWidget {
     showModalBottomSheet(
       context: context, isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => StatefulBuilder(builder: (ctx, setModal) => Padding(
-        padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('Add Sub Admin', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+      builder: (_) => StatefulBuilder(builder: (ctx, setModal) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('Add Sub Admin', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
           TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Full Name *')),
           const SizedBox(height: 12),
@@ -198,6 +241,7 @@ class _SubAdminsView extends StatelessWidget {
           TextField(controller: passCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Password *')),
           const SizedBox(height: 20),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
             onPressed: saving ? null : () async {
               if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty || passCtrl.text.isEmpty) return;
               setModal(() => saving = true);
@@ -207,12 +251,13 @@ class _SubAdminsView extends StatelessWidget {
             child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Create'),
           ),
         ]),
+        ),
       )),
     );
   }
 }
 
-// ── Sub Admin card with permission matrix ─────────────────
+// â”€â”€ Sub Admin card with permission matrix â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _SubAdminCard extends StatefulWidget {
   final SubAdmin admin;
   const _SubAdminCard({required this.admin});
@@ -301,7 +346,7 @@ class _SubAdminCardState extends State<_SubAdminCard> {
                 }).toList()),
               ])),
               const SizedBox(height: 12),
-              SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _savePermissions, child: const Text('Save Permissions'))),
+              SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary), onPressed: _savePermissions, child: const Text('Save Permissions'))),
             ]),
           ),
         ],
@@ -309,3 +354,4 @@ class _SubAdminCardState extends State<_SubAdminCard> {
     );
   }
 }
+

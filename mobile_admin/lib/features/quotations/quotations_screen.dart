@@ -1,3 +1,4 @@
+﻿import 'dart:ui' show ImageFilter;
 import '../../core/widgets/shell_scaffold.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +10,7 @@ import '../../core/widgets/app_shimmer.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/pagination_model.dart';
 
-// ── Model ─────────────────────────────────────────────────
+// â”€â”€ Model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class Quotation extends Equatable {
   final String id;
   final int quotationNumber;
@@ -38,7 +39,7 @@ class Quotation extends Equatable {
   @override List<Object?> get props => [id];
 }
 
-// ── BLoC ─────────────────────────────────────────────────
+// â”€â”€ BLoC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 abstract class QuotationsEvent extends Equatable {
   const QuotationsEvent();
   @override List<Object?> get props => [];
@@ -83,7 +84,7 @@ class QuotationsBloc extends Bloc<QuotationsEvent, QuotationsState> {
   }
 }
 
-// ── Screen ────────────────────────────────────────────────
+// â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class QuotationsScreen extends StatelessWidget {
   const QuotationsScreen({super.key});
   @override
@@ -100,6 +101,7 @@ class _QuotationsView extends StatefulWidget {
 
 class _QuotationsViewState extends State<_QuotationsView> {
   final _scrollCtrl = ScrollController();
+  bool _fabOpen = false;
 
   @override
   void initState() {
@@ -114,46 +116,84 @@ class _QuotationsViewState extends State<_QuotationsView> {
   @override
   void dispose() { _scrollCtrl.dispose(); super.dispose(); }
 
+  void _closeFab() => setState(() => _fabOpen = false);
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<QuotationsBloc, QuotationsState>(
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
-        body: RefreshIndicator(
-          onRefresh: () async => context.read<QuotationsBloc>().add(const QuotationsLoadRequested()),
-          child: CustomScrollView(controller: _scrollCtrl, slivers: [
-            SliverAppBar(pinned: true, leading: IconButton(icon: const Icon(Icons.menu), color: Colors.white, onPressed: () => drawerScaffoldKey.currentState?.openDrawer()), title: const Text('Quotations'), ),
-            SliverToBoxAdapter(child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: Text('${state.total} quotations', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-            )),
-            if (state.isLoading)
-              const SliverShimmerList(count: 6, itemBuilder: ShimmerCard.new)
-            else if (state.items.isEmpty)
-              SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.request_quote_outlined, size: 56, color: AppColors.textMuted),
-                const SizedBox(height: 12),
-                const Text('No quotations yet', style: TextStyle(color: AppColors.textMuted)),
-              ])))
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-                sliver: SliverList(delegate: SliverChildBuilderDelegate(
-                  (_, i) {
-                    if (i == state.items.length) return state.isLoadingMore ? const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator(strokeWidth: 2))) : const SizedBox.shrink();
-                    final q = state.items[i];
-                    return _QuotationCard(q: q, onTap: () => _showDetail(context, q));
-                  },
-                  childCount: state.items.length + 1,
-                )),
+        floatingActionButton: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+          if (_fabOpen) ...[
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: const Color(0xFF1F2937), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 6, offset: const Offset(0, 2))]),
+                child: const Text('New Quotation', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
               ),
-          ]),
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _showCreateSheet(context),
-          icon: const Icon(Icons.add),
-          label: const Text('New Quotation'),
-        ),
+              const SizedBox(width: 10),
+              FloatingActionButton.small(
+                heroTag: 'new-quotation',
+                backgroundColor: AppColors.primary,
+                onPressed: () {
+                  _closeFab();
+                  _showCreateSheet(context);
+                },
+                child: const Icon(Icons.request_quote_rounded, color: Colors.white, size: 20),
+              ),
+            ]),
+            const SizedBox(height: 10),
+          ],
+          FloatingActionButton(
+            heroTag: 'quotations-main',
+            backgroundColor: AppColors.primary,
+            onPressed: () => setState(() => _fabOpen = !_fabOpen),
+            child: AnimatedRotation(
+              turns: _fabOpen ? 0.125 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+            ),
+          ),
+        ]),
+        body: Stack(children: [
+          RefreshIndicator(
+            onRefresh: () async => context.read<QuotationsBloc>().add(const QuotationsLoadRequested()),
+            child: CustomScrollView(controller: _scrollCtrl, slivers: [
+              SliverToBoxAdapter(child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Text('${state.total} quotations', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              )),
+              if (state.isLoading)
+                const SliverShimmerList(count: 6, itemBuilder: ShimmerCard.new)
+              else if (state.items.isEmpty)
+                SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.request_quote_outlined, size: 56, color: AppColors.textMuted),
+                  const SizedBox(height: 12),
+                  const Text('No quotations yet', style: TextStyle(color: AppColors.textMuted)),
+                ])))
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                  sliver: SliverList(delegate: SliverChildBuilderDelegate(
+                    (_, i) {
+                      if (i == state.items.length) return state.isLoadingMore ? const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator(strokeWidth: 2))) : const SizedBox.shrink();
+                      final q = state.items[i];
+                      return _QuotationCard(q: q, onTap: () => _showDetail(context, q));
+                    },
+                    childCount: state.items.length + 1,
+                  )),
+                ),
+            ]),
+          ),
+          if (_fabOpen)
+            GestureDetector(
+              onTap: _closeFab,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                child: Container(color: Colors.black.withValues(alpha: 0.3)),
+              ),
+            ),
+        ]),
       ),
     );
   }
@@ -162,20 +202,22 @@ class _QuotationsViewState extends State<_QuotationsView> {
     showModalBottomSheet(
       context: context, isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.5, maxChildSize: 0.9, minChildSize: 0.35, expand: false,
-        builder: (_, ctrl) => ListView(controller: ctrl, padding: const EdgeInsets.all(20), children: [
+      builder: (_) => SafeArea(
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.5, maxChildSize: 0.9, minChildSize: 0.35, expand: false,
+          builder: (_, ctrl) => ListView(controller: ctrl, padding: const EdgeInsets.all(20), children: [
           Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)), margin: const EdgeInsets.only(bottom: 16))),
           Text('Quotation #${q.quotationNumber}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
-          _row('Client', q.clientName ?? '—'),
-          _row('Job', q.jobTitle ?? '—'),
+          _row('Client', q.clientName ?? 'â€”'),
+          _row('Job', q.jobTitle ?? 'â€”'),
           _row('Total', Fmt.money(q.total), bold: true),
           if (q.marginPercent != null) _row('Margin', '${q.marginPercent!.toStringAsFixed(1)}%'),
           if (q.gstPercent != null) _row('GST', '${q.gstPercent!.toStringAsFixed(0)}%'),
           _row('Status', Fmt.statusLabel(q.status)),
           _row('Created', Fmt.date(q.createdAt)),
         ]),
+        ),
       ),
     );
   }
@@ -213,9 +255,10 @@ class _QuotationsViewState extends State<_QuotationsView> {
         double gstAmount = afterDiscount * gst / 100;
         double total = afterDiscount + gstAmount;
 
-        return Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+            child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             const Text('New Quotation', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             if (loading) const Center(child: CircularProgressIndicator())
@@ -245,7 +288,7 @@ class _QuotationsViewState extends State<_QuotationsView> {
               const SizedBox(width: 8),
               Expanded(child: TextField(keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'GST %'), controller: TextEditingController(text: '18'), onChanged: (v) => setModal(() => gst = double.tryParse(v) ?? 0))),
               const SizedBox(width: 8),
-              Expanded(child: TextField(keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Discount ₹'), onChanged: (v) => setModal(() => discount = double.tryParse(v) ?? 0))),
+              Expanded(child: TextField(keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Discount â‚¹'), onChanged: (v) => setModal(() => discount = double.tryParse(v) ?? 0))),
             ]),
             const SizedBox(height: 16),
             Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)), child: Column(children: [
@@ -261,6 +304,7 @@ class _QuotationsViewState extends State<_QuotationsView> {
             ])),
             const SizedBox(height: 20),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
               onPressed: selectedJobId == null ? null : () async {
                 try {
                   await ApiClient.instance.post('/admin/quotations', data: {
@@ -280,6 +324,7 @@ class _QuotationsViewState extends State<_QuotationsView> {
               child: const Text('Create Quotation'),
             ),
           ])),
+          ),
         );
       }),
     );
@@ -318,11 +363,11 @@ class _QuotationCard extends StatelessWidget {
               Row(children: [
                 Text('#${q.quotationNumber}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.primary)),
                 const SizedBox(width: 8),
-                Expanded(child: Text(q.jobTitle ?? '—', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                Expanded(child: Text(q.jobTitle ?? 'â€”', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
                 Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(5)), child: Text(Fmt.statusLabel(q.status), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color))),
               ]),
               const SizedBox(height: 4),
-              Text(q.clientName ?? '—', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              Text(q.clientName ?? 'â€”', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
               const SizedBox(height: 4),
               Row(children: [
                 Text(Fmt.money(q.total), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.primary)),
@@ -336,3 +381,4 @@ class _QuotationCard extends StatelessWidget {
     );
   }
 }
+

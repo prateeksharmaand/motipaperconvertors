@@ -120,6 +120,7 @@ export default function Layout() {
           <span style={sectionLabel}>Operations</span>
           <NavLink to="/" end style={navStyle}>Dashboard</NavLink>
           {canViewJobs && <NavLink to="/jobs" style={navStyle}>Job Cards</NavLink>}
+          {canViewJobs && <NavLink to="/external-jobs" style={navStyle}>External Jobs</NavLink>}
           {canViewJobs && <NavLink to="/proofs" style={navStyle}>Proofs</NavLink>}
           {canViewQuotations && <NavLink to="/quotations" style={navStyle}>Quotations</NavLink>}
           {canViewClients && <NavLink to="/clients" style={navStyle}>Clients</NavLink>}

@@ -1,4 +1,4 @@
-import 'dart:ui' show ImageFilter;
+﻿import 'dart:ui' show ImageFilter;
 import 'package:equatable/equatable.dart';
 import '../../core/widgets/shell_scaffold.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +12,7 @@ import '../../models/pagination_model.dart';
 import 'record_payment_sheet.dart';
 import 'create_invoice_sheet.dart';
 
-// ── Models ────────────────────────────────────────────────
+// â”€â”€ Models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class Invoice extends Equatable {
   final String id;
   final int invoiceNumber;
@@ -70,7 +70,7 @@ class Payment extends Equatable {
   @override List<Object?> get props => [id];
 }
 
-// ── Events & State ────────────────────────────────────────
+// â”€â”€ Events & State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 abstract class BillingEvent extends Equatable {
   const BillingEvent();
   @override List<Object?> get props => [];
@@ -141,7 +141,7 @@ class BillingState extends Equatable {
   @override List<Object?> get props => [tab, invoices, invoicesLoading, payments, paymentsLoading, invoiceStatusFilter, invoiceSearch];
 }
 
-// ── BLoC ─────────────────────────────────────────────────
+// â”€â”€ BLoC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class BillingBloc extends Bloc<BillingEvent, BillingState> {
   BillingBloc() : super(const BillingState()) {
     on<BillingTabChanged>(_onTab);
@@ -223,7 +223,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   }
 }
 
-// ── Screen ────────────────────────────────────────────────
+// â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class BillingScreen extends StatelessWidget {
   const BillingScreen({super.key});
   @override
@@ -271,28 +271,24 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
     return BlocBuilder<BillingBloc, BillingState>(
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
-          title: const Text('Billing'),
-          
-          
-          bottom: TabBar(
-            controller: _tabCtrl,
-            tabs: const [Tab(text: 'Invoices'), Tab(text: 'Payments'), Tab(text: 'Ledger')],
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white60,
-            indicatorColor: Colors.white,
-          ),
-        ),
         body: Stack(children: [
-          TabBarView(
-            controller: _tabCtrl,
-            children: [
-              _InvoicesTab(state: state, scrollCtrl: _invoiceScrollCtrl, searchCtrl: _searchCtrl),
-              _PaymentsTab(state: state, scrollCtrl: _paymentScrollCtrl),
-              _LedgerTab(state: state),
-            ],
-          ),
+          Column(children: [
+            TabBar(
+              controller: _tabCtrl,
+              tabs: const [Tab(text: 'Invoices'), Tab(text: 'Payments'), Tab(text: 'Ledger')],
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.textMuted,
+              indicatorColor: AppColors.primary,
+            ),
+            Expanded(child: TabBarView(
+              controller: _tabCtrl,
+              children: [
+                _InvoicesTab(state: state, scrollCtrl: _invoiceScrollCtrl, searchCtrl: _searchCtrl),
+                _PaymentsTab(state: state, scrollCtrl: _paymentScrollCtrl),
+                _LedgerTab(state: state),
+              ],
+            )),
+          ]),
           if (_fabOpen)
             GestureDetector(
               onTap: () => setState(() => _fabOpen = false),
@@ -308,7 +304,7 @@ class _BillingViewState extends State<_BillingView> with SingleTickerProviderSta
   }
 }
 
-// ── Billing Speed-Dial FAB ────────────────────────────────
+// â”€â”€ Billing Speed-Dial FAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _BillingFab extends StatefulWidget {
   final BillingBloc bloc;
   final bool fabOpen;
@@ -349,14 +345,14 @@ class _BillingFabState extends State<_BillingFab> {
   Widget build(BuildContext context) {
     return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
       if (_open) ...[
-        _item(Icons.receipt_long_outlined, 'New Invoice', const Color(0xFF7048E8), _openInvoice),
+        _item(Icons.receipt_long_outlined, 'New Invoice', AppColors.secondary, _openInvoice),
         const SizedBox(height: 10),
-        _item(Icons.payments_outlined, 'Record Payment', const Color(0xFF2B8A3E), _openPayment),
+        _item(Icons.payments_outlined, 'Record Payment', AppColors.secondary, _openPayment),
         const SizedBox(height: 10),
       ],
       FloatingActionButton(
         heroTag: 'billing-main',
-        backgroundColor: const Color(0xFF7C3AED),
+        backgroundColor: AppColors.primary,
         onPressed: _toggle,
         child: AnimatedRotation(
           turns: _open ? 0.125 : 0,
@@ -378,7 +374,7 @@ class _BillingFabState extends State<_BillingFab> {
   ]);
 }
 
-// ── Invoices Tab ──────────────────────────────────────────
+// â”€â”€ Invoices Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _InvoicesTab extends StatelessWidget {
   final BillingState state;
   final ScrollController scrollCtrl;
@@ -401,7 +397,7 @@ class _InvoicesTab extends StatelessWidget {
             controller: searchCtrl,
             onChanged: (v) => context.read<BillingBloc>().add(InvoicesSearchChanged(v)),
             decoration: InputDecoration(
-              hintText: 'Search invoices…',
+              hintText: 'Search invoicesâ€¦',
               prefixIcon: const Icon(Icons.search, size: 20),
               isDense: true,
               suffixIcon: searchCtrl.text.isNotEmpty ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { searchCtrl.clear(); context.read<BillingBloc>().add(const InvoicesSearchChanged('')); }) : null,
@@ -480,7 +476,7 @@ class _InvoiceCard extends StatelessWidget {
           Row(children: [
             Text('#${invoice.invoiceNumber}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.primary)),
             const SizedBox(width: 8),
-            Expanded(child: Text(invoice.clientName ?? '—', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary))),
+            Expanded(child: Text(invoice.clientName ?? 'â€”', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary))),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
@@ -513,7 +509,7 @@ class _InvoiceCard extends StatelessWidget {
   }
 }
 
-// ── Ledger Tab ────────────────────────────────────────────
+// â”€â”€ Ledger Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _LedgerTab extends StatefulWidget {
   final BillingState state;
   const _LedgerTab({required this.state});
@@ -627,7 +623,7 @@ class _LedgerContent extends StatelessWidget {
                 child: Icon(icon, color: color, size: 18),
               ),
               title: Text(
-                isPayment ? 'Payment — ${(e['payment_mode'] as String? ?? '').toUpperCase()}' : 'Invoice #${e['invoice_number'] ?? ''}',
+                isPayment ? 'Payment â€” ${(e['payment_mode'] as String? ?? '').toUpperCase()}' : 'Invoice #${e['invoice_number'] ?? ''}',
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
               subtitle: Text(Fmt.date(e['created_at'] ?? e['payment_date']), style: const TextStyle(fontSize: 11)),
@@ -656,7 +652,7 @@ class _SummaryCard extends StatelessWidget {
   ]))));
 }
 
-// ── Payments Tab ──────────────────────────────────────────
+// â”€â”€ Payments Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _PaymentsTab extends StatelessWidget {
   final BillingState state;
   final ScrollController scrollCtrl;
@@ -689,11 +685,11 @@ class _PaymentsTab extends StatelessWidget {
                 child: Icon(_modeIcons[p.paymentMode] ?? Icons.payment_outlined, color: AppColors.success, size: 20),
               ),
               title: Row(children: [
-                Expanded(child: Text(p.clientName ?? '—', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+                Expanded(child: Text(p.clientName ?? 'â€”', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
                 Text(Fmt.money(p.amount), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.success, fontSize: 14)),
               ]),
               subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${p.paymentMode.toUpperCase()} · ${Fmt.statusLabel(p.type)}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                Text('${p.paymentMode.toUpperCase()} Â· ${Fmt.statusLabel(p.type)}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
                 if (p.paymentDate != null) Text(Fmt.date(p.paymentDate), style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
                 if (p.notes != null && p.notes!.isNotEmpty) Text(p.notes!, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               ]),
@@ -704,3 +700,4 @@ class _PaymentsTab extends StatelessWidget {
     );
   }
 }
+

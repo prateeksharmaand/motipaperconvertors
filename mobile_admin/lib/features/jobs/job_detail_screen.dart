@@ -77,84 +77,73 @@ class _JobDetailView extends StatelessWidget {
 
         final loaded = state as JobDetailLoaded;
         final job = loaded.job;
-        final status = job.status;
-        final color = AppColors.statusColors[status] ?? AppColors.textMuted;
 
         return Scaffold(
           backgroundColor: AppColors.background,
-          body: CustomScrollView(slivers: [
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 120,
-              backgroundColor: color,
-              foregroundColor: Colors.white,
-              surfaceTintColor: Colors.transparent,
-              flexibleSpace: FlexibleSpaceBar(
-                title: Text('#${job.jobNumber} ${job.jobType ?? ''}', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
-                background: Container(
-                  decoration: BoxDecoration(gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.7)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
-                ),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF1F2937),
+            foregroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            title: Text('#${job.jobNumber} ${job.jobType ?? ''}', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                tooltip: 'Edit',
+                onPressed: () async {
+                  final updated = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => JobFormScreen(existing: job)));
+                  if (updated == true && context.mounted) context.read<JobDetailBloc>().add(JobDetailLoadRequested(jobId));
+                },
               ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                  tooltip: 'Edit',
-                  onPressed: () async {
-                    final updated = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => JobFormScreen(existing: job)));
-                    if (updated == true && context.mounted) context.read<JobDetailBloc>().add(JobDetailLoadRequested(jobId));
-                  },
-                ),
-                IconButton(icon: const Icon(Icons.refresh_outlined, color: Colors.white), onPressed: () => context.read<JobDetailBloc>().add(JobDetailLoadRequested(jobId))),
-                const SizedBox(width: 8),
+              IconButton(icon: const Icon(Icons.refresh_outlined, color: Colors.white), onPressed: () => context.read<JobDetailBloc>().add(JobDetailLoadRequested(jobId))),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Status + change button
+              _StatusCard(job: job, onStatusChange: (newStatus, notes) {
+                context.read<JobsBloc>().add(JobsStatusChanged(job.id, newStatus, notes: notes));
+                context.read<JobDetailBloc>().add(JobDetailLoadRequested(jobId));
+              }),
+              const SizedBox(height: 16),
+              // Client info
+              _InfoCard(title: 'Client', children: [
+                _InfoRow('Company', job.clientCompanyName ?? job.clientName ?? '—'),
+                if (job.clientPhone != null) _InfoRow('Phone', job.clientPhone!),
+              ]),
+              const SizedBox(height: 12),
+              // Basic info
+              _InfoCard(title: 'Job Details', children: [
+                _InfoRow('Job Type', job.jobType ?? '—'),
+                _InfoRow('Order Type', job.orderType == 'in_house' ? 'In House' : (job.orderType ?? '—')),
+                if (job.machineName != null) _InfoRow('Machine', job.machineName!),
+                if (job.quantity != null) _InfoRow('Quantity', '${job.quantity}'),
+                if (job.sheetSize != null) _InfoRow('Sheet Size', job.sheetSize!),
+                if (job.sheetCount != null) _InfoRow('Sheet Count', '${job.sheetCount}'),
+                if (job.printOperatorName != null) _InfoRow('Print Operator', job.printOperatorName!),
+                if (job.isLamination == true) _InfoRow('Lamination', job.laminationType != null ? 'Yes – ${job.laminationType![0].toUpperCase()}${job.laminationType!.substring(1)}' : 'Yes'),
+                _InfoRow('Created', Fmt.date(job.createdAt)),
+                if (job.dueDate != null) _InfoRow('Due Date', Fmt.date(job.dueDate)),
+                if (job.proofRequired == true) const _InfoRow('Proof Required', 'Yes'),
+              ]),
+              const SizedBox(height: 12),
+              // Financial
+              if (job.quotedPrice != null || job.advanceAmount != null)
+                _InfoCard(title: 'Financial', children: [
+                  if (job.quotedPrice != null) _InfoRow('Quoted Price', Fmt.money(job.quotedPrice), highlight: true),
+                  if (job.advanceAmount != null) _InfoRow('Advance', Fmt.money(job.advanceAmount)),
+                ]),
+              if (job.papers.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _PapersCard(papers: job.papers),
               ],
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverList(delegate: SliverChildListDelegate([
-                // Status + change button
-                _StatusCard(job: job, onStatusChange: (newStatus, notes) {
-                  context.read<JobsBloc>().add(JobsStatusChanged(job.id, newStatus, notes: notes));
-                  context.read<JobDetailBloc>().add(JobDetailLoadRequested(jobId));
-                }),
-                const SizedBox(height: 16),
-                // Client info
-                _InfoCard(title: 'Client', children: [
-                  _InfoRow('Company', job.clientCompanyName ?? job.clientName ?? '—'),
-                  if (job.clientPhone != null) _InfoRow('Phone', job.clientPhone!),
-                ]),
-                const SizedBox(height: 12),
-                // Basic info
-                _InfoCard(title: 'Job Details', children: [
-                  _InfoRow('Job Type', job.jobType ?? '—'),
-                  _InfoRow('Order Type', job.orderType == 'in_house' ? 'In House' : (job.orderType ?? '—')),
-                  if (job.machineName != null) _InfoRow('Machine', job.machineName!),
-                  if (job.quantity != null) _InfoRow('Quantity', '${job.quantity}'),
-                  if (job.sheetSize != null) _InfoRow('Sheet Size', job.sheetSize!),
-                  if (job.sheetCount != null) _InfoRow('Sheet Count', '${job.sheetCount}'),
-                  if (job.printOperatorName != null) _InfoRow('Print Operator', job.printOperatorName!),
-                  if (job.isLamination == true) _InfoRow('Lamination', job.laminationType != null ? 'Yes – ${job.laminationType![0].toUpperCase()}${job.laminationType!.substring(1)}' : 'Yes'),
-                  _InfoRow('Created', Fmt.date(job.createdAt)),
-                  if (job.dueDate != null) _InfoRow('Due Date', Fmt.date(job.dueDate)),
-                  if (job.proofRequired == true) _InfoRow('Proof Required', 'Yes'),
-                ]),
-                const SizedBox(height: 12),
-                // Financial
-                if (job.quotedPrice != null || job.advanceAmount != null)
-                  _InfoCard(title: 'Financial', children: [
-                    if (job.quotedPrice != null) _InfoRow('Quoted Price', Fmt.money(job.quotedPrice), highlight: true),
-                    if (job.advanceAmount != null) _InfoRow('Advance', Fmt.money(job.advanceAmount)),
-                  ]),
-                if (job.papers.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _PapersCard(papers: job.papers),
-                ],
-                const SizedBox(height: 12),
-                // Status timeline
-                if (loaded.history.isNotEmpty) _TimelineCard(history: loaded.history),
-                const SizedBox(height: 24),
-              ])),
-            ),
-          ]),
+              const SizedBox(height: 12),
+              // Status timeline
+              if (loaded.history.isNotEmpty) _TimelineCard(history: loaded.history),
+              const SizedBox(height: 24),
+            ],
+          ),
         );
       },
     );

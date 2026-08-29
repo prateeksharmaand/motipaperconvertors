@@ -4,11 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/auth_bloc.dart';
 import '../../features/auth/auth_state.dart';
 import '../../features/auth/login_screen.dart';
-import '../../features/dashboard/dashboard_screen.dart';
-import '../../features/jobs/jobs_screen.dart';
 import '../../features/jobs/job_detail_screen.dart';
-import '../../features/clients/clients_screen.dart';
-import '../../features/billing/billing_screen.dart';
 import '../../features/inventory/inventory_screen.dart';
 import '../../features/staff/staff_screen.dart';
 import '../../features/reports/reports_screen.dart';
@@ -19,7 +15,7 @@ import '../../features/sub_admins/sub_admins_screen.dart';
 import '../../features/machines/machines_screen.dart';
 import '../../features/proofs/proofs_screen.dart';
 import '../../features/tenants/tenants_screen.dart';
-import '../widgets/shell_scaffold.dart';
+import '../widgets/main_shell.dart';
 
 GoRouter createRouter(BuildContext context) {
   final authBloc = context.read<AuthBloc>();
@@ -40,12 +36,12 @@ GoRouter createRouter(BuildContext context) {
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       ShellRoute(
-        builder: (context, state, child) => ShellScaffold(child: child),
+        builder: (context, state, child) => MainShell(child: child),
         routes: [
-          GoRoute(path: '/', builder: (_, __) => const DashboardScreen()),
+          GoRoute(path: '/', builder: (_, __) => const SizedBox.shrink()),
           GoRoute(
             path: '/jobs',
-            builder: (_, __) => const JobsScreen(),
+            builder: (_, __) => const SizedBox.shrink(),
             routes: [
               GoRoute(
                 path: ':id',
@@ -53,9 +49,9 @@ GoRouter createRouter(BuildContext context) {
               ),
             ],
           ),
-          GoRoute(path: '/clients',       builder: (_, __) => const ClientsScreen()),
+          GoRoute(path: '/clients',       builder: (_, __) => const SizedBox.shrink()),
+          GoRoute(path: '/billing',       builder: (_, __) => const SizedBox.shrink()),
           GoRoute(path: '/quotations',    builder: (_, __) => const QuotationsScreen()),
-          GoRoute(path: '/billing',       builder: (_, __) => const BillingScreen()),
           GoRoute(path: '/inventory',     builder: (_, __) => const InventoryScreen()),
           GoRoute(path: '/staff',         builder: (_, __) => const StaffScreen()),
           GoRoute(path: '/reports',       builder: (_, __) => const ReportsScreen()),

@@ -1,13 +1,12 @@
-import 'dart:ui' show ImageFilter;
+﻿import 'dart:ui' show ImageFilter;
 import '../../core/widgets/shell_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/utils/app_toast.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_shimmer.dart';
 import '../../models/job_model.dart';
+import 'job_detail_screen.dart';
 import 'job_form_screen.dart';
 import 'jobs_bloc.dart';
 
@@ -62,7 +61,7 @@ class _JobsViewState extends State<_JobsView> {
             const SizedBox(width: 10),
             FloatingActionButton.small(
               heroTag: 'new-job',
-              backgroundColor: const Color(0xFF7C3AED),
+              backgroundColor: AppColors.primary,
               onPressed: () async {
                 _closeFab();
                 final created = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => BlocProvider.value(value: context.read<JobsBloc>(), child: const JobFormScreen())));
@@ -75,7 +74,7 @@ class _JobsViewState extends State<_JobsView> {
         ],
         FloatingActionButton(
           heroTag: 'jobs-main',
-          backgroundColor: const Color(0xFF7C3AED),
+          backgroundColor: AppColors.primary,
           onPressed: () => setState(() => _fabOpen = !_fabOpen),
           child: AnimatedRotation(
             turns: _fabOpen ? 0.125 : 0,
@@ -90,38 +89,30 @@ class _JobsViewState extends State<_JobsView> {
           return RefreshIndicator(
             onRefresh: () async => context.read<JobsBloc>().add(const JobsLoadRequested()),
             child: CustomScrollView(controller: _scrollCtrl, slivers: [
-              // AppBar
-              SliverAppBar(
-                floating: false, pinned: true,
-                title: const Text('Job Cards'),
-                leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
-                actions: [
+              // Search bar
+              SliverToBoxAdapter(child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(children: [
+                  Expanded(child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: (v) => context.read<JobsBloc>().add(JobsSearchChanged(v)),
+                    decoration: InputDecoration(
+                      hintText: 'Search jobs, client, typeâ€¦',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: _searchCtrl.text.isNotEmpty
+                          ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { _searchCtrl.clear(); context.read<JobsBloc>().add(const JobsSearchChanged('')); })
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      isDense: true,
+                    ),
+                  )),
+                  const SizedBox(width: 8),
                   if (state.hasActiveFilters)
-                    TextButton(onPressed: () => context.read<JobsBloc>().add(const JobsFilterCleared()), child: const Text('Clear', style: TextStyle(color: AppColors.error))),
+                    TextButton(onPressed: () => context.read<JobsBloc>().add(const JobsFilterCleared()), child: const Text('Clear', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600))),
                   IconButton(icon: const Icon(Icons.sort_outlined), onPressed: () => _showSort(context, state)),
                   IconButton(icon: const Icon(Icons.filter_list_outlined), onPressed: () => _showFilters(context, state)),
-                  const SizedBox(width: 8),
-                ],
-                bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(56),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: TextField(
-                      controller: _searchCtrl,
-                      onChanged: (v) => context.read<JobsBloc>().add(JobsSearchChanged(v)),
-                      decoration: InputDecoration(
-                        hintText: 'Search jobs, client, type…',
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        suffixIcon: _searchCtrl.text.isNotEmpty
-                            ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { _searchCtrl.clear(); context.read<JobsBloc>().add(const JobsSearchChanged('')); })
-                            : null,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+                ]),
+              )),
 
               // Active filters chips
               if (state.hasActiveFilters)
@@ -185,9 +176,10 @@ class _JobsViewState extends State<_JobsView> {
       context: ctx,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => StatefulBuilder(builder: (ctx, setM) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('Sort Jobs', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF1F2937))),
             const SizedBox(height: 16),
             const Text('Sort By', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
@@ -228,10 +220,11 @@ class _JobsViewState extends State<_JobsView> {
             const SizedBox(height: 20),
             SizedBox(width: double.infinity, child: ElevatedButton(
               onPressed: () { Navigator.pop(ctx); bloc.add(JobsSortChanged(sortBy, sortDir)); },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED)),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
               child: const Text('Apply Sort'),
             )),
           ]),
+          ),
         );
       }),
     );
@@ -245,9 +238,10 @@ class _JobsViewState extends State<_JobsView> {
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => StatefulBuilder(
-        builder: (context, setModal) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        builder: (context, setModal) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               const Text('Filter Jobs', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
               TextButton(onPressed: () { Navigator.pop(context); bloc.add(const JobsFilterCleared()); }, child: const Text('Reset')),
@@ -271,18 +265,19 @@ class _JobsViewState extends State<_JobsView> {
             const SizedBox(height: 24),
             SizedBox(width: double.infinity, child: ElevatedButton(
               onPressed: () { Navigator.pop(context); bloc.add(JobsFilterChanged(status: selectedStatus)); },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED)),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
               child: const Text('Apply Filter'),
             )),
             SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
           ]),
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Filter Chips Bar ──────────────────────────────────────
+// â”€â”€ Filter Chips Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _FilterChips extends StatelessWidget {
   final JobsState state;
   const _FilterChips({required this.state});
@@ -312,7 +307,7 @@ class _FilterChips extends StatelessWidget {
   );
 }
 
-// ── Job Card ──────────────────────────────────────────────
+// â”€â”€ Job Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _JobCard extends StatelessWidget {
   final Job job;
   const _JobCard({required this.job});
@@ -329,7 +324,7 @@ class _JobCard extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
       ),
       child: InkWell(
-        onTap: () => context.push('/jobs/${job.id}'),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BlocProvider.value(value: context.read<JobsBloc>(), child: JobDetailScreen(jobId: job.id)))),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -340,7 +335,7 @@ class _JobCard extends StatelessWidget {
               Row(children: [
                 Text('#${job.jobNumber}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
                 const SizedBox(width: 8),
-                Expanded(child: Text(job.jobType ?? '—', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                Expanded(child: Text(job.jobType ?? 'â€”', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
@@ -348,7 +343,7 @@ class _JobCard extends StatelessWidget {
                 ),
               ]),
               const SizedBox(height: 4),
-              Text(job.clientCompanyName ?? job.clientName ?? '—', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              Text(job.clientCompanyName ?? job.clientName ?? 'â€”', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
               const SizedBox(height: 6),
               Row(children: [
                 if (job.quantity != null) ...[
@@ -375,4 +370,5 @@ class _JobCard extends StatelessWidget {
     );
   }
 }
+
 

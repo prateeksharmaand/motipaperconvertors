@@ -125,7 +125,7 @@ function SettingsList({ label, queryKey, endpoint }: { label: string; queryKey: 
   );
 }
 
-interface PrintTemplate { header: string | null; footer: string | null; signature: string | null; }
+interface PrintTemplate { header: string | null; footer: string | null; signature: string | null; printFontSize?: number; }
 
 function ImageUploadCard({ label, hint, value, onChange }: {
   label: string; hint: string; value: string; onChange: (v: string) => void;
@@ -173,6 +173,7 @@ function PrintTemplateSettings() {
   const [header, setHeader] = useState<string>("");
   const [footer, setFooter] = useState<string>("");
   const [signature, setSignature] = useState<string>("");
+  const [printFontSize, setPrintFontSize] = useState<number>(11);
   const [sigMode, setSigMode] = useState<"draw" | "upload">("draw");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [drawing, setDrawing] = useState(false);
@@ -183,6 +184,7 @@ function PrintTemplateSettings() {
       setHeader(template.header || "");
       setFooter(template.footer || "");
       setSignature(template.signature || "");
+      setPrintFontSize(template.printFontSize ?? 11);
     }
   }, [template]);
 
@@ -219,7 +221,7 @@ function PrintTemplateSettings() {
   const save = async () => {
     setSaving(true);
     try {
-      await api.post("/admin/settings/print-template", { header, footer, signature });
+      await api.post("/admin/settings/print-template", { header, footer, signature, printFontSize });
       await refetch();
       toast.success("Print template saved");
     } catch {
@@ -298,6 +300,22 @@ function PrintTemplateSettings() {
             <button onClick={() => setSignature("")} style={{ marginTop: 6, padding: "4px 12px", border: "1px solid #fdd", borderRadius: 6, cursor: "pointer", fontSize: 13, background: "#fff", color: "#c92a2a" }}>Remove</button>
           </div>
         )}
+      </div>
+      <div style={cardStyle}>
+        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Print Font Size</div>
+        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>Font size used in printed job cards (affects all text in the print view)</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <input
+            type="range"
+            min={8}
+            max={16}
+            step={1}
+            value={printFontSize}
+            onChange={e => setPrintFontSize(Number(e.target.value))}
+            style={{ flex: 1, maxWidth: 260, accentColor: "#3b5bdb", cursor: "pointer" }}
+          />
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#1f2937", minWidth: 40 }}>{printFontSize}px</span>
+        </div>
       </div>
       <button
         onClick={save}

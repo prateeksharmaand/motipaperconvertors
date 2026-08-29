@@ -210,27 +210,16 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
     return BlocBuilder<InventoryBloc, InventoryState>(
       builder: (context, state) => Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          leading: IconButton(icon: const Icon(Icons.menu), onPressed: () => drawerScaffoldKey.currentState?.openDrawer()),
-          title: Row(children: [
-            const Text('Inventory'),
-            if (state.lowStockCount > 0) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(10)),
-                child: Text('${state.lowStockCount} low stock', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ]),
-           
-          bottom: TabBar(
+        body: Column(children: [
+          // TabBar
+          TabBar(
             controller: _tabCtrl,
             tabs: const [Tab(text: 'Paper Stock'), Tab(text: 'Ink & Plates'), Tab(text: 'Transactions')],
-            labelColor: AppColors.primary, unselectedLabelColor: AppColors.textMuted, indicatorColor: AppColors.primary,
+            labelColor: AppColors.primary,
+            unselectedLabelColor: AppColors.textMuted,
+            indicatorColor: AppColors.primary,
           ),
-        ),
-        body: Column(children: [
+          // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
@@ -241,11 +230,13 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
               },
               decoration: InputDecoration(
                 hintText: state.tab == 0 ? 'Search paper stock…' : 'Search items…',
-                prefixIcon: const Icon(Icons.search, size: 20), isDense: true,
+                prefixIcon: const Icon(Icons.search, size: 20),
+                isDense: true,
                 suffixIcon: _searchCtrl.text.isNotEmpty ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { _searchCtrl.clear(); if (state.tab == 0) context.read<InventoryBloc>().add(const PaperSearchChanged('')); else context.read<InventoryBloc>().add(const ItemsSearchChanged('')); }) : null,
               ),
             ),
           ),
+          // Content
           Expanded(child: TabBarView(
             controller: _tabCtrl,
             children: [_PaperTab(state: state), _ItemsTab(state: state), _TransactionsTab(state: state)],
@@ -385,8 +376,9 @@ class _TransactionsTab extends StatelessWidget {
         const Text('No transactions yet', style: TextStyle(color: AppColors.textMuted)),
         const SizedBox(height: 16),
         ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
           onPressed: () => context.read<InventoryBloc>().add(const TransactionsLoadRequested()),
-          child: const Text('Refresh'),
+          child: const Text('Refresh', style: TextStyle(color: Colors.white)),
         ),
       ]));
     }
