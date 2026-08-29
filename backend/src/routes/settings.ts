@@ -119,19 +119,21 @@ const PrintTemplateSchema = z.object({
   header: z.string().optional(),
   footer: z.string().optional(),
   signature: z.string().optional(),
+  printFontSize: z.number().min(8).max(16).optional(),
 });
 
 router.get("/print-template", requirePermission("settings.view"), async (req, res) => {
   const rows = await db("tenant_settings")
     .where({ tenant_id: req.user.tenantId! })
-    .whereIn("key", ["print_header", "print_footer", "print_signature"])
+    .whereIn("key", ["print_header", "print_footer", "print_signature", "print_font_size"])
     .select("key", "value");
 
-  const result: Record<string, string | null> = { header: null, footer: null, signature: null };
+  const result: Record<string, string | number | null> = { header: null, footer: null, signature: null, printFontSize: 11 };
   for (const row of rows) {
-    if (row.key === "print_header") result.header = row.value;
-    if (row.key === "print_footer") result.footer = row.value;
+    if (row.key === "print_header")    result.header = row.value;
+    if (row.key === "print_footer")    result.footer = row.value;
     if (row.key === "print_signature") result.signature = row.value;
+    if (row.key === "print_font_size") result.printFontSize = Number(row.value);
   }
   res.json(result);
 });
@@ -149,12 +151,16 @@ router.post("/print-template", requirePermission("settings.edit"), async (req, r
   for (const [field, dbKey] of Object.entries(keyMap)) {
     const value = (parsed.data as Record<string, string | undefined>)[field];
     if (value === undefined) continue;
-    // Delete existing row
     await db("tenant_settings").where({ tenant_id: req.user.tenantId!, key: dbKey }).delete();
-    // Re-insert only if non-empty
     if (value !== "") {
       await db("tenant_settings").insert({ tenant_id: req.user.tenantId!, key: dbKey, value });
     }
+  }
+
+  // Save printFontSize as a plain numeric string
+  if (parsed.data.printFontSize !== undefined) {
+    await db("tenant_settings").where({ tenant_id: req.user.tenantId!, key: "print_font_size" }).delete();
+    await db("tenant_settings").insert({ tenant_id: req.user.tenantId!, key: "print_font_size", value: String(parsed.data.printFontSize) });
   }
 
   res.json({ ok: true });
