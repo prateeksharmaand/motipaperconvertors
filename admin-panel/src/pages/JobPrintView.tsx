@@ -37,8 +37,8 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
 
   // A single label+value cell used in the 2-column grid
   const cell = (label: string, value: string | number | boolean | null | undefined) => (
-    <div style={{ padding: "6px 10px", borderBottom: "1px solid #f3f4f6" }}>
-      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 2 }}>{label}</div>
+    <div style={{ padding: "3px 6px", borderBottom: "1px solid #f3f4f6" }}>
+      <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 1 }}>{label}</div>
       <div style={{ fontSize: printFontSize, fontWeight: 500, color: "#1f2937" }}>
         {value != null && value !== "" && value !== false ? String(value) : "—"}
       </div>
@@ -47,7 +47,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
 
   // Section header spanning both columns
   const section = (title: string) => (
-    <div style={{ gridColumn: "1 / -1", background: "#f9fafb", padding: "8px 10px", fontSize: 11, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px", borderTop: "2px solid #e5e7eb" }}>
+    <div style={{ gridColumn: "1 / -1", background: "#f9fafb", padding: "4px 6px", fontSize: 10, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px", borderTop: "2px solid #e5e7eb" }}>
       {title}
     </div>
   );
@@ -83,28 +83,28 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
       >
         {template.header && <img src={template.header} alt="Header" style={{ width: "100%", display: "block" }} />}
 
-        <div style={{ padding: "12px 14px 8px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, paddingBottom: 12, borderBottom: "2px solid #7c3aed" }}>
+        <div style={{ padding: "6px 8px 4px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, paddingBottom: 6, borderBottom: "2px solid #7c3aed" }}>
             <div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#7c3aed", letterSpacing: "-0.5px" }}>JOB CARD</div>
-              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Created: {fmtDate(job.created_at ?? new Date().toISOString())}</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: "#7c3aed", letterSpacing: "-0.5px" }}>JOB CARD</div>
+              <div style={{ fontSize: 10, color: "#6b7280", marginTop: 1 }}>Created: {fmtDate(job.created_at ?? new Date().toISOString())}</div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: "#1f2937" }}>#{job.job_number}</div>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 10, background: "#ede9fe", color: "#6d28d9" }}>{job.status?.toUpperCase()}</span>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#1f2937" }}>#{job.job_number}</div>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: "#ede9fe", color: "#6d28d9" }}>{job.status?.toUpperCase()}</span>
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-            <div style={{ background: "#f9fafb", borderRadius: 8, padding: "12px 14px" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", marginBottom: 4 }}>Client</div>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>{job.client_company_name || job.client_name || "—"}</div>
-              {job.client_name && <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{job.client_name}</div>}
-              {job.client_phone && <div style={{ fontSize: 14, fontWeight: 700, color: "#6b7280", marginTop: 1 }}>📞 {job.client_phone}</div>}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+            <div style={{ background: "#f9fafb", borderRadius: 6, padding: "6px 8px" }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", marginBottom: 2 }}>Client</div>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{job.client_company_name || job.client_name || "—"}</div>
+              {job.client_name && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>{job.client_name}</div>}
+              {job.client_phone && <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", marginTop: 1 }}>📞 {job.client_phone}</div>}
             </div>
-            <div style={{ background: "#f9fafb", borderRadius: 8, padding: "12px 14px" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", marginBottom: 4 }}>Due Date</div>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>{fmtDate(job.due_date)}</div>
+            <div style={{ background: "#f9fafb", borderRadius: 6, padding: "6px 8px" }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", marginBottom: 2 }}>Due Date</div>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{fmtDate(job.due_date)}</div>
             </div>
           </div>
 
@@ -123,7 +123,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
             {cell("Sheet Size", job.sheet_size)}
             {cell("Sheet Count", job.sheet_count)}
             {/* Pad to even columns */}
-            <div style={{ padding: "6px 10px", borderBottom: "1px solid #f3f4f6" }} />
+            <div style={{ padding: "3px 6px", borderBottom: "1px solid #f3f4f6" }} />
 
             {section("Pre-Print Process")}
             {cell("Composing Date", fmtDate(job.composing_date))}
@@ -135,7 +135,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
             {cell("Hela Cost", fmt(job.hela_cost))}
             {cell("Other Cost", fmt(job.other_cost))}
             {cell("Proof Required", job.proof_required ? "Yes" : "No")}
-            <div style={{ padding: "6px 10px", borderBottom: "1px solid #f3f4f6" }} />
+            <div style={{ padding: "3px 6px", borderBottom: "1px solid #f3f4f6" }} />
 
             {section("Print Process")}
             {cell("Print Type", [job.is_offset && "Offset", job.is_digital && "Digital", job.is_screen && "Screen"].filter(Boolean).join(", ") || "—")}
@@ -160,7 +160,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
             {cell("Challan Date", fmtDate(job.challan_date))}
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 32, paddingTop: 16, borderTop: "1px solid #e5e7eb" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8, paddingTop: 6, borderTop: "1px solid #e5e7eb" }}>
             <div style={{ textAlign: "center" }}>
               {template.signature && <img src={template.signature} alt="Signature" style={{ maxWidth: 160, maxHeight: 64, display: "block", marginBottom: 4 }} />}
               <div style={{ width: 180, borderTop: "1px solid #374151", paddingTop: 4, fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Authorised Signatory</div>
