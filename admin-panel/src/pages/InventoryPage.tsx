@@ -20,7 +20,7 @@ const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontS
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
 type PaperInvTab = "in_house" | "external";
-type PaperItem = { id: string; name: string; brand: string; gsm: number; size: string; unit: string; quantity: number; low_stock_threshold: number; is_low: boolean; inventory_type: PaperInvTab; };
+type PaperItem = { id: string; name: string; brand: string; gsm: number; size: string; unit: string; quantity: number; low_stock_threshold: number; cost_per_unit?: number; is_low: boolean; inventory_type: PaperInvTab; };
 type InvItem   = { id: string; name: string; category: string; unit: string; quantity: number; low_stock_threshold: number; is_low: boolean; };
 type TxnItem   = { id: string; transacted_at: string; type: string; quantity: number; performed_by_name: string; notes: string; paper_name: string; item_name: string; };
 
@@ -78,7 +78,7 @@ function PaperForm({ initial, defaultInventoryType, onSave, onCancel, isPending 
     unit: initial?.unit ?? "sheets",
     quantity: initial?.quantity?.toString() ?? "",
     low_stock_threshold: initial?.low_stock_threshold?.toString() ?? "",
-    cost_per_unit: "",
+    cost_per_unit: initial?.cost_per_unit?.toString() ?? "",
     inventory_type: initial?.inventory_type ?? defaultInventoryType ?? "in_house",
   });
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
