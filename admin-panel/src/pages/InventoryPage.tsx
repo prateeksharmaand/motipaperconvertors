@@ -19,7 +19,8 @@ const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px soli
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
-type PaperItem = { id: string; name: string; brand: string; gsm: number; size: string; unit: string; quantity: number; low_stock_threshold: number; is_low: boolean; };
+type PaperInvTab = "in_house" | "external";
+type PaperItem = { id: string; name: string; brand: string; gsm: number; size: string; unit: string; quantity: number; low_stock_threshold: number; is_low: boolean; inventory_type: PaperInvTab; };
 type InvItem   = { id: string; name: string; category: string; unit: string; quantity: number; low_stock_threshold: number; is_low: boolean; };
 type TxnItem   = { id: string; transacted_at: string; type: string; quantity: number; performed_by_name: string; notes: string; paper_name: string; item_name: string; };
 
@@ -68,7 +69,7 @@ function TxnForm({ target, onClose }: { target: { id: string; isPaper: boolean; 
   );
 }
 
-function PaperForm({ initial, onSave, onCancel, isPending }: { initial?: Partial<PaperItem>; onSave: (d: Record<string, string>) => void; onCancel: () => void; isPending: boolean }) {
+function PaperForm({ initial, defaultInventoryType, onSave, onCancel, isPending }: { initial?: Partial<PaperItem>; defaultInventoryType?: PaperInvTab; onSave: (d: Record<string, string>) => void; onCancel: () => void; isPending: boolean }) {
   const [form, setForm] = useState({
     name: initial?.name ?? "",
     brand: initial?.brand ?? "",
@@ -78,8 +79,9 @@ function PaperForm({ initial, onSave, onCancel, isPending }: { initial?: Partial
     quantity: initial?.quantity?.toString() ?? "",
     low_stock_threshold: initial?.low_stock_threshold?.toString() ?? "",
     cost_per_unit: "",
+    inventory_type: initial?.inventory_type ?? defaultInventoryType ?? "in_house",
   });
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
       <h3 style={{ marginBottom: 16 }}>{initial?.id ? "Edit Paper" : "Add Paper"}</h3>
@@ -92,6 +94,12 @@ function PaperForm({ initial, onSave, onCancel, isPending }: { initial?: Partial
         <label><span style={{ fontSize: 13 }}>Quantity</span><input style={inputStyle} type="number" value={form.quantity} onChange={set("quantity")} /></label>
         <label><span style={{ fontSize: 13 }}>Reorder Level</span><input style={inputStyle} type="number" value={form.low_stock_threshold} onChange={set("low_stock_threshold")} /></label>
         <label><span style={{ fontSize: 13 }}>Cost/Unit (₹)</span><input style={inputStyle} type="number" value={form.cost_per_unit} onChange={set("cost_per_unit")} /></label>
+        <label><span style={{ fontSize: 13 }}>Inventory Type</span>
+          <select style={inputStyle} value={form.inventory_type} onChange={set("inventory_type")}>
+            <option value="in_house">In House</option>
+            <option value="external">External</option>
+          </select>
+        </label>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={() => onSave(form as unknown as Record<string, string>)} disabled={!form.name || isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{isPending ? "Saving…" : "Save"}</button>
@@ -137,6 +145,7 @@ function ItemForm({ initial, onSave, onCancel, isPending }: { initial?: Partial<
 export default function InventoryPage() {
   const canEdit = useHasPerm("inventory.edit");
   const [tab, setTab] = useState<Tab>("paper");
+  const [paperInvTab, setPaperInvTab] = useState<PaperInvTab>("in_house");
   const [txnTarget, setTxnTarget] = useState<{ id: string; isPaper: boolean; name: string } | null>(null);
   const [showPaperForm, setShowPaperForm] = useState(false);
   const [editingPaper, setEditingPaper] = useState<PaperItem | null>(null);
@@ -190,17 +199,17 @@ export default function InventoryPage() {
   const [itemList, itemActions]   = useListState({ sortBy: "name" });
   const [txnList, txnActions]     = useListState({ sortBy: "transacted_at" });
 
-  const { data: paper } = useQuery<PagedResult<PaperItem>>({ queryKey: ["paper", paperActions.toParams()], queryFn: () => api.get("/admin/inventory/paper", { params: paperActions.toParams() }).then(r => r.data), placeholderData: keepPreviousData });
+  const { data: paper } = useQuery<PagedResult<PaperItem>>({ queryKey: ["paper", paperActions.toParams(), paperInvTab], queryFn: () => api.get("/admin/inventory/paper", { params: { ...paperActions.toParams(), inventory_type: paperInvTab } }).then(r => r.data), placeholderData: keepPreviousData });
   const { data: items } = useQuery<PagedResult<InvItem>>({ queryKey: ["inv-items", itemActions.toParams()], queryFn: () => api.get("/admin/inventory/items", { params: itemActions.toParams() }).then(r => r.data), placeholderData: keepPreviousData });
   const { data: txns }  = useQuery<PagedResult<TxnItem>>({ queryKey: ["inv-txns", txnActions.toParams()], queryFn: () => api.get("/admin/inventory/transactions", { params: txnActions.toParams() }).then(r => r.data), placeholderData: keepPreviousData });
 
   const createPaper = useMutation({
-    mutationFn: (d: Record<string, string>) => api.post("/admin/inventory/paper", { name: d.name, brand: d.brand || undefined, gsm: d.gsm ? Number(d.gsm) : undefined, size: d.size || undefined, unit: d.unit || "sheets", quantity: d.quantity ? Number(d.quantity) : 0, lowStockThreshold: d.low_stock_threshold ? Number(d.low_stock_threshold) : 100, costPerUnit: d.cost_per_unit ? Number(d.cost_per_unit) : undefined }),
+    mutationFn: (d: Record<string, string>) => api.post("/admin/inventory/paper", { name: d.name, brand: d.brand || undefined, gsm: d.gsm ? Number(d.gsm) : undefined, size: d.size || undefined, unit: d.unit || "sheets", quantity: d.quantity ? Number(d.quantity) : 0, lowStockThreshold: d.low_stock_threshold ? Number(d.low_stock_threshold) : 100, costPerUnit: d.cost_per_unit ? Number(d.cost_per_unit) : undefined, inventoryType: (d.inventory_type as "in_house" | "external") || "in_house" }),
     onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["paper"] }); setShowPaperForm(false); toast.success("Paper stock added"); },
     onError: () => toast.error("Failed to add paper stock"),
   });
   const updatePaper = useMutation({
-    mutationFn: ({ id, ...d }: Record<string, string>) => api.patch(`/admin/inventory/paper/${id}`, { name: d.name, brand: d.brand || undefined, gsm: d.gsm ? Number(d.gsm) : undefined, size: d.size || undefined, unit: d.unit || undefined, quantity: d.quantity ? Number(d.quantity) : undefined, lowStockThreshold: d.low_stock_threshold ? Number(d.low_stock_threshold) : undefined, costPerUnit: d.cost_per_unit ? Number(d.cost_per_unit) : undefined }),
+    mutationFn: ({ id, ...d }: Record<string, string>) => api.patch(`/admin/inventory/paper/${id}`, { name: d.name, brand: d.brand || undefined, gsm: d.gsm ? Number(d.gsm) : undefined, size: d.size || undefined, unit: d.unit || undefined, quantity: d.quantity ? Number(d.quantity) : undefined, lowStockThreshold: d.low_stock_threshold ? Number(d.low_stock_threshold) : undefined, costPerUnit: d.cost_per_unit ? Number(d.cost_per_unit) : undefined, inventoryType: (d.inventory_type as "in_house" | "external") || undefined }),
     onSuccess: () => { qcInv.invalidateQueries({ queryKey: ["paper"] }); setEditingPaper(null); toast.success("Paper stock updated"); },
     onError: () => toast.error("Failed to update paper stock"),
   });
@@ -231,7 +240,11 @@ export default function InventoryPage() {
 
       {tab === "paper" && (
         <>
-          {showPaperForm && <PaperForm isPending={createPaper.isPending} onSave={(d) => createPaper.mutate(d)} onCancel={() => setShowPaperForm(false)} />}
+          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+            <button onClick={() => { setPaperInvTab("in_house"); paperActions.setPage(1); }} style={{ padding: "6px 16px", borderRadius: 6, border: "none", background: paperInvTab === "in_house" ? "#3b5bdb" : "#eee", color: paperInvTab === "in_house" ? "#fff" : "#444", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>In House</button>
+            <button onClick={() => { setPaperInvTab("external"); paperActions.setPage(1); }} style={{ padding: "6px 16px", borderRadius: 6, border: "none", background: paperInvTab === "external" ? "#3b5bdb" : "#eee", color: paperInvTab === "external" ? "#fff" : "#444", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>External</button>
+          </div>
+          {showPaperForm && <PaperForm defaultInventoryType={paperInvTab} isPending={createPaper.isPending} onSave={(d) => createPaper.mutate(d)} onCancel={() => setShowPaperForm(false)} />}
           {editingPaper && <PaperForm initial={editingPaper} isPending={updatePaper.isPending} onSave={(d) => updatePaper.mutate({ id: editingPaper.id, ...d })} onCancel={() => setEditingPaper(null)} />}
           <TableControls search={paperList.search} onSearch={paperActions.setSearch} placeholder="Search paper…" activeFilters={paperList.filters} onFilter={paperActions.setFilter} onReset={paperActions.resetFilters}
             filters={[{ key: "isLow", label: "Low Stock", options: [{ label: "Low only", value: "1" }] }]}

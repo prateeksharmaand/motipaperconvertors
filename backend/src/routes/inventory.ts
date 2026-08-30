@@ -24,16 +24,18 @@ const PaperStockSchema = z.object({
   widthMm: z.number().int().positive().optional(), heightMm: z.number().int().positive().optional(),
   unit: z.string().default("sheets"), quantity: z.number().min(0).default(0),
   lowStockThreshold: z.number().min(0).default(100), costPerUnit: z.number().min(0).optional(),
+  inventoryType: z.enum(["in_house", "external"]).optional().default("in_house"),
 });
 
 router.get("/paper", requirePermission("inventory.view"), async (req, res) => {
   const params = parseListParams(req, { sortBy: "name" });
   const tenantId = req.user.tenantId!;
-  const { type, brand, isLow } = req.query as Record<string, string>;
+  const { type, brand, isLow, inventory_type } = req.query as Record<string, string>;
 
   let base = db("paper_stock").where({ tenant_id: tenantId });
   let countQ = db("paper_stock").where({ tenant_id: tenantId });
 
+  if (inventory_type) { base = base.where({ inventory_type }); countQ = countQ.where({ inventory_type }); }
   if (type) { base = base.whereILike("type", `%${type}%`); countQ = countQ.whereILike("type", `%${type}%`); }
   if (brand) { base = base.whereILike("brand", `%${brand}%`); countQ = countQ.whereILike("brand", `%${brand}%`); }
   if (isLow === "1") {
@@ -76,6 +78,7 @@ router.post("/paper", requirePermission("inventory.edit"), async (req, res) => {
     gsm: d.gsm ?? null, size: d.size ?? null, width_mm: d.widthMm ?? null,
     height_mm: d.heightMm ?? null, unit: d.unit, quantity: d.quantity,
     low_stock_threshold: d.lowStockThreshold, cost_per_unit: d.costPerUnit ?? null,
+    inventory_type: d.inventoryType ?? "in_house",
   }).returning("*");
   res.status(201).json(item);
 });
@@ -94,6 +97,7 @@ router.patch("/paper/:id", requirePermission("inventory.edit"), async (req, res)
   if (d.quantity !== undefined) updates.quantity = d.quantity;
   if (d.lowStockThreshold !== undefined) updates.low_stock_threshold = d.lowStockThreshold;
   if (d.costPerUnit !== undefined) updates.cost_per_unit = d.costPerUnit ?? null;
+  if (d.inventoryType !== undefined) updates.inventory_type = d.inventoryType;
   const [updated] = await db("paper_stock")
     .where({ id: req.params.id, tenant_id: req.user.tenantId! })
     .update(updates).returning("*");

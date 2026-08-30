@@ -469,10 +469,11 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
   const isNumbering = boolField(form, "is_numbering");
   const isLamination = boolField(form, "is_lamination");
 
-  // Paper stocks
+  // Paper stocks — filtered by inventory_type based on order_type
+  const paperInventoryType = (form.order_type as string) === "external" ? "external" : "in_house";
   const { data: paperStocks = [] } = useQuery<PaperStock[]>({
-    queryKey: ["paper-stocks-mini"],
-    queryFn: () => api.get("/admin/inventory/paper", { params: { limit: "200" } }).then(r => r.data.data ?? []),
+    queryKey: ["paper-stocks-mini", paperInventoryType],
+    queryFn: () => api.get("/admin/inventory/paper", { params: { limit: "200", inventory_type: paperInventoryType } }).then(r => r.data.data ?? []),
   });
 
   // Staff users (operators only)
