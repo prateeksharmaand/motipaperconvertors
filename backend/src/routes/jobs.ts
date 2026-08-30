@@ -238,6 +238,7 @@ const CreateJobSchema = z.object({
   papers: z.array(z.object({
     paperStockId: z.string().uuid(),
     sheetCount: z.number().int().positive(),
+    paperCost: z.number().optional(),
   })).optional(),
 });
 
@@ -343,7 +344,7 @@ router.post("/", requirePermission("jobs.create"), async (req, res) => {
     const validPapers = (data.papers ?? []).filter(p => p.paperStockId && p.sheetCount > 0);
     if (validPapers.length > 0) {
       await trx("job_papers").insert(
-        validPapers.map(p => ({ job_id: inserted.id, paper_stock_id: p.paperStockId, sheet_count: p.sheetCount }))
+        validPapers.map(p => ({ job_id: inserted.id, paper_stock_id: p.paperStockId, sheet_count: p.sheetCount, paper_cost: p.paperCost ?? null }))
       );
       for (const p of validPapers) {
         await trx("inventory_transactions").insert({
@@ -402,7 +403,7 @@ router.patch("/:id", requirePermission("jobs.edit"), async (req, res) => {
 
     // If papers array provided, replace all job_papers and re-sync inventory
     if (req.body.papers !== undefined) {
-      const newPapers: { paperStockId: string; sheetCount: number }[] = (req.body.papers ?? []).filter((p: { paperStockId: string; sheetCount: number }) => p.paperStockId && p.sheetCount > 0);
+      const newPapers: { paperStockId: string; sheetCount: number; paperCost?: number }[] = (req.body.papers ?? []).filter((p: { paperStockId: string; sheetCount: number }) => p.paperStockId && p.sheetCount > 0);
 
       // Reverse all old deductions
       const oldPapers = await trx("job_papers").where({ job_id: req.params.id });
@@ -422,7 +423,7 @@ router.patch("/:id", requirePermission("jobs.edit"), async (req, res) => {
       // Insert new job_papers and deduct
       if (newPapers.length > 0) {
         await trx("job_papers").insert(
-          newPapers.map(p => ({ job_id: req.params.id, paper_stock_id: p.paperStockId, sheet_count: p.sheetCount }))
+          newPapers.map(p => ({ job_id: req.params.id, paper_stock_id: p.paperStockId, sheet_count: p.sheetCount, paper_cost: p.paperCost ?? null }))
         );
         for (const p of newPapers) {
           await trx("inventory_transactions").insert({

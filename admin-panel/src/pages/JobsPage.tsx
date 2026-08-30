@@ -52,7 +52,7 @@ type Job = {
   advance_amount: number; quotation_ref: string; indent_number: string;
   delivery_quantity: number; challan_number: string; challan_date: string;
   tax_invoice_no: string; invoice_date: string;
-  papers?: { paper_name?: string; gsm?: number; size?: string; sheet_count: number; unit?: string }[];
+  papers?: { paper_name?: string; gsm?: number; size?: string; sheet_count: number; unit?: string; paper_cost?: number; paper_stock_id?: string }[];
 };
 
 interface Client { id: string; name: string; }
@@ -70,7 +70,7 @@ const labelStyle: React.CSSProperties = { fontSize: 13, color: "#444", display: 
 const checkRowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" };
 
 type FormState = Record<string, string | boolean>;
-type PaperLine = { paperStockId: string; sheetCount: number };
+type PaperLine = { paperStockId: string; sheetCount: number; paperCost?: number };
 
 function boolField(form: FormState, key: string): boolean {
   const v = form[key];
@@ -639,7 +639,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
           {papers.map((p, i) => {
             const stock = paperStocks.find(s => s.id === p.paperStockId);
             return (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 160px 36px", gap: 10, marginBottom: 10, alignItems: "end" }}>
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 130px 130px 36px", gap: 10, marginBottom: 10, alignItems: "end" }}>
                 <label style={labelStyle}>
                   {i === 0 ? "Paper" : ""}
                   <SearchableSelect
@@ -662,6 +662,17 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
                     value={p.sheetCount || ""}
                     onChange={e => setPapers(prev => prev.map((pp, j) => j === i ? { ...pp, sheetCount: Number(e.target.value) } : pp))}
                     placeholder="No. of sheets"
+                  />
+                </label>
+                <label style={labelStyle}>
+                  {i === 0 ? "Paper Cost (₹)" : ""}
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    min={0}
+                    value={p.paperCost ?? ""}
+                    onChange={e => setPapers(prev => prev.map((pp, j) => j === i ? { ...pp, paperCost: e.target.value === "" ? undefined : Number(e.target.value) } : pp))}
+                    placeholder="0.00"
                   />
                 </label>
                 <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: 2 }}>
@@ -1037,7 +1048,7 @@ function EditingJobFormWrapper({ job, clients, machines, plateSources, isSaving,
 
   if (isLoading) return <div style={{ padding: 32, textAlign: "center", color: "#888" }}>Loading job details...</div>;
 
-  const initialPapers: PaperLine[] = (jobDetail?.papers ?? []).map(p => ({ paperStockId: p.paper_stock_id, sheetCount: p.sheet_count }));
+  const initialPapers: PaperLine[] = (jobDetail?.papers ?? []).map(p => ({ paperStockId: p.paper_stock_id, sheetCount: p.sheet_count, paperCost: p.paper_cost }));
 
   return (
     <JobForm
@@ -1140,6 +1151,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
                   <th style={{ textAlign: "left", padding: "6px 10px", border: "1px solid #dee2e6", fontSize: 12, fontWeight: 700, color: "#868e96" }}>Paper</th>
                   <th style={{ textAlign: "left", padding: "6px 10px", border: "1px solid #dee2e6", fontSize: 12, fontWeight: 700, color: "#868e96" }}>GSM</th>
                   <th style={{ textAlign: "right", padding: "6px 10px", border: "1px solid #dee2e6", fontSize: 12, fontWeight: 700, color: "#868e96" }}>Sheets</th>
+                  <th style={{ textAlign: "right", padding: "6px 10px", border: "1px solid #dee2e6", fontSize: 12, fontWeight: 700, color: "#868e96" }}>Cost (₹)</th>
                 </tr>
               </thead>
               <tbody>
@@ -1152,6 +1164,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
                     <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", fontWeight: 600, color: "#212529" }}>{p.paper_name || "—"}</td>
                     <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", color: "#212529" }}>{p.gsm ? p.gsm + " GSM" : "—"}</td>
                     <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", textAlign: "right", color: "#212529" }}>{p.sheet_count ? String(p.sheet_count) + (p.unit ? " " + p.unit : "") : "—"}</td>
+                    <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", textAlign: "right", color: "#212529" }}>{p.paper_cost != null ? "₹" + Number(p.paper_cost).toLocaleString("en-IN") : "—"}</td>
                   </tr>
                 ))}
               </tbody>
