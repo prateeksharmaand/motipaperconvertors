@@ -144,6 +144,8 @@ router.get("/:id", requirePermission("jobs.view"), async (req, res) => {
     .select(
       "job_cards.*",
       "clients.name as client_name",
+      "clients.company_name as client_company_name",
+      "clients.phone as client_phone",
       "operator.name as operator_name",
       "print_op.name as print_operator_name",
       "binding_op.name as binding_operator_name",
