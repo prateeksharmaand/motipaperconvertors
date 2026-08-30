@@ -21,6 +21,7 @@ interface Job {
   post_print_date: string; binding_operator: string; packing_operator: string;
   advance_amount: number; quoted_price: number; quotation_ref: string; indent_number: string;
   delivery_quantity: number; challan_number: string; challan_date: string;
+  tax_invoice_no?: string; invoice_date?: string;
 }
 
 interface PrintTemplate { header: string | null; footer: string | null; signature: string | null; printFontSize?: number; }
@@ -168,6 +169,8 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
             {cell("Delivery Quantity", job.delivery_quantity)}
             {cell("Challan Number", job.challan_number)}
             {cell("Challan Date", fmtDate(job.challan_date))}
+            {cell("Tax Invoice No", job.tax_invoice_no)}
+            {cell("Invoice Date", fmtDate(job.invoice_date))}
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8, paddingTop: 6, borderTop: "1px solid #e5e7eb" }}>

@@ -233,6 +233,8 @@ const CreateJobSchema = z.object({
   deliveryQuantity: z.number().int().optional(),
   challanNumber: z.string().optional(),
   challanDate: z.string().optional(),
+  taxInvoiceNo: z.string().optional(),
+  invoiceDate: z.string().optional(),
   papers: z.array(z.object({
     paperStockId: z.string().uuid(),
     sheetCount: z.number().int().positive(),
@@ -326,6 +328,8 @@ router.post("/", requirePermission("jobs.create"), async (req, res) => {
       delivery_quantity: data.deliveryQuantity ?? null,
       challan_number: data.challanNumber ?? null,
       challan_date: data.challanDate ?? null,
+      tax_invoice_no: data.taxInvoiceNo ?? null,
+      invoice_date: data.invoiceDate ?? null,
     }).returning("*");
 
     await trx("job_status_history").insert({
@@ -385,6 +389,7 @@ router.patch("/:id", requirePermission("jobs.edit"), async (req, res) => {
     "post_print_date", "binding_operator", "packing_operator",
     "advance_amount", "quotation_ref", "indent_number",
     "delivery_quantity", "challan_number", "challan_date",
+    "tax_invoice_no", "invoice_date",
     "print_operator_id", "binding_operator_id", "packing_operator_id", "qc_operator_id", "designer_id"];
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {

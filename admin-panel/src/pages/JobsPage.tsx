@@ -51,6 +51,7 @@ type Job = {
   post_print_date: string; binding_operator: string; packing_operator: string;
   advance_amount: number; quotation_ref: string; indent_number: string;
   delivery_quantity: number; challan_number: string; challan_date: string;
+  tax_invoice_no: string; invoice_date: string;
   papers?: { paper_name?: string; gsm?: number; size?: string; sheet_count: number; unit?: string }[];
 };
 
@@ -139,6 +140,8 @@ function buildApiPayload(form: FormState, papers: PaperLine[]) {
     deliveryQuantity: num("delivery_quantity"),
     challanNumber: str("challan_number"),
     challanDate: str("challan_date"),
+    taxInvoiceNo: str("tax_invoice_no"),
+    invoiceDate: str("invoice_date"),
   };
 }
 
@@ -204,6 +207,8 @@ function buildPatchPayload(form: FormState, papers: PaperLine[]) {
     delivery_quantity: num("delivery_quantity"),
     challan_number: str("challan_number"),
     challan_date: str("challan_date"),
+    tax_invoice_no: str("tax_invoice_no"),
+    invoice_date: str("invoice_date"),
   };
 }
 
@@ -224,7 +229,7 @@ function initForm(initial?: Partial<Job>): FormState {
       is_lamination: false, lamination_type: "", is_folding: false, is_gumming: false,
       post_print_date: "", binding_operator: "", packing_operator: "",
       advance_amount: "", quotation_ref: "", indent_number: "",
-      delivery_quantity: "", challan_number: "", challan_date: "",
+      delivery_quantity: "", challan_number: "", challan_date: "", tax_invoice_no: "", invoice_date: "",
       print_operator_id: "", binding_operator_id: "", packing_operator_id: "", qc_operator_id: "", designer_id: "",
     };
   }
@@ -283,6 +288,8 @@ function initForm(initial?: Partial<Job>): FormState {
     delivery_quantity: s(initial.delivery_quantity),
     challan_number: initial.challan_number ?? "",
     challan_date: initial.challan_date ? initial.challan_date.slice(0, 10) : "",
+    tax_invoice_no: initial.tax_invoice_no ?? "",
+    invoice_date: initial.invoice_date ? initial.invoice_date.slice(0, 10) : "",
     print_operator_id: (initial as Record<string, unknown>).print_operator_id as string ?? "",
     binding_operator_id: (initial as Record<string, unknown>).binding_operator_id as string ?? "",
     packing_operator_id: (initial as Record<string, unknown>).packing_operator_id as string ?? "",
@@ -892,6 +899,14 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
             Challan Date
             <input style={inputStyle} type="date" value={form.challan_date as string} onChange={set("challan_date")} />
           </label>
+          <label style={labelStyle}>
+            Tax Invoice No
+            <input style={inputStyle} value={form.tax_invoice_no as string} onChange={set("tax_invoice_no")} placeholder="e.g. INV-001" />
+          </label>
+          <label style={labelStyle}>
+            Invoice Date
+            <input style={inputStyle} type="date" value={form.invoice_date as string} onChange={set("invoice_date")} />
+          </label>
         </div>
 
         {/* Summary */}
@@ -1169,6 +1184,8 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
           {row("Delivery Quantity", job.delivery_quantity)}
           {row("Challan Number", job.challan_number)}
           {row("Challan Date", fmtDate(job.challan_date))}
+          {row("Tax Invoice No", job.tax_invoice_no)}
+          {row("Invoice Date", fmtDate(job.invoice_date))}
         </div>
       </div>
     </div>
