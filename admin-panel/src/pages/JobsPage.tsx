@@ -1041,7 +1041,7 @@ function EditingJobFormWrapper({ job, clients, machines, plateSources, isSaving,
   onPublish: (id: string, form: FormState, papers: PaperLine[]) => Promise<void>;
   onCancel: () => void;
 }) {
-  const { data: jobDetail, isLoading } = useQuery<{ papers: { paper_stock_id: string; sheet_count: number }[] }>({
+  const { data: jobDetail, isLoading } = useQuery<{ papers: { paper_stock_id: string; sheet_count: number; paper_cost?: number }[] }>({
     queryKey: ["job-detail", job.id],
     queryFn: () => api.get(`/admin/jobs/${job.id}`).then(r => r.data),
   });
