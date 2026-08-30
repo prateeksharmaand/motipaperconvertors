@@ -840,7 +840,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
               Lamination Type
               <select style={inputStyle} value={form.lamination_type as string} onChange={e => setForm(f => ({ ...f, lamination_type: e.target.value }))}>
                 <option value="">— select type —</option>
-                <option value="glass">Glass</option>
+                <option value="gloss">Gloss</option>
                 <option value="matte">Matte</option>
               </select>
             </label>
