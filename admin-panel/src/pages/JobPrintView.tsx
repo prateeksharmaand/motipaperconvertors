@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { fmtDate } from "../lib/fmtDate.ts";
+import { fmtDate, fmtDateTime } from "../lib/fmtDate.ts";
 
 interface JobPaper { paper_name?: string; gsm?: number; size?: string; sheet_count: number; unit?: string; paper_cost?: number; }
 
@@ -95,7 +95,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, paddingBottom: 6, borderBottom: "2px solid #7c3aed" }}>
             <div>
               <div style={{ fontSize: fsTitle, fontWeight: 900, color: "#7c3aed", letterSpacing: "-0.5px" }}>JOB CARD</div>
-              <div style={{ fontSize: fsLabel, color: "#6b7280", marginTop: 1 }}>Created: {fmtDate(job.created_at ?? new Date().toISOString())}</div>
+              <div style={{ fontSize: fsLabel, color: "#6b7280", marginTop: 1 }}>Created: {fmtDateTime(job.created_at ?? new Date().toISOString())}</div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: fsJobNum, fontWeight: 900, color: "#1f2937" }}>#{job.job_number}</div>
