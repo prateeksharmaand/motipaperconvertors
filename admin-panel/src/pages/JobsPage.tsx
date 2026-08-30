@@ -51,6 +51,7 @@ type Job = {
   post_print_date: string; binding_operator: string; packing_operator: string;
   advance_amount: number; quotation_ref: string; indent_number: string;
   delivery_quantity: number; challan_number: string; challan_date: string;
+  papers?: { paper_name?: string; gsm?: number; size?: string; sheet_count: number; unit?: string }[];
 };
 
 interface Client { id: string; name: string; }
@@ -1114,10 +1115,14 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
 
           {sectionTitle("Paper & Machine")}
           {row("Machine", machineName)}
-          {row("Paper Type", job.paper_type)}
-          {row("Paper GSM", job.paper_gsm)}
           {row("Sheet Size", job.sheet_size)}
-          {row("Sheet Count", job.sheet_count)}
+          {(job.papers && job.papers.length > 0
+            ? job.papers
+            : [{ paper_name: job.paper_type, gsm: job.paper_gsm, sheet_count: job.sheet_count }]
+          ).map((p, i) => [
+            row(`Paper ${i + 1}`, [p.paper_name, p.gsm ? p.gsm + " GSM" : null].filter(Boolean).join(", ") || "—"),
+            row(`Sheets ${i + 1}`, p.sheet_count ? String(p.sheet_count) + (p.unit ? " " + p.unit : "") : "—"),
+          ])}
 
           {sectionTitle("Pre-Print")}
           {row("Designer", designerName)}
@@ -1402,7 +1407,7 @@ export default function JobsPage() {
             {isLoading && <TableSkeleton cols={10} />}
             {data?.data?.map((j) => (
               <tr key={j.id} style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer", background: (STATUS_COLOR[j.status] ?? "#868e96") + "4D", borderLeft: `3px solid ${STATUS_COLOR[j.status] ?? "#868e96"}` }}
-                onClick={() => setViewJob(j)}>
+                onClick={() => api.get(`/admin/jobs/${j.id}`).then(r => setViewJob(r.data))}>
                 <td style={{ ...td, color: STATUS_COLOR[j.status] ?? "#868e96", fontWeight: 700 }}>{j.job_number}</td>
                 <td style={{ ...td, fontWeight: 600, color: "#111827" }}>{j.job_type ?? "—"}</td>
                 <td style={{ ...td, color: "#374151" }}>{j.client_company_name || j.client_name || "—"}</td>
