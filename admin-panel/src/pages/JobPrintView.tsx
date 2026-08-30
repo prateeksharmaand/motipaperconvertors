@@ -4,7 +4,7 @@ import { fmtDate } from "../lib/fmtDate.ts";
 interface JobPaper { paper_name?: string; gsm?: number; size?: string; sheet_count: number; unit?: string; }
 
 interface Job {
-  id: string; job_number: number; title: string; client_name: string; client_company_name?: string; client_phone?: string; created_at?: string; machine_id: string;
+  id: string; job_number: number; title: string; client_name: string; client_company_name: string; client_phone: string; created_at?: string; machine_id: string;
   status: string; quantity: number; due_date: string; order_type: string; job_type: string; description?: string;
   machine_name?: string;
   papers?: JobPaper[];
@@ -119,6 +119,8 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
           {/* 2-column info grid */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
             {section("Basic Information")}
+            {cell("Company Name", job.client_company_name || job.client_name)}
+            {cell("Contact No", job.client_phone)}
             {cell("Created Date", fmtDate(job.created_at))}
             {cell("Job Title", job.job_type)}
             {cell("Order Type", job.order_type)}
