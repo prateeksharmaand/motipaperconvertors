@@ -1,10 +1,13 @@
 import { useEffect } from "react";
 import { fmtDate } from "../lib/fmtDate.ts";
 
+interface JobPaper { paper_name?: string; gsm?: number; size?: string; sheet_count: number; unit?: string; }
+
 interface Job {
   id: string; job_number: number; title: string; client_name: string; client_company_name?: string; client_phone?: string; created_at?: string; machine_id: string;
   status: string; quantity: number; due_date: string; order_type: string; job_type: string;
   machine_name?: string;
+  papers?: JobPaper[];
   paper_type: string; paper_gsm: number; sheet_size: string; sheet_count: number;
   composing_date: string; composing_amount: number; plate_cost: number; die_cost: number;
   plate_source: string; approved_rate: number; hela_cost: number; other_cost: number;
@@ -118,12 +121,15 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
 
             {section("Paper & Machine")}
             {cell("Machine", job.machine_name)}
-            {cell("Paper Type", job.paper_type)}
-            {cell("Paper GSM", job.paper_gsm ? (job.paper_gsm + " GSM") : "—")}
             {cell("Sheet Size", job.sheet_size)}
-            {cell("Sheet Count", job.sheet_count)}
-            {/* Pad to even columns */}
-            <div style={{ padding: "3px 6px", borderBottom: "1px solid #f3f4f6" }} />
+            {(job.papers && job.papers.length > 0 ? job.papers : [{ paper_name: job.paper_type, gsm: job.paper_gsm, sheet_count: job.sheet_count }]).flatMap((p, i) => [
+              cell(`Paper ${i + 1}`, [p.paper_name, p.gsm ? p.gsm + " GSM" : null].filter(Boolean).join(" · ") || "—"),
+              cell(`Sheets ${i + 1}`, p.sheet_count ? String(p.sheet_count) + (p.unit ? " " + p.unit : "") : "—"),
+            ])}
+            {/* Pad to even columns if odd total rows */}
+            {((job.papers && job.papers.length > 0 ? job.papers.length : 1) % 2 !== 0) && (
+              <div style={{ padding: "3px 6px", borderBottom: "1px solid #f3f4f6" }} />
+            )}
 
             {section("Pre-Print Process")}
             {cell("Composing Date", fmtDate(job.composing_date))}
