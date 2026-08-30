@@ -163,10 +163,15 @@ router.get("/:id", requirePermission("jobs.view"), async (req, res) => {
     .select("job_status_history.*", "users.name as changed_by_name")
     .orderBy("changed_at", "asc");
 
-  const papers = await db("job_papers")
+  const rawPapers = await db("job_papers")
     .where({ job_id: job.id })
     .leftJoin("paper_stock", "job_papers.paper_stock_id", "paper_stock.id")
-    .select("job_papers.*", "paper_stock.name as paper_name", "paper_stock.gsm", "paper_stock.size", "paper_stock.unit");
+    .select("job_papers.*", "paper_stock.name as paper_name", "paper_stock.gsm", "paper_stock.size", "paper_stock.unit", "paper_stock.cost_per_unit");
+
+  const papers = rawPapers.map(p => ({
+    ...p,
+    computed_cost: p.cost_per_unit != null ? Number(p.sheet_count) * Number(p.cost_per_unit) : null,
+  }));
 
   res.json({ ...job, statusHistory, papers });
 });

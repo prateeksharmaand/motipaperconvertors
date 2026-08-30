@@ -52,7 +52,7 @@ type Job = {
   advance_amount: number; quotation_ref: string; indent_number: string;
   delivery_quantity: number; challan_number: string; challan_date: string;
   tax_invoice_no: string; invoice_date: string;
-  papers?: { paper_name?: string; gsm?: number; size?: string; sheet_count: number; unit?: string; paper_cost?: number; paper_stock_id?: string }[];
+  papers?: { paper_name?: string; gsm?: number; size?: string; sheet_count: number; unit?: string; paper_cost?: number; computed_cost?: number; paper_stock_id?: string }[];
 };
 
 interface Client { id: string; name: string; }
@@ -1041,7 +1041,7 @@ function EditingJobFormWrapper({ job, clients, machines, plateSources, isSaving,
   onPublish: (id: string, form: FormState, papers: PaperLine[]) => Promise<void>;
   onCancel: () => void;
 }) {
-  const { data: jobDetail, isLoading } = useQuery<{ papers: { paper_stock_id: string; sheet_count: number; paper_cost?: number }[] }>({
+  const { data: jobDetail, isLoading } = useQuery<{ papers: { paper_stock_id: string; sheet_count: number; paper_cost?: number; computed_cost?: number }[] }>({
     queryKey: ["job-detail", job.id],
     queryFn: () => api.get(`/admin/jobs/${job.id}`).then(r => r.data),
   });
@@ -1164,7 +1164,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
                     <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", fontWeight: 600, color: "#212529" }}>{p.paper_name || "—"}</td>
                     <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", color: "#212529" }}>{p.gsm ? p.gsm + " GSM" : "—"}</td>
                     <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", textAlign: "right", color: "#212529" }}>{p.sheet_count ? String(p.sheet_count) + (p.unit ? " " + p.unit : "") : "—"}</td>
-                    <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", textAlign: "right", color: "#212529" }}>{p.paper_cost != null ? "₹" + Number(p.paper_cost).toLocaleString("en-IN") : "—"}</td>
+                    <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", textAlign: "right", color: "#212529" }}>{p.paper_cost != null ? "₹" + Number(p.paper_cost).toLocaleString("en-IN") : p.computed_cost != null ? "₹" + Number(p.computed_cost).toLocaleString("en-IN") : "—"}</td>
                   </tr>
                 ))}
               </tbody>
