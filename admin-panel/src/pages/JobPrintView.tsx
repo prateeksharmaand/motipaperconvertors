@@ -84,9 +84,9 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
         style={{
           maxWidth: 800, margin: "12px auto", background: "#fff",
           boxShadow: "0 4px 24px rgba(0,0,0,0.12)", borderRadius: 8, overflow: "hidden",
-          fontSize: `${printFontSize}px`,
+          fontSize: `${fs}px`,
           // @ts-ignore CSS custom property
-          "--print-font-size": `${printFontSize}px`,
+          "--print-font-size": `${fs}px`,
         }}
       >
         {template.header && <img src={template.header} alt="Header" style={{ width: "100%", display: "block" }} />}
