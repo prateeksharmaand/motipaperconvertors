@@ -308,7 +308,7 @@ function PrintTemplateSettings() {
           <input
             type="range"
             min={4}
-            max={40}
+            max={20}
             step={1}
             value={printFontSize}
             onChange={e => setPrintFontSize(Number(e.target.value))}
