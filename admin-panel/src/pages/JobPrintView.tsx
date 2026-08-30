@@ -5,7 +5,7 @@ interface JobPaper { paper_name?: string; gsm?: number; size?: string; sheet_cou
 
 interface Job {
   id: string; job_number: number; title: string; client_name: string; client_company_name?: string; client_phone?: string; created_at?: string; machine_id: string;
-  status: string; quantity: number; due_date: string; order_type: string; job_type: string;
+  status: string; quantity: number; due_date: string; order_type: string; job_type: string; description?: string;
   machine_name?: string;
   papers?: JobPaper[];
   paper_type: string; paper_gsm: number; sheet_size: string; sheet_count: number;
@@ -118,6 +118,10 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
             {cell("Job Title", job.job_type)}
             {cell("Order Type", job.order_type)}
             {cell("Quantity", job.quantity ? (job.quantity + " PCS") : "—")}
+            {job.description ? <div style={{ gridColumn: "1 / -1", padding: "3px 6px", borderBottom: "1px solid #f3f4f6" }}>
+              <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 1 }}>Description</div>
+              <div style={{ fontSize: printFontSize, fontWeight: 500, color: "#1f2937" }}>{job.description}</div>
+            </div> : null}
 
             {section("Paper & Machine")}
             {cell("Machine", job.machine_name)}
