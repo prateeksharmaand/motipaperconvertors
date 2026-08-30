@@ -1131,13 +1131,32 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
           {sectionTitle("Paper & Machine")}
           {row("Machine", machineName)}
           {row("Sheet Size", job.sheet_size)}
-          {(job.papers && job.papers.length > 0
-            ? job.papers
-            : [{ paper_name: job.paper_type, gsm: job.paper_gsm, sheet_count: job.sheet_count }]
-          ).map((p, i) => [
-            row(`Paper ${i + 1}`, [p.paper_name, p.gsm ? p.gsm + " GSM" : null].filter(Boolean).join(", ") || "—"),
-            row(`Sheets ${i + 1}`, p.sheet_count ? String(p.sheet_count) + (p.unit ? " " + p.unit : "") : "—"),
-          ])}
+          <div style={{ gridColumn: "1 / -1" }}>
+            <div style={{ fontSize: 11, color: "#868e96", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>Papers Used</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "#f8f9fa" }}>
+                  <th style={{ textAlign: "left", padding: "6px 10px", border: "1px solid #dee2e6", fontSize: 12, fontWeight: 700, color: "#868e96" }}>#</th>
+                  <th style={{ textAlign: "left", padding: "6px 10px", border: "1px solid #dee2e6", fontSize: 12, fontWeight: 700, color: "#868e96" }}>Paper</th>
+                  <th style={{ textAlign: "left", padding: "6px 10px", border: "1px solid #dee2e6", fontSize: 12, fontWeight: 700, color: "#868e96" }}>GSM</th>
+                  <th style={{ textAlign: "right", padding: "6px 10px", border: "1px solid #dee2e6", fontSize: 12, fontWeight: 700, color: "#868e96" }}>Sheets</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(job.papers && job.papers.length > 0
+                  ? job.papers
+                  : [{ paper_name: job.paper_type, gsm: job.paper_gsm, sheet_count: job.sheet_count }]
+                ).map((p, i) => (
+                  <tr key={i} style={{ borderBottom: "1px solid #f1f3f5" }}>
+                    <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", color: "#868e96" }}>{i + 1}</td>
+                    <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", fontWeight: 600, color: "#212529" }}>{p.paper_name || "—"}</td>
+                    <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", color: "#212529" }}>{p.gsm ? p.gsm + " GSM" : "—"}</td>
+                    <td style={{ padding: "6px 10px", border: "1px solid #dee2e6", textAlign: "right", color: "#212529" }}>{p.sheet_count ? String(p.sheet_count) + (p.unit ? " " + p.unit : "") : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {sectionTitle("Pre-Print")}
           {row("Designer", designerName)}

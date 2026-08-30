@@ -127,14 +127,29 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
             {section("Paper & Machine")}
             {cell("Machine", job.machine_name)}
             {cell("Sheet Size", job.sheet_size)}
-            {(job.papers && job.papers.length > 0 ? job.papers : [{ paper_name: job.paper_type, gsm: job.paper_gsm, sheet_count: job.sheet_count }]).flatMap((p, i) => [
-              cell(`Paper ${i + 1}`, [p.paper_name, p.gsm ? p.gsm + " GSM" : null].filter(Boolean).join(" · ") || "—"),
-              cell(`Sheets ${i + 1}`, p.sheet_count ? String(p.sheet_count) + (p.unit ? " " + p.unit : "") : "—"),
-            ])}
-            {/* Pad to even columns if odd total rows */}
-            {((job.papers && job.papers.length > 0 ? job.papers.length : 1) % 2 !== 0) && (
-              <div style={{ padding: "3px 6px", borderBottom: "1px solid #f3f4f6" }} />
-            )}
+            <div style={{ gridColumn: "1 / -1", padding: "4px 6px", borderBottom: "1px solid #f3f4f6" }}>
+              <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 4 }}>Papers Used</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: printFontSize }}>
+                <thead>
+                  <tr style={{ background: "#f9fafb" }}>
+                    <th style={{ textAlign: "left", padding: "3px 8px", border: "1px solid #e5e7eb", fontSize: 10, fontWeight: 700, color: "#6b7280" }}>#</th>
+                    <th style={{ textAlign: "left", padding: "3px 8px", border: "1px solid #e5e7eb", fontSize: 10, fontWeight: 700, color: "#6b7280" }}>Paper</th>
+                    <th style={{ textAlign: "left", padding: "3px 8px", border: "1px solid #e5e7eb", fontSize: 10, fontWeight: 700, color: "#6b7280" }}>GSM</th>
+                    <th style={{ textAlign: "right", padding: "3px 8px", border: "1px solid #e5e7eb", fontSize: 10, fontWeight: 700, color: "#6b7280" }}>Sheets</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(job.papers && job.papers.length > 0 ? job.papers : [{ paper_name: job.paper_type, gsm: job.paper_gsm, sheet_count: job.sheet_count }]).map((p, i) => (
+                    <tr key={i}>
+                      <td style={{ padding: "3px 8px", border: "1px solid #e5e7eb", color: "#6b7280" }}>{i + 1}</td>
+                      <td style={{ padding: "3px 8px", border: "1px solid #e5e7eb", fontWeight: 600 }}>{p.paper_name || "—"}</td>
+                      <td style={{ padding: "3px 8px", border: "1px solid #e5e7eb" }}>{p.gsm ? p.gsm + " GSM" : "—"}</td>
+                      <td style={{ padding: "3px 8px", border: "1px solid #e5e7eb", textAlign: "right" }}>{p.sheet_count ? String(p.sheet_count) + (p.unit ? " " + p.unit : "") : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             {section("Pre-Print Process")}
             {cell("Composing Date", fmtDate(job.composing_date))}
