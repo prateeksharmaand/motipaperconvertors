@@ -119,7 +119,7 @@ const PrintTemplateSchema = z.object({
   header: z.string().optional(),
   footer: z.string().optional(),
   signature: z.string().optional(),
-  printFontSize: z.number().min(8).max(16).optional(),
+  printFontSize: z.number().min(4).max(40).optional(),
 });
 
 router.get("/print-template", requirePermission("settings.view"), async (req, res) => {

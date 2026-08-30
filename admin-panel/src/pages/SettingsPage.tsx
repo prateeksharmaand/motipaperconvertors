@@ -307,8 +307,8 @@ function PrintTemplateSettings() {
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <input
             type="range"
-            min={8}
-            max={16}
+            min={4}
+            max={40}
             step={1}
             value={printFontSize}
             onChange={e => setPrintFontSize(Number(e.target.value))}
