@@ -166,7 +166,7 @@ export default function JobPrintView({ job, template, onClose }: { job: Job; tem
             {cell("Die Cost", fmt(job.die_cost))}
             {cell("Plate Source", job.plate_source)}
             {cell("Approved Rate", fmt(job.approved_rate))}
-            {cell("Hela Cost", fmt(job.hela_cost))}
+            {cell("Thela Cost", fmt(job.hela_cost))}
             {cell("Other Cost", fmt(job.other_cost))}
             {cell("Proof Required", job.proof_required ? "Yes" : "No")}
             <div style={{ padding: "3px 6px", borderBottom: "1px solid #f3f4f6" }} />

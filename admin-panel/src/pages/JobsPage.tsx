@@ -746,7 +746,7 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
             <input style={inputStyle} type="number" step="0.01" value={form.approved_rate as string} onChange={set("approved_rate")} />
           </label>
           <label style={labelStyle}>
-            Hela Cost (Rs.)
+            Thela Cost (Rs.)
             <input style={inputStyle} type="number" step="0.01" value={form.hela_cost as string} onChange={set("hela_cost")} />
           </label>
           <label style={labelStyle}>
@@ -1179,7 +1179,7 @@ function JobDetailModal({ job, clients, machines, staffUsers, onClose, onEdit, o
           {row("Die Cost", job.die_cost != null ? `Rs.${Number(job.die_cost).toLocaleString("en-IN")}` : "")}
           {row("Plate Source", job.plate_source)}
           {row("Approved Rate", job.approved_rate != null ? `Rs.${Number(job.approved_rate).toLocaleString("en-IN")}` : "")}
-          {row("Hela Cost", job.hela_cost != null ? `Rs.${Number(job.hela_cost).toLocaleString("en-IN")}` : "")}
+          {row("Thela Cost", job.hela_cost != null ? `Rs.${Number(job.hela_cost).toLocaleString("en-IN")}` : "")}
           {row("Other Cost", job.other_cost != null ? `Rs.${Number(job.other_cost).toLocaleString("en-IN")}` : "")}
           {row("Proof Required", bool(job.proof_required))}
 
