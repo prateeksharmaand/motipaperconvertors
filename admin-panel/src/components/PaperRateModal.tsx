@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
 import { useAuthStore } from "../store/auth.ts";
 
@@ -35,6 +35,7 @@ const inputStyle: React.CSSProperties = {
 interface Props { onClose: () => void; }
 
 export default function PaperRateModal({ onClose }: Props) {
+  const qc = useQueryClient();
   const today = new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
   const { data: paperData, isLoading } = useQuery({
@@ -74,6 +75,7 @@ export default function PaperRateModal({ onClose }: Props) {
     },
     onSuccess: () => {
       markPaperRateShownToday();
+      qc.invalidateQueries({ queryKey: ["paper"] });
       toast.success("Paper rates updated");
       onClose();
     },
