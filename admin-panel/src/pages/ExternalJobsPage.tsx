@@ -91,7 +91,7 @@ function buildApiPayload(form: FormState, papers: PaperLine[]) {
     dueDate: str("due_date"),
     machineId: str("machine_id") || undefined,
     quotedPrice: num("quoted_price"),
-    orderType: str("order_type") || "in_house",
+    orderType: str("order_type") || "external",
     sheetSize: str("sheet_size"),
     sheetCount: num("sheet_count"),
     paperGsm: num("paper_gsm"),
@@ -156,7 +156,7 @@ function buildPatchPayload(form: FormState, papers: PaperLine[]) {
     paper_type: str("paper_type"),
     machine_id: str("machine_id") || null,
     quoted_price: num("quoted_price"),
-    order_type: str("order_type") || "in_house",
+    order_type: str("order_type") || "external",
     sheet_size: str("sheet_size"),
     sheet_count: num("sheet_count"),
     paper_gsm: num("paper_gsm"),
@@ -211,7 +211,7 @@ function initForm(initial?: Partial<Job>): FormState {
     return {
       client_id: "", title: "", job_type: "", description: "", size: "",
       quantity: "", due_date: "", paper_type: "", machine_id: "", quoted_price: "",
-      order_type: "in_house", sheet_size: "", sheet_count: "", paper_gsm: "", paper_stock_id: "",
+      order_type: "external", sheet_size: "", sheet_count: "", paper_gsm: "", paper_stock_id: "",
       composing_date: "", composing_amount: "", plate_cost: "", die_cost: "",
       plate_source: "", approved_rate: "", hela_cost: "", other_cost: "",
       proof_required: false,
@@ -239,7 +239,7 @@ function initForm(initial?: Partial<Job>): FormState {
     paper_type: initial.paper_type ?? "",
     machine_id: initial.machine_id ?? "",
     quoted_price: s(initial.quoted_price),
-    order_type: initial.order_type ?? "in_house",
+    order_type: initial.order_type ?? "external",
     sheet_size: initial.sheet_size ?? "",
     sheet_count: s(initial.sheet_count),
     paper_gsm: s(initial.paper_gsm),
@@ -494,7 +494,6 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
   const paperOptions = paperStocks.map(p => ({ value: p.id, label: `${p.name} ${p.gsm}gsm ${p.size}` }));
   const staffOptions = staffUsers.map(u => ({ value: u.id, label: u.name }));
   const orderTypeOptions = [
-    { value: "in_house", label: "In House" },
     { value: "external", label: "External" },
   ];
 

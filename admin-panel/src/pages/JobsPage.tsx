@@ -504,7 +504,6 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
   const staffOptions = staffUsers.map(u => ({ value: u.id, label: u.name }));
   const orderTypeOptions = [
     { value: "in_house", label: "In House" },
-    { value: "external", label: "External" },
   ];
 
 
@@ -1243,7 +1242,7 @@ export default function JobsPage() {
   async function handleExport() {
     setExporting(true);
     try {
-      const res = await api.get("/admin/jobs", { params: { limit: 5000 } });
+      const res = await api.get("/admin/jobs", { params: { limit: 5000, order_type: "in_house" } });
       const jobs: Job[] = res.data.data ?? [];
       const rows = jobs.map(j => ({
         job_number: j.job_number, title: j.title, client_name: j.client_name,
@@ -1263,7 +1262,7 @@ export default function JobsPage() {
 
   const { data, isLoading } = useQuery<PagedResult<Job>>({
     queryKey: ["jobs", actions.toParams()],
-    queryFn: () => api.get("/admin/jobs", { params: actions.toParams() }).then((r) => r.data),
+    queryFn: () => api.get("/admin/jobs", { params: { ...actions.toParams(), order_type: "in_house" } }).then((r) => r.data),
     placeholderData: keepPreviousData,
   });
 
