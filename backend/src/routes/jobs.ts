@@ -18,7 +18,7 @@ const JOB_SORT_COLS = ["job_number", "title", "status", "due_date", "created_at"
 router.get("/", requirePermission("jobs.view"), async (req, res) => {
   const params = parseListParams(req, { sortBy: "created_at" });
   const tenantId = req.user.tenantId!;
-  const { status, clientId, machineId, dueDateFrom, dueDateTo, assignedOperatorId, createdFrom, createdTo } = req.query as Record<string, string>;
+  const { status, clientId, machineId, dueDateFrom, dueDateTo, assignedOperatorId, createdFrom, createdTo, order_type } = req.query as Record<string, string>;
 
   let base = db("job_cards")
     .where("job_cards.tenant_id", tenantId)
@@ -62,6 +62,7 @@ router.get("/", requirePermission("jobs.view"), async (req, res) => {
   if (assignedOperatorId) base = base.where("job_cards.assigned_operator_id", assignedOperatorId);
   if (createdFrom) base = base.where("job_cards.created_at", ">=", createdFrom);
   if (createdTo) base = base.where("job_cards.created_at", "<=", createdTo);
+  if (order_type) base = base.where("job_cards.order_type", order_type);
 
   base = applySearch(base, params.search, ["job_cards.title", "job_cards.description", "clients.name", "job_cards.job_type"]);
 
@@ -77,6 +78,7 @@ router.get("/", requirePermission("jobs.view"), async (req, res) => {
   if (assignedOperatorId) countQ = countQ.where("job_cards.assigned_operator_id", assignedOperatorId);
   if (createdFrom) countQ = countQ.where("job_cards.created_at", ">=", createdFrom);
   if (createdTo) countQ = countQ.where("job_cards.created_at", "<=", createdTo);
+  if (order_type) countQ = countQ.where("job_cards.order_type", order_type);
   countQ = applySearch(countQ, params.search, ["job_cards.title", "job_cards.description", "clients.name", "job_cards.job_type"]);
 
   const result = await paginate(base, countQ, params, JOB_SORT_COLS, "job_cards");
