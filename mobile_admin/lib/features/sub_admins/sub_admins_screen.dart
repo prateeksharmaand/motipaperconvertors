@@ -63,6 +63,16 @@ class SubAdminCreated extends SubAdminsEvent {
   const SubAdminCreated(this.name, this.email, this.password);
   @override List<Object?> get props => [email];
 }
+class SubAdminStatusToggled extends SubAdminsEvent {
+  final String id, newStatus;
+  const SubAdminStatusToggled(this.id, this.newStatus);
+  @override List<Object?> get props => [id];
+}
+class SubAdminPasswordChanged extends SubAdminsEvent {
+  final String id, password;
+  const SubAdminPasswordChanged(this.id, this.password);
+  @override List<Object?> get props => [id];
+}
 
 class SubAdminsState extends Equatable {
   final List<SubAdmin> admins;
@@ -86,6 +96,8 @@ class SubAdminsBloc extends Bloc<SubAdminsEvent, SubAdminsState> {
     on<SubAdminsLoadRequested>(_onLoad);
     on<SubAdminPermissionsUpdated>(_onUpdatePermissions);
     on<SubAdminCreated>(_onCreate);
+    on<SubAdminStatusToggled>(_onToggleStatus);
+    on<SubAdminPasswordChanged>(_onPasswordChange);
   }
 
   Future<void> _onLoad(SubAdminsLoadRequested _, Emitter<SubAdminsState> emit) async {
@@ -120,6 +132,21 @@ class SubAdminsBloc extends Bloc<SubAdminsEvent, SubAdminsState> {
       emit(state.copyWith(success: 'Sub admin created'));
       add(const SubAdminsLoadRequested());
     } catch (_) { emit(state.copyWith(error: 'Failed to create sub admin')); }
+  }
+
+  Future<void> _onToggleStatus(SubAdminStatusToggled event, Emitter<SubAdminsState> emit) async {
+    try {
+      await ApiClient.instance.patch('/admin/users/${event.id}/status', data: {'status': event.newStatus});
+      emit(state.copyWith(success: 'Status updated'));
+      add(const SubAdminsLoadRequested());
+    } catch (_) { emit(state.copyWith(error: 'Failed to update status')); }
+  }
+
+  Future<void> _onPasswordChange(SubAdminPasswordChanged event, Emitter<SubAdminsState> emit) async {
+    try {
+      await ApiClient.instance.patch('/admin/users/${event.id}/password', data: {'password': event.password});
+      emit(state.copyWith(success: 'Password updated'));
+    } catch (_) { emit(state.copyWith(error: 'Failed to change password')); }
   }
 }
 
@@ -278,6 +305,35 @@ class _SubAdminCardState extends State<_SubAdminCard> {
     context.read<SubAdminsBloc>().add(SubAdminPermissionsUpdated(widget.admin.id, _selected.toList()));
   }
 
+  void _showChangePassword(BuildContext context) {
+    final passCtrl = TextEditingController();
+    final bloc = context.read<SubAdminsBloc>();
+    showModalBottomSheet(
+      context: context, isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => StatefulBuilder(builder: (ctx, setModal) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text('Change Password — ${widget.admin.name}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            TextField(controller: passCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'New Password (min 6 chars)')),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+              onPressed: () {
+                if (passCtrl.text.length < 6) return;
+                Navigator.pop(ctx);
+                bloc.add(SubAdminPasswordChanged(widget.admin.id, passCtrl.text));
+              },
+              child: const Text('Update Password'),
+            ),
+          ]),
+        ),
+      )),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final active = widget.admin.status == 'active';
@@ -299,8 +355,33 @@ class _SubAdminCardState extends State<_SubAdminCard> {
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(widget.admin.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 Text(widget.admin.email, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                Text('${_selected.length} permissions granted', style: const TextStyle(fontSize: 11, color: AppColors.primary)),
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: active ? AppColors.success.withValues(alpha: 0.12) : AppColors.borderLight, borderRadius: BorderRadius.circular(4)),
+                    child: Text(active ? 'Active' : 'Inactive', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: active ? AppColors.success : AppColors.textMuted)),
+                  ),
+                  const SizedBox(width: 6),
+                  Text('${_selected.length} perms', style: const TextStyle(fontSize: 11, color: AppColors.primary)),
+                ]),
               ])),
+              PopupMenuButton<String>(
+                onSelected: (v) {
+                  if (v == 'toggle') {
+                    context.read<SubAdminsBloc>().add(SubAdminStatusToggled(widget.admin.id, active ? 'inactive' : 'active'));
+                  } else if (v == 'password') {
+                    _showChangePassword(context);
+                  }
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(value: 'toggle', child: Row(children: [
+                    Icon(active ? Icons.toggle_off_outlined : Icons.toggle_on_outlined, size: 18, color: active ? AppColors.error : AppColors.success),
+                    const SizedBox(width: 8),
+                    Text(active ? 'Deactivate' : 'Activate'),
+                  ])),
+                  const PopupMenuItem(value: 'password', child: Row(children: [Icon(Icons.lock_outline, size: 18, color: AppColors.primary), SizedBox(width: 8), Text('Change Password')])),
+                ],
+              ),
               Icon(_expanded ? Icons.expand_less : Icons.expand_more, color: AppColors.textMuted),
             ]),
           ),

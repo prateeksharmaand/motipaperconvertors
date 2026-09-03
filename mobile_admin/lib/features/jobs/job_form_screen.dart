@@ -14,7 +14,6 @@ class JobFormData {
   int? quantity;
   String? sheetSize;
   int? sheetCount;
-  int? paperGsm;
   String? description;
   int colorsFont = 4;
   int colorsBack = 0;
@@ -28,6 +27,7 @@ class JobFormData {
   double? thelaCost;
   double? otherCost;
   double? composingAmount;
+  String? composingDate;
   bool isNumbering = false;
   int? numberingFrom;
   int? numberingTo;
@@ -47,6 +47,8 @@ class JobFormData {
   String? bindingOperatorId;
   String? packingOperatorId;
   String? qcOperatorId;
+  String? printDate;
+  String? postPrintDate;
   double? quotedPrice;
   double? advanceAmount;
   double? approvedRate;
@@ -54,6 +56,12 @@ class JobFormData {
   bool proofRequired = false;
   String? taxInvoiceNo;
   String? invoiceDate;
+  // Delivery
+  String? quotationRef;
+  String? indentNumber;
+  int? deliveryQuantity;
+  String? challanNumber;
+  String? challanDate;
   List<({String paperStockId, int sheetCount, String? paperName})> papers = [];
 
   Map<String, dynamic> toJson() => {
@@ -64,7 +72,6 @@ class JobFormData {
     if (quantity != null) 'quantity': quantity,
     if (sheetSize != null) 'sheetSize': sheetSize,
     if (sheetCount != null) 'sheetCount': sheetCount,
-    if (paperGsm != null) 'paperGsm': paperGsm,
     if (description != null && description!.isNotEmpty) 'description': description,
     'colorsFont': colorsFont,
     'colorsBack': colorsBack,
@@ -78,6 +85,7 @@ class JobFormData {
     if (thelaCost != null) 'helaCost': thelaCost,
     if (otherCost != null) 'otherCost': otherCost,
     if (composingAmount != null) 'composingAmount': composingAmount,
+    if (composingDate != null) 'composingDate': composingDate,
     'isNumbering': isNumbering,
     if (numberingFrom != null) 'numberingFrom': numberingFrom,
     if (numberingTo != null) 'numberingTo': numberingTo,
@@ -97,6 +105,8 @@ class JobFormData {
     if (bindingOperatorId != null) 'bindingOperatorId': bindingOperatorId,
     if (packingOperatorId != null) 'packingOperatorId': packingOperatorId,
     if (qcOperatorId != null) 'qcOperatorId': qcOperatorId,
+    if (printDate != null) 'printDate': printDate,
+    if (postPrintDate != null) 'postPrintDate': postPrintDate,
     if (quotedPrice != null) 'quotedPrice': quotedPrice,
     if (advanceAmount != null) 'advanceAmount': advanceAmount,
     if (approvedRate != null) 'approvedRate': approvedRate,
@@ -104,6 +114,11 @@ class JobFormData {
     'proofRequired': proofRequired,
     if (taxInvoiceNo != null && taxInvoiceNo!.isNotEmpty) 'taxInvoiceNo': taxInvoiceNo,
     if (invoiceDate != null) 'invoiceDate': invoiceDate,
+    if (quotationRef != null && quotationRef!.isNotEmpty) 'quotationRef': quotationRef,
+    if (indentNumber != null && indentNumber!.isNotEmpty) 'indentNumber': indentNumber,
+    if (deliveryQuantity != null) 'deliveryQuantity': deliveryQuantity,
+    if (challanNumber != null && challanNumber!.isNotEmpty) 'challanNumber': challanNumber,
+    if (challanDate != null) 'challanDate': challanDate,
     'papers': papers.map((p) => {'paperStockId': p.paperStockId, 'sheetCount': p.sheetCount}).toList(),
   };
 }
@@ -113,11 +128,10 @@ class _Option { final String id, name; const _Option(this.id, this.name); }
 
 // ── Screen ─────────────────────────────────────────────────
 class JobFormScreen extends StatefulWidget {
-  final Job? existing; // null = create, non-null = edit
-  const JobFormScreen({super.key, this.existing});
-
-  @override
-  State<JobFormScreen> createState() => _JobFormScreenState();
+  final Job? existing;
+  final String initialOrderType;
+  const JobFormScreen({super.key, this.existing, this.initialOrderType = 'in_house'});
+  @override State<JobFormScreen> createState() => _JobFormScreenState();
 }
 
 class _JobFormScreenState extends State<JobFormScreen> {
@@ -127,8 +141,6 @@ class _JobFormScreenState extends State<JobFormScreen> {
   String? _error;
 
   final _data = JobFormData();
-
-  // Remote data
   List<_Option> _clients = [];
   List<_Option> _machines = [];
   List<_Option> _staff = [];
@@ -139,6 +151,7 @@ class _JobFormScreenState extends State<JobFormScreen> {
   @override
   void initState() {
     super.initState();
+    _data.orderType = widget.initialOrderType;
     _loadMeta();
     if (widget.existing != null) _prefill(widget.existing!);
   }
@@ -151,11 +164,39 @@ class _JobFormScreenState extends State<JobFormScreen> {
     _data.quantity = j.quantity;
     _data.sheetSize = j.sheetSize;
     _data.sheetCount = j.sheetCount;
+    _data.description = j.description;
+    _data.isOffset = j.isOffset ?? true;
+    _data.isDigital = j.isDigital ?? false;
+    _data.isScreen = j.isScreen ?? false;
+    _data.colorsFont = j.colorsFont ?? 4;
+    _data.colorsBack = j.colorsBack ?? 0;
+    _data.printDate = j.printDate;
+    _data.composingAmount = j.composingAmount;
+    _data.composingDate = j.composingDate;
+    _data.plateCost = j.plateCost;
+    _data.dieCost = j.dieCost;
+    _data.plateSource = j.plateSource;
+    _data.thelaCost = j.helaCost;
+    _data.otherCost = j.otherCost;
+    _data.isBinding = j.isBinding ?? false;
+    _data.isUV = j.isUV ?? false;
+    _data.isFoil = j.isFoil ?? false;
+    _data.isDieCutting = j.isDieCutting ?? false;
+    _data.isHalfCutting = j.isHalfCutting ?? false;
+    _data.isCreasing = j.isCreasing ?? false;
+    _data.isPasting = j.isPasting ?? false;
     _data.isLamination = j.isLamination ?? false;
     _data.laminationType = j.laminationType;
+    _data.isFolding = j.isFolding ?? false;
+    _data.isGumming = j.isGumming ?? false;
+    _data.isNumbering = j.isNumbering ?? false;
+    _data.numberingFrom = j.numberingFrom;
+    _data.numberingTo = j.numberingTo;
+    _data.postPrintDate = j.postPrintDate;
     _data.dueDate = j.dueDate;
     _data.quotedPrice = j.quotedPrice;
     _data.advanceAmount = j.advanceAmount;
+    _data.approvedRate = j.approvedRate;
     _data.proofRequired = j.proofRequired ?? false;
     _data.printOperatorId = j.printOperatorId;
     _data.designerId = j.designerId;
@@ -164,6 +205,11 @@ class _JobFormScreenState extends State<JobFormScreen> {
     _data.qcOperatorId = j.qcOperatorId;
     _data.taxInvoiceNo = j.taxInvoiceNo;
     _data.invoiceDate = j.invoiceDate;
+    _data.quotationRef = j.quotationRef;
+    _data.indentNumber = j.indentNumber;
+    _data.deliveryQuantity = j.deliveryQuantity;
+    _data.challanNumber = j.challanNumber;
+    _data.challanDate = j.challanDate;
     _data.papers = j.papers.map((p) => (paperStockId: p.paperStockId, sheetCount: p.sheetCount, paperName: p.paperName)).toList();
   }
 
@@ -198,7 +244,6 @@ class _JobFormScreenState extends State<JobFormScreen> {
       if (!mounted) return;
       setState(() {
         _paperStock = (res.data['data'] as List? ?? []).map((e) => _Option(e['id'] as String, '${e['name']} ${e['gsm'] != null ? "${e['gsm']}gsm" : ""} ${e['size'] ?? ""}'.trim())).toList();
-        // clear any paper selections that no longer exist in the new pool
         final validIds = _paperStock.map((o) => o.id).toSet();
         _data.papers = _data.papers.where((p) => validIds.contains(p.paperStockId)).toList();
       });
@@ -206,7 +251,7 @@ class _JobFormScreenState extends State<JobFormScreen> {
   }
 
   void _next() {
-    if (_step < 4) {
+    if (_step < 5) {
       _pageCtrl.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       setState(() => _step++);
     } else {
@@ -240,7 +285,7 @@ class _JobFormScreenState extends State<JobFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const steps = ['Basic Info', 'Paper & Print', 'Finishing', 'Assignment', 'Pricing'];
+    const steps = ['Basic Info', 'Paper & Print', 'Finishing', 'Assignment', 'Pricing', 'Delivery'];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -257,9 +302,7 @@ class _JobFormScreenState extends State<JobFormScreen> {
       body: _loadingMeta
           ? const Center(child: CircularProgressIndicator())
           : Column(children: [
-              // Step indicator
               _StepBar(current: _step, steps: steps),
-              // Error banner
               if (_error != null)
                 Container(color: AppColors.errorLight, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(children: [
@@ -268,29 +311,20 @@ class _JobFormScreenState extends State<JobFormScreen> {
                     Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.error, fontSize: 13))),
                     IconButton(icon: const Icon(Icons.close, size: 16), onPressed: () => setState(() => _error = null)),
                   ])),
-              // Pages
               Expanded(child: PageView(
                 controller: _pageCtrl,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  _Step1BasicInfo(
-                    data: _data,
-                    clients: _clients,
-                    machines: _machines,
-                    jobTypes: _jobTypes,
+                  _Step1BasicInfo(data: _data, clients: _clients, machines: _machines, jobTypes: _jobTypes,
                     onChange: () => setState(() {}),
-                    onOrderTypeChanged: () {
-                      setState(() {});
-                      _reloadPaperStock();
-                    },
-                  ),
+                    onOrderTypeChanged: () { setState(() {}); _reloadPaperStock(); }),
                   _Step2PaperPrint(data: _data, paperStock: _paperStock, onChange: () => setState(() {})),
                   _Step3Finishing(data: _data, onChange: () => setState(() {})),
                   _Step4Assignment(data: _data, staff: _staff, onChange: () => setState(() {})),
                   _Step5Pricing(data: _data, onChange: () => setState(() {})),
+                  _Step6Delivery(data: _data, onChange: () => setState(() {})),
                 ],
               )),
-              // Navigation buttons
               SafeArea(child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: Row(children: [
@@ -302,7 +336,7 @@ class _JobFormScreenState extends State<JobFormScreen> {
                     onPressed: _saving ? null : _next,
                     child: _saving
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : Text(_step < 4 ? 'Next' : (widget.existing == null ? 'Create Job' : 'Save Changes')),
+                        : Text(_step < 5 ? 'Next' : (widget.existing == null ? 'Create Job' : 'Save Changes')),
                   )),
                 ]),
               )),
@@ -321,7 +355,7 @@ class _StepBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.surface,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: steps.asMap().entries.map((e) {
           final i = e.key;
@@ -330,18 +364,18 @@ class _StepBar extends StatelessWidget {
           final color = done || active ? AppColors.primary : AppColors.border;
           return Expanded(child: Row(children: [
             Container(
-              width: 24, height: 24,
+              width: 22, height: 22,
               decoration: BoxDecoration(color: done ? AppColors.primary : active ? AppColors.primaryLight : AppColors.borderLight, border: Border.all(color: color, width: 1.5), shape: BoxShape.circle),
               child: Center(child: done
-                  ? const Icon(Icons.check, size: 13, color: Colors.white)
-                  : Text('${i + 1}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: active ? AppColors.primary : AppColors.textMuted))),
+                  ? const Icon(Icons.check, size: 12, color: Colors.white)
+                  : Text('${i + 1}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: active ? AppColors.primary : AppColors.textMuted))),
             ),
             if (i < steps.length - 1)
-              Expanded(child: Container(height: 2, color: done ? AppColors.primary : AppColors.border, margin: const EdgeInsets.symmetric(horizontal: 4))),
+              Expanded(child: Container(height: 2, color: done ? AppColors.primary : AppColors.border, margin: const EdgeInsets.symmetric(horizontal: 2))),
           ]));
         }).toList()),
-        const SizedBox(height: 6),
-        Text(steps[current], style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary)),
+        const SizedBox(height: 4),
+        Text(steps[current], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
       ]),
     );
   }
@@ -390,6 +424,29 @@ Widget _toggle(String label, bool value, ValueChanged<bool> onChanged) => Paddin
   ]),
 );
 
+Widget _datePicker(BuildContext context, String label, String? value, ValueChanged<String> onChanged, {DateTime? firstDate}) => _field(label, InkWell(
+  onTap: () async {
+    final now = DateTime.now();
+    final initial = value != null ? DateTime.tryParse(value) ?? now : now;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: firstDate ?? DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null) onChanged(picked.toIso8601String().substring(0, 10));
+  },
+  child: Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(8), color: AppColors.surface),
+    child: Row(children: [
+      const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.textMuted),
+      const SizedBox(width: 8),
+      Text(value ?? 'Select date', style: TextStyle(fontSize: 13, color: value == null ? AppColors.textDisabled : AppColors.textPrimary)),
+    ]),
+  ),
+));
+
 // ── Step 1: Basic Info ────────────────────────────────────
 class _Step1BasicInfo extends StatelessWidget {
   final JobFormData data;
@@ -430,10 +487,7 @@ class _Step1BasicInfo extends StatelessWidget {
         _dropdownField('Order Type', data.orderType, const [
           DropdownMenuItem(value: 'in_house', child: Text('In House')),
           DropdownMenuItem(value: 'external', child: Text('External')),
-        ], (v) {
-          data.orderType = v ?? 'in_house';
-          onOrderTypeChanged();
-        }),
+        ], (v) { data.orderType = v ?? 'in_house'; onOrderTypeChanged(); }),
       ]),
       _FormSection(title: 'Quantity & Size', children: [
         Row(children: [
@@ -445,22 +499,7 @@ class _Step1BasicInfo extends StatelessWidget {
         _textField('Description', data.description, (v) { data.description = v; onChange(); }, hint: 'Optional notes'),
       ]),
       _FormSection(title: 'Schedule', children: [
-        _field('Due Date', InkWell(
-          onTap: () async {
-            final now = DateTime.now();
-            final picked = await showDatePicker(context: context, initialDate: now, firstDate: now, lastDate: now.add(const Duration(days: 365)));
-            if (picked != null) { data.dueDate = picked.toIso8601String().substring(0, 10); onChange(); }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(8), color: AppColors.surface),
-            child: Row(children: [
-              const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.textMuted),
-              const SizedBox(width: 8),
-              Text(data.dueDate ?? 'Select due date', style: TextStyle(fontSize: 13, color: data.dueDate == null ? AppColors.textDisabled : AppColors.textPrimary)),
-            ]),
-          ),
-        )),
+        _datePicker(context, 'Due Date', data.dueDate, (v) { data.dueDate = v; onChange(); }, firstDate: DateTime.now()),
         _toggle('Proof Required', data.proofRequired, (v) { data.proofRequired = v; onChange(); }),
       ]),
     ]));
@@ -478,37 +517,31 @@ class _Step2PaperPrint extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       _FormSection(title: 'Paper', children: [
-        // Paper lines
         ...data.papers.asMap().entries.map((e) {
           final i = e.key;
           final p = e.value;
-          return Card(margin: const EdgeInsets.only(bottom: 8), child: Padding(padding: const EdgeInsets.all(12), child: Column(children: [
-            Row(children: [
-              Expanded(child: DropdownButtonFormField<String>(
-                value: paperStock.any((s) => s.id == p.paperStockId) ? p.paperStockId : null,
-                decoration: const InputDecoration(labelText: 'Paper', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                isExpanded: true,
-                items: paperStock.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name, overflow: TextOverflow.ellipsis))).toList(),
-                onChanged: (v) {
-                  if (v != null) {
-                    final name = paperStock.firstWhere((s) => s.id == v).name;
-                    data.papers[i] = (paperStockId: v, sheetCount: p.sheetCount, paperName: name);
-                    onChange();
-                  }
-                },
-              )),
-              const SizedBox(width: 8),
-              SizedBox(width: 80, child: TextFormField(
-                initialValue: p.sheetCount > 0 ? '${p.sheetCount}' : '',
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Sheets', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                onChanged: (v) {
-                  data.papers[i] = (paperStockId: p.paperStockId, sheetCount: int.tryParse(v) ?? 0, paperName: p.paperName);
+          return Card(margin: const EdgeInsets.only(bottom: 8), child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
+            Expanded(child: DropdownButtonFormField<String>(
+              value: paperStock.any((s) => s.id == p.paperStockId) ? p.paperStockId : null,
+              decoration: const InputDecoration(labelText: 'Paper', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+              isExpanded: true,
+              items: paperStock.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name, overflow: TextOverflow.ellipsis))).toList(),
+              onChanged: (v) {
+                if (v != null) {
+                  final name = paperStock.firstWhere((s) => s.id == v).name;
+                  data.papers[i] = (paperStockId: v, sheetCount: p.sheetCount, paperName: name);
                   onChange();
-                },
-              )),
-              IconButton(icon: const Icon(Icons.remove_circle_outline, color: AppColors.error, size: 20), onPressed: () { data.papers.removeAt(i); onChange(); }),
-            ]),
+                }
+              },
+            )),
+            const SizedBox(width: 8),
+            SizedBox(width: 80, child: TextFormField(
+              initialValue: p.sheetCount > 0 ? '${p.sheetCount}' : '',
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Sheets', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+              onChanged: (v) { data.papers[i] = (paperStockId: p.paperStockId, sheetCount: int.tryParse(v) ?? 0, paperName: p.paperName); onChange(); },
+            )),
+            IconButton(icon: const Icon(Icons.remove_circle_outline, color: AppColors.error, size: 20), onPressed: () { data.papers.removeAt(i); onChange(); }),
           ])));
         }),
         OutlinedButton.icon(
@@ -529,19 +562,24 @@ class _Step2PaperPrint extends StatelessWidget {
         _toggle('Digital', data.isDigital, (v) { data.isDigital = v; onChange(); }),
         _toggle('Screen', data.isScreen, (v) { data.isScreen = v; onChange(); }),
       ]),
-      _FormSection(title: 'Plate Details', children: [
+      _FormSection(title: 'Plate & Pre-Print Costs', children: [
         Row(children: [
           Expanded(child: _textField('Plate Count', '${data.plateCount}', (v) { data.plateCount = int.tryParse(v) ?? 0; onChange(); }, type: TextInputType.number)),
           const SizedBox(width: 12),
-          Expanded(child: _textField('Plate Cost', data.plateCost?.toString(), (v) { data.plateCost = double.tryParse(v); onChange(); }, type: TextInputType.number)),
+          Expanded(child: _textField('Plate Cost (₹)', data.plateCost?.toString(), (v) { data.plateCost = double.tryParse(v); onChange(); }, type: TextInputType.number)),
         ]),
         _textField('Plate Source', data.plateSource, (v) { data.plateSource = v; onChange(); }, hint: 'e.g. In-house, Vendor'),
         Row(children: [
-          Expanded(child: _textField('Die Cost', data.dieCost?.toString(), (v) { data.dieCost = double.tryParse(v); onChange(); }, type: TextInputType.number)),
+          Expanded(child: _textField('Die Cost (₹)', data.dieCost?.toString(), (v) { data.dieCost = double.tryParse(v); onChange(); }, type: TextInputType.number)),
           const SizedBox(width: 12),
-          Expanded(child: _textField('Thela Cost', data.thelaCost?.toString(), (v) { data.thelaCost = double.tryParse(v); onChange(); }, type: TextInputType.number)),
+          Expanded(child: _textField('Thela Cost (₹)', data.thelaCost?.toString(), (v) { data.thelaCost = double.tryParse(v); onChange(); }, type: TextInputType.number)),
         ]),
-        _textField('Composing Amount', data.composingAmount?.toString(), (v) { data.composingAmount = double.tryParse(v); onChange(); }, type: TextInputType.number),
+        Row(children: [
+          Expanded(child: _textField('Composing Amt (₹)', data.composingAmount?.toString(), (v) { data.composingAmount = double.tryParse(v); onChange(); }, type: TextInputType.number)),
+          const SizedBox(width: 12),
+          Expanded(child: _datePicker(context, 'Composing Date', data.composingDate, (v) { data.composingDate = v; onChange(); })),
+        ]),
+        _textField('Other Cost (₹)', data.otherCost?.toString(), (v) { data.otherCost = double.tryParse(v); onChange(); }, type: TextInputType.number),
       ]),
     ]));
   }
@@ -607,6 +645,10 @@ class _Step4Assignment extends StatelessWidget {
         _field('Packing Operator', DropdownButtonFormField<String>(value: data.packingOperatorId, items: items, onChanged: (v) { data.packingOperatorId = v; onChange(); }, isExpanded: true, decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)))),
         _field('QC Operator', DropdownButtonFormField<String>(value: data.qcOperatorId, items: items, onChanged: (v) { data.qcOperatorId = v; onChange(); }, isExpanded: true, decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)))),
       ]),
+      _FormSection(title: 'Production Dates', children: [
+        _datePicker(context, 'Print Date', data.printDate, (v) { data.printDate = v; onChange(); }),
+        _datePicker(context, 'Post-Print / Dispatch Date', data.postPrintDate, (v) { data.postPrintDate = v; onChange(); }),
+      ]),
     ]));
   }
 }
@@ -624,60 +666,52 @@ class _Step5Pricing extends StatelessWidget {
         _textField('Quoted Price (₹)', data.quotedPrice?.toString(), (v) { data.quotedPrice = double.tryParse(v); onChange(); }, type: TextInputType.number),
         _textField('Advance Amount (₹)', data.advanceAmount?.toString(), (v) { data.advanceAmount = double.tryParse(v); onChange(); }, type: TextInputType.number),
         _textField('Approved Rate (₹)', data.approvedRate?.toString(), (v) { data.approvedRate = double.tryParse(v); onChange(); }, type: TextInputType.number),
-        _textField('Other Cost (₹)', data.otherCost?.toString(), (v) { data.otherCost = double.tryParse(v); onChange(); }, type: TextInputType.number),
       ]),
       _FormSection(title: 'Invoice', children: [
         _textField('Tax Invoice No', data.taxInvoiceNo, (v) { data.taxInvoiceNo = v; onChange(); }, hint: 'e.g. INV-2026-001'),
-        _field('Invoice Date', InkWell(
-          onTap: () async {
-            final now = DateTime.now();
-            final initial = data.invoiceDate != null ? DateTime.tryParse(data.invoiceDate!) ?? now : now;
-            final picked = await showDatePicker(context: context, initialDate: initial, firstDate: DateTime(2020), lastDate: DateTime(2030));
-            if (picked != null) { data.invoiceDate = picked.toIso8601String().substring(0, 10); onChange(); }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(8), color: AppColors.surface),
-            child: Row(children: [
-              const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.textMuted),
-              const SizedBox(width: 8),
-              Text(data.invoiceDate ?? 'Select invoice date', style: TextStyle(fontSize: 13, color: data.invoiceDate == null ? AppColors.textDisabled : AppColors.textPrimary)),
-            ]),
-          ),
-        )),
+        _datePicker(context, 'Invoice Date', data.invoiceDate, (v) { data.invoiceDate = v; onChange(); }),
       ]),
-      // Summary
+      // Summary card
       Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('Review Summary', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
         const Divider(height: 20),
-        _summaryRow('Job Title', data.jobType.isEmpty ? '—' : data.jobType),
-        _summaryRow('Order Type', data.orderType == 'in_house' ? 'In House' : 'External'),
-        if (data.quantity != null) _summaryRow('Quantity', '${data.quantity}'),
-        if (data.dueDate != null) _summaryRow('Due Date', data.dueDate!),
-        _summaryRow('Papers', '${data.papers.length} selected'),
-        _summaryRow('Finishing', _getFinishing(data)),
-        if (data.quotedPrice != null) _summaryRow('Quoted Price', '₹${data.quotedPrice!.toStringAsFixed(0)}', color: AppColors.primary),
-        if (data.taxInvoiceNo != null && data.taxInvoiceNo!.isNotEmpty) _summaryRow('Tax Invoice No', data.taxInvoiceNo!),
+        _row('Job Title', data.jobType.isEmpty ? '—' : data.jobType),
+        _row('Order Type', data.orderType == 'in_house' ? 'In House' : 'External'),
+        if (data.quantity != null) _row('Quantity', '${data.quantity}'),
+        if (data.dueDate != null) _row('Due Date', data.dueDate!),
+        _row('Papers', '${data.papers.length} selected'),
+        if (data.quotedPrice != null) _row('Quoted Price', '₹${data.quotedPrice!.toStringAsFixed(0)}', color: AppColors.primary),
       ]))),
     ]));
   }
 
-  Widget _summaryRow(String label, String value, {Color? color}) => Padding(
+  Widget _row(String label, String value, {Color? color}) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
       Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color ?? AppColors.textPrimary)),
     ]),
   );
+}
 
-  String _getFinishing(JobFormData d) {
-    final opts = <String>[];
-    if (d.isBinding) opts.add('Binding');
-    if (d.isUV) opts.add('UV');
-    if (d.isFoil) opts.add('Foil');
-    if (d.isDieCutting) opts.add('Die Cutting');
-    if (d.isLamination) opts.add('Lamination${d.laminationType != null ? " (${d.laminationType![0].toUpperCase()}${d.laminationType!.substring(1)})" : ""}');
-    if (d.isNumbering) opts.add('Numbering');
-    return opts.isEmpty ? 'None' : opts.join(', ');
+// ── Step 6: Delivery ───────────────────────────────────────
+class _Step6Delivery extends StatelessWidget {
+  final JobFormData data;
+  final VoidCallback onChange;
+  const _Step6Delivery({required this.data, required this.onChange});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _FormSection(title: 'References', children: [
+        _textField('Quotation Ref', data.quotationRef, (v) { data.quotationRef = v; onChange(); }, hint: 'e.g. QT-2026-001'),
+        _textField('Indent Number', data.indentNumber, (v) { data.indentNumber = v; onChange(); }),
+      ]),
+      _FormSection(title: 'Delivery', children: [
+        _textField('Delivery Quantity', data.deliveryQuantity?.toString(), (v) { data.deliveryQuantity = int.tryParse(v); onChange(); }, type: TextInputType.number),
+        _textField('Challan Number', data.challanNumber, (v) { data.challanNumber = v; onChange(); }),
+        _datePicker(context, 'Challan Date', data.challanDate, (v) { data.challanDate = v; onChange(); }),
+      ]),
+    ]));
   }
 }

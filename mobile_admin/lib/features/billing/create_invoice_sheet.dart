@@ -43,7 +43,7 @@ class _CreateInvoiceSheetState extends State<CreateInvoiceSheet> {
     try {
       final results = await Future.wait([
         ApiClient.instance.get('/admin/clients', queryParameters: {'limit': 200}),
-        ApiClient.instance.get('/admin/jobs', queryParameters: {'limit': 100, 'sortDir': 'desc'}),
+        ApiClient.instance.get('/admin/jobs', queryParameters: {'limit': 100, 'status': 'ready', 'sortDir': 'desc'}),
       ]);
       if (!mounted) return;
       setState(() {

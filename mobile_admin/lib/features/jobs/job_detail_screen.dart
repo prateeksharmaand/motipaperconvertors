@@ -88,7 +88,6 @@ class _JobDetailView extends StatelessWidget {
             actions: [
               IconButton(
                 icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                tooltip: 'Edit',
                 onPressed: () async {
                   final updated = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => JobFormScreen(existing: job)));
                   if (updated == true && context.mounted) context.read<JobDetailBloc>().add(JobDetailLoadRequested(jobId));
@@ -101,46 +100,101 @@ class _JobDetailView extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Status + change button
               _StatusCard(job: job, onStatusChange: (newStatus, notes) {
                 context.read<JobsBloc>().add(JobsStatusChanged(job.id, newStatus, notes: notes));
                 context.read<JobDetailBloc>().add(JobDetailLoadRequested(jobId));
               }),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+
               // Client info
               _InfoCard(title: 'Client', children: [
                 _InfoRow('Company', job.clientCompanyName ?? job.clientName ?? '—'),
                 if (job.clientPhone != null) _InfoRow('Phone', job.clientPhone!),
               ]),
               const SizedBox(height: 12),
-              // Basic info
+
+              // Basic job details
               _InfoCard(title: 'Job Details', children: [
                 _InfoRow('Job Type', job.jobType ?? '—'),
-                _InfoRow('Order Type', job.orderType == 'in_house' ? 'In House' : (job.orderType ?? '—')),
+                _InfoRow('Order Type', job.orderType == 'in_house' ? 'In House' : job.orderType == 'external' ? 'External' : (job.orderType ?? '—')),
                 if (job.machineName != null) _InfoRow('Machine', job.machineName!),
                 if (job.quantity != null) _InfoRow('Quantity', '${job.quantity}'),
                 if (job.sheetSize != null) _InfoRow('Sheet Size', job.sheetSize!),
                 if (job.sheetCount != null) _InfoRow('Sheet Count', '${job.sheetCount}'),
-                if (job.printOperatorName != null) _InfoRow('Print Operator', job.printOperatorName!),
-                if (job.isLamination == true) _InfoRow('Lamination', job.laminationType != null ? 'Yes – ${job.laminationType![0].toUpperCase()}${job.laminationType!.substring(1)}' : 'Yes'),
+                if (job.description != null && job.description!.isNotEmpty) _InfoRow('Description', job.description!),
                 _InfoRow('Created', Fmt.date(job.createdAt)),
                 if (job.dueDate != null) _InfoRow('Due Date', Fmt.date(job.dueDate)),
                 if (job.proofRequired == true) const _InfoRow('Proof Required', 'Yes'),
               ]),
               const SizedBox(height: 12),
+
+              // Print process
+              if (job.isOffset == true || job.isDigital == true || job.isScreen == true || job.colorsFont != null)
+                _InfoCard(title: 'Print Process', children: [
+                  if (job.isOffset == true) const _InfoRow('Offset', 'Yes'),
+                  if (job.isDigital == true) const _InfoRow('Digital', 'Yes'),
+                  if (job.isScreen == true) const _InfoRow('Screen', 'Yes'),
+                  if (job.colorsFont != null) _InfoRow('Front Colours', '${job.colorsFont}'),
+                  if (job.colorsBack != null) _InfoRow('Back Colours', '${job.colorsBack}'),
+                  if (job.printDate != null) _InfoRow('Print Date', Fmt.date(job.printDate)),
+                ]),
+              if (job.isOffset == true || job.isDigital == true || job.isScreen == true || job.colorsFont != null) const SizedBox(height: 12),
+
+              // Pre-print costs
+              if (_hasPrePrint(job))
+                _InfoCard(title: 'Pre-Print Costs', children: [
+                  if (job.composingAmount != null) _InfoRow('Composing Amount', Fmt.money(job.composingAmount)),
+                  if (job.composingDate != null) _InfoRow('Composing Date', Fmt.date(job.composingDate)),
+                  if (job.plateCost != null) _InfoRow('Plate Cost', Fmt.money(job.plateCost)),
+                  if (job.dieCost != null) _InfoRow('Die Cost', Fmt.money(job.dieCost)),
+                  if (job.plateSource != null) _InfoRow('Plate Source', job.plateSource!),
+                  if (job.approvedRate != null) _InfoRow('Approved Rate', Fmt.money(job.approvedRate)),
+                  if (job.helaCost != null) _InfoRow('Thela Cost', Fmt.money(job.helaCost)),
+                  if (job.otherCost != null) _InfoRow('Other Cost', Fmt.money(job.otherCost)),
+                ]),
+              if (_hasPrePrint(job)) const SizedBox(height: 12),
+
+              // Finishing flags
+              if (_hasFinishing(job))
+                _FinishingCard(job: job),
+              if (_hasFinishing(job)) const SizedBox(height: 12),
+
+              // Papers
+              if (job.papers.isNotEmpty) ...[
+                _PapersCard(papers: job.papers),
+                const SizedBox(height: 12),
+              ],
+
+              // Operators
+              if (_hasOperators(job))
+                _InfoCard(title: 'Operators', children: [
+                  if (job.printOperatorName != null) _InfoRow('Print Operator', job.printOperatorName!),
+                  if (job.postPrintDate != null) _InfoRow('Post-Print Date', Fmt.date(job.postPrintDate)),
+                ]),
+              if (_hasOperators(job)) const SizedBox(height: 12),
+
               // Financial
               if (job.quotedPrice != null || job.advanceAmount != null || job.taxInvoiceNo != null || job.invoiceDate != null)
                 _InfoCard(title: 'Financial', children: [
                   if (job.quotedPrice != null) _InfoRow('Quoted Price', Fmt.money(job.quotedPrice), highlight: true),
                   if (job.advanceAmount != null) _InfoRow('Advance', Fmt.money(job.advanceAmount)),
+                  if (job.approvedRate != null) _InfoRow('Approved Rate', Fmt.money(job.approvedRate)),
                   if (job.taxInvoiceNo != null) _InfoRow('Tax Invoice No', job.taxInvoiceNo!),
                   if (job.invoiceDate != null) _InfoRow('Invoice Date', Fmt.date(job.invoiceDate)),
                 ]),
-              if (job.papers.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                _PapersCard(papers: job.papers),
-              ],
-              const SizedBox(height: 12),
+              if (job.quotedPrice != null || job.advanceAmount != null || job.taxInvoiceNo != null || job.invoiceDate != null) const SizedBox(height: 12),
+
+              // Delivery
+              if (_hasDelivery(job))
+                _InfoCard(title: 'Delivery', children: [
+                  if (job.quotationRef != null) _InfoRow('Quotation Ref', job.quotationRef!),
+                  if (job.indentNumber != null) _InfoRow('Indent Number', job.indentNumber!),
+                  if (job.deliveryQuantity != null) _InfoRow('Delivery Qty', '${job.deliveryQuantity}'),
+                  if (job.challanNumber != null) _InfoRow('Challan No', job.challanNumber!),
+                  if (job.challanDate != null) _InfoRow('Challan Date', Fmt.date(job.challanDate)),
+                ]),
+              if (_hasDelivery(job)) const SizedBox(height: 12),
+
               // Status timeline
               if (loaded.history.isNotEmpty) _TimelineCard(history: loaded.history),
               const SizedBox(height: 24),
@@ -150,9 +204,47 @@ class _JobDetailView extends StatelessWidget {
       },
     );
   }
+
+  bool _hasPrePrint(Job j) => j.composingAmount != null || j.composingDate != null || j.plateCost != null || j.dieCost != null || j.plateSource != null || j.helaCost != null || j.otherCost != null;
+  bool _hasFinishing(Job j) => (j.isBinding ?? false) || (j.isUV ?? false) || (j.isFoil ?? false) || (j.isDieCutting ?? false) || (j.isHalfCutting ?? false) || (j.isCreasing ?? false) || (j.isPasting ?? false) || (j.isLamination ?? false) || (j.isFolding ?? false) || (j.isGumming ?? false) || (j.isNumbering ?? false);
+  bool _hasDelivery(Job j) => j.quotationRef != null || j.indentNumber != null || j.deliveryQuantity != null || j.challanNumber != null || j.challanDate != null;
+  bool _hasOperators(Job j) => j.printOperatorName != null || j.postPrintDate != null;
 }
 
-// ── Status card with change button ───────────────────────
+// ── Finishing card ────────────────────────────────────────
+class _FinishingCard extends StatelessWidget {
+  final Job job;
+  const _FinishingCard({required this.job});
+
+  @override
+  Widget build(BuildContext context) {
+    final flags = <String>[];
+    if (job.isBinding == true) flags.add('Binding');
+    if (job.isUV == true) flags.add('UV Coating');
+    if (job.isFoil == true) flags.add('Foil Stamping');
+    if (job.isDieCutting == true) flags.add('Die Cutting');
+    if (job.isHalfCutting == true) flags.add('Half Cutting');
+    if (job.isCreasing == true) flags.add('Creasing');
+    if (job.isPasting == true) flags.add('Pasting');
+    if (job.isLamination == true) flags.add('Lamination${job.laminationType != null ? " (${job.laminationType![0].toUpperCase()}${job.laminationType!.substring(1)})" : ""}');
+    if (job.isFolding == true) flags.add('Folding');
+    if (job.isGumming == true) flags.add('Gumming');
+    if (job.isNumbering == true) {
+      final range = (job.numberingFrom != null && job.numberingTo != null) ? ' (${job.numberingFrom}–${job.numberingTo})' : '';
+      flags.add('Numbering$range');
+    }
+
+    return _InfoCard(title: 'Finishing', children: [
+      Wrap(spacing: 6, runSpacing: 6, children: flags.map((f) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.primary.withValues(alpha: 0.3))),
+        child: Text(f, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
+      )).toList()),
+    ]);
+  }
+}
+
+// ── Status card ───────────────────────────────────────────
 class _StatusCard extends StatelessWidget {
   final Job job;
   final void Function(String status, String? notes) onStatusChange;
@@ -164,25 +256,23 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = job.status;
     final color = AppColors.statusColors[status] ?? AppColors.textMuted;
-    return Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Current Status', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withValues(alpha: 0.3))),
-            child: Text(Fmt.statusLabel(status), style: TextStyle(fontWeight: FontWeight.w700, color: color, fontSize: 14)),
-          ),
-        ]),
-        if (status != 'cancelled' && status != 'delivered')
-          ElevatedButton.icon(
-            icon: const Icon(Icons.swap_horiz, size: 16),
-            label: const Text('Change Status'),
-            onPressed: () => _showStatusDialog(context),
-            style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), textStyle: const TextStyle(fontSize: 13)),
-          ),
+    return Card(child: Padding(padding: const EdgeInsets.all(16), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Current Status', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withValues(alpha: 0.3))),
+          child: Text(Fmt.statusLabel(status), style: TextStyle(fontWeight: FontWeight.w700, color: color, fontSize: 14)),
+        ),
       ]),
+      if (status != 'cancelled' && status != 'delivered')
+        ElevatedButton.icon(
+          icon: const Icon(Icons.swap_horiz, size: 16),
+          label: const Text('Change'),
+          onPressed: () => _showStatusDialog(context),
+          style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), textStyle: const TextStyle(fontSize: 13)),
+        ),
     ])));
   }
 
@@ -233,10 +323,7 @@ class _PapersCard extends StatelessWidget {
     children: papers.map((p) {
       final cost = p.effectiveCost;
       final costStr = cost != null ? ' — ₹${cost.toStringAsFixed(0)}' : '';
-      return _InfoRow(
-        '${p.paperName ?? 'Paper'}${p.gsm != null ? " ${p.gsm}gsm" : ""}',
-        '${p.sheetCount} sheets$costStr',
-      );
+      return _InfoRow('${p.paperName ?? 'Paper'}${p.gsm != null ? " ${p.gsm}gsm" : ""}', '${p.sheetCount} sheets$costStr');
     }).toList(),
   );
 }
@@ -305,7 +392,7 @@ class _InfoRow extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 8),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
-      Text(value, style: TextStyle(fontSize: 13, fontWeight: highlight ? FontWeight.w700 : FontWeight.w500, color: highlight ? AppColors.primary : AppColors.textPrimary)),
+      Flexible(child: Text(value, style: TextStyle(fontSize: 13, fontWeight: highlight ? FontWeight.w700 : FontWeight.w500, color: highlight ? AppColors.primary : AppColors.textPrimary), textAlign: TextAlign.right)),
     ]),
   );
 }
