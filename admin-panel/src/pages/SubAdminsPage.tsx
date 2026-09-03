@@ -83,6 +83,7 @@ export default function SubAdminsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [createError, setCreateError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const qc = useQueryClient();
   const [list, actions] = useListState({ sortBy: "created_at", filters: {} });
 
@@ -93,6 +94,9 @@ export default function SubAdminsPage() {
   });
 
   const inputStyle: React.CSSProperties = { flex: 1, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, fontSize: 14, width: "100%" };
+  const errInputStyle: React.CSSProperties = { ...inputStyle, border: "1px solid #e03131", boxShadow: "0 0 0 3px rgba(224,49,49,0.12)" };
+  const fieldErrText: React.CSSProperties = { color: "#c92a2a", fontSize: 12, marginTop: 2 };
+  const iStyle = (f: string) => fieldErrors[f] ? errInputStyle : inputStyle;
 
   const create = useMutation({
     mutationFn: () => api.post("/admin/users", { name: form.name, email: form.email, password: form.password, staffType: undefined, status: "active", role: "sub_admin" }),
@@ -108,14 +112,31 @@ export default function SubAdminsPage() {
         <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 20, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
           <h3 style={{ marginBottom: 16 }}>Create Sub Admin</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
-            <label style={{ fontSize: 13 }}>Name *<input placeholder="Full name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={inputStyle} /></label>
-            <label style={{ fontSize: 13 }}>Email *<input placeholder="email@example.com" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={inputStyle} /></label>
-            <label style={{ fontSize: 13 }}>Password *<input placeholder="Min 6 characters" type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} style={inputStyle} /></label>
+            <label style={{ fontSize: 13, display: "flex", flexDirection: "column", gap: 2 }}>Name *
+              <input placeholder="Full name" value={form.name} onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFieldErrors(fe => ({ ...fe, name: "" })); }} style={iStyle("name")} />
+              {fieldErrors.name && <span style={fieldErrText}>{fieldErrors.name}</span>}
+            </label>
+            <label style={{ fontSize: 13, display: "flex", flexDirection: "column", gap: 2 }}>Email *
+              <input placeholder="email@example.com" type="email" value={form.email} onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setFieldErrors(fe => ({ ...fe, email: "" })); }} style={iStyle("email")} />
+              {fieldErrors.email && <span style={fieldErrText}>{fieldErrors.email}</span>}
+            </label>
+            <label style={{ fontSize: 13, display: "flex", flexDirection: "column", gap: 2 }}>Password *
+              <input placeholder="Min 6 characters" type="password" value={form.password} onChange={e => { setForm(f => ({ ...f, password: e.target.value })); setFieldErrors(fe => ({ ...fe, password: "" })); }} style={iStyle("password")} />
+              {fieldErrors.password && <span style={fieldErrText}>{fieldErrors.password}</span>}
+            </label>
           </div>
           {createError && <div style={{ color: "#c92a2a", fontSize: 13, marginBottom: 10 }}>{createError}</div>}
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => create.mutate()} disabled={create.isPending || !form.name || !form.email || form.password.length < 6} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{create.isPending ? "Creating…" : "Create Sub Admin"}</button>
-            <button onClick={() => { setShowCreate(false); setCreateError(""); }} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
+            <button onClick={() => {
+              const errs: Record<string, string> = {};
+              if (!form.name.trim()) errs.name = "Required.";
+              if (!form.email.trim()) errs.email = "Required.";
+              if (form.password.length < 6) errs.password = "Min 6 characters.";
+              if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+              setFieldErrors({});
+              create.mutate();
+            }} disabled={create.isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{create.isPending ? "Creating…" : "Create Sub Admin"}</button>
+            <button onClick={() => { setShowCreate(false); setCreateError(""); setFieldErrors({}); }} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
           </div>
         </div>
       )}

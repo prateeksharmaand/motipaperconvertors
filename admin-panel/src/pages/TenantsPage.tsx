@@ -15,27 +15,43 @@ import { exportToCsv } from "../lib/exportCsv.ts";
 interface Tenant { id: string; name: string; slug: string; plan: string; status: string; created_at: string; }
 
 const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14 };
+const errInputStyle: React.CSSProperties = { ...inputStyle, border: "1px solid #e03131", boxShadow: "0 0 0 3px rgba(224,49,49,0.12)" };
+const fieldErrText: React.CSSProperties = { color: "#c92a2a", fontSize: 12, marginTop: 2, display: "block" };
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
 function NewTenantForm({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({ name: "", slug: "", email: "", phone: "", city: "", plan: "free", ownerName: "", ownerEmail: "", ownerPassword: "" });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const val = k === "slug" ? e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") : e.target.value;
     setForm(f => ({ ...f, [k]: val }));
+    setFieldErrors(fe => ({ ...fe, [k]: "" }));
   };
+  const iStyle = (f: string) => fieldErrors[f] ? errInputStyle : inputStyle;
   const save = useMutation({
     mutationFn: () => api.post("/platform/tenants", form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tenants"] }); onClose(); },
   });
+  function handleCreate() {
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Required.";
+    if (!form.slug.trim()) errs.slug = "Required.";
+    if (!form.ownerName.trim()) errs.ownerName = "Required.";
+    if (!form.ownerEmail.trim()) errs.ownerEmail = "Required.";
+    if (!form.ownerPassword.trim()) errs.ownerPassword = "Required.";
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    setFieldErrors({});
+    save.mutate();
+  }
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 20, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
       <h3 style={{ marginBottom: 16 }}>New Tenant / Press</h3>
       <div style={{ fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Press Details</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
-        <label><span style={{ fontSize: 13 }}>Press Name *</span><input style={inputStyle} value={form.name} onChange={set("name")} /></label>
-        <label><span style={{ fontSize: 13 }}>Slug *</span><input style={inputStyle} placeholder="e.g. sharma-printers" value={form.slug} onChange={set("slug")} /><span style={{ fontSize: 11, color: "#888" }}>lowercase letters, numbers, hyphens only</span></label>
+        <label style={{ display: "flex", flexDirection: "column" }}><span style={{ fontSize: 13 }}>Press Name *</span><input style={iStyle("name")} value={form.name} onChange={set("name")} />{fieldErrors.name && <span style={fieldErrText}>{fieldErrors.name}</span>}</label>
+        <label style={{ display: "flex", flexDirection: "column" }}><span style={{ fontSize: 13 }}>Slug *</span><input style={iStyle("slug")} placeholder="e.g. sharma-printers" value={form.slug} onChange={set("slug")} /><span style={{ fontSize: 11, color: "#888" }}>lowercase letters, numbers, hyphens only</span>{fieldErrors.slug && <span style={fieldErrText}>{fieldErrors.slug}</span>}</label>
         <label><span style={{ fontSize: 13 }}>Email</span><input style={inputStyle} type="email" value={form.email} onChange={set("email")} /></label>
         <label><span style={{ fontSize: 13 }}>Phone</span><input style={inputStyle} value={form.phone} onChange={set("phone")} /></label>
         <label><span style={{ fontSize: 13 }}>City</span><input style={inputStyle} value={form.city} onChange={set("city")} /></label>
@@ -47,13 +63,13 @@ function NewTenantForm({ onClose }: { onClose: () => void }) {
       </div>
       <div style={{ fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Owner Account</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
-        <label><span style={{ fontSize: 13 }}>Owner Name *</span><input style={inputStyle} value={form.ownerName} onChange={set("ownerName")} /></label>
-        <label><span style={{ fontSize: 13 }}>Owner Email *</span><input style={inputStyle} type="email" value={form.ownerEmail} onChange={set("ownerEmail")} /></label>
-        <label><span style={{ fontSize: 13 }}>Password *</span><input style={inputStyle} type="password" value={form.ownerPassword} onChange={set("ownerPassword")} /></label>
+        <label style={{ display: "flex", flexDirection: "column" }}><span style={{ fontSize: 13 }}>Owner Name *</span><input style={iStyle("ownerName")} value={form.ownerName} onChange={set("ownerName")} />{fieldErrors.ownerName && <span style={fieldErrText}>{fieldErrors.ownerName}</span>}</label>
+        <label style={{ display: "flex", flexDirection: "column" }}><span style={{ fontSize: 13 }}>Owner Email *</span><input style={iStyle("ownerEmail")} type="email" value={form.ownerEmail} onChange={set("ownerEmail")} />{fieldErrors.ownerEmail && <span style={fieldErrText}>{fieldErrors.ownerEmail}</span>}</label>
+        <label style={{ display: "flex", flexDirection: "column" }}><span style={{ fontSize: 13 }}>Password *</span><input style={iStyle("ownerPassword")} type="password" value={form.ownerPassword} onChange={set("ownerPassword")} />{fieldErrors.ownerPassword && <span style={fieldErrText}>{fieldErrors.ownerPassword}</span>}</label>
       </div>
       {save.isError && <div style={{ color: "#c92a2a", fontSize: 13, marginBottom: 8 }}>Failed to create tenant. Check all fields.</div>}
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => save.mutate()} disabled={!form.name || !form.slug || !form.ownerName || !form.ownerEmail || !form.ownerPassword || save.isPending}
+        <button onClick={handleCreate} disabled={save.isPending}
           style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
           {save.isPending ? "Creating…" : "Create Tenant"}
         </button>

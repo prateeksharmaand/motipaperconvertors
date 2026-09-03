@@ -16,6 +16,8 @@ import { exportToCsv } from "../lib/exportCsv.ts";
 
 type Tab = "paper" | "items" | "transactions";
 const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14 };
+const errInputStyle: React.CSSProperties = { ...inputStyle, border: "1px solid #e03131", boxShadow: "0 0 0 3px rgba(224,49,49,0.12)" };
+const fieldErrText: React.CSSProperties = { color: "#c92a2a", fontSize: 12, marginTop: 2, display: "block" };
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
@@ -30,8 +32,12 @@ function StockBadge({ isLow, qty, unit }: { isLow: boolean; qty: number; unit: s
 
 function TxnForm({ target, onClose }: { target: { id: string; isPaper: boolean; name: string }; onClose: () => void }) {
   const [form, setForm] = useState({ type: "in", quantity: "", notes: "", unitCost: "" });
+  const [qtyError, setQtyError] = useState("");
   const qc = useQueryClient();
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setForm(f => ({ ...f, [k]: e.target.value }));
+    if (k === "quantity") setQtyError("");
+  };
   const save = useMutation({
     mutationFn: () => api.post("/admin/inventory/transactions", {
       ...(target.isPaper ? { paperStockId: target.id } : { inventoryItemId: target.id }),
@@ -47,6 +53,10 @@ function TxnForm({ target, onClose }: { target: { id: string; isPaper: boolean; 
     },
     onError: () => toast.error("Failed to record transaction"),
   });
+  function handleRecord() {
+    if (!form.quantity) { setQtyError("Quantity is required."); return; }
+    save.mutate();
+  }
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
       <h3 style={{ marginBottom: 16 }}>Record Transaction — {target.name}</h3>
@@ -57,12 +67,16 @@ function TxnForm({ target, onClose }: { target: { id: string; isPaper: boolean; 
             <option value="wastage">Wastage</option><option value="adjustment">Adjustment</option>
           </select>
         </label>
-        <label><span style={{ fontSize: 13 }}>Quantity *</span><input style={inputStyle} type="number" value={form.quantity} onChange={set("quantity")} /></label>
+        <label style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontSize: 13 }}>Quantity *</span>
+          <input style={qtyError ? errInputStyle : inputStyle} type="number" value={form.quantity} onChange={set("quantity")} />
+          {qtyError && <span style={fieldErrText}>{qtyError}</span>}
+        </label>
         <label><span style={{ fontSize: 13 }}>Unit Cost (₹)</span><input style={inputStyle} type="number" value={form.unitCost} onChange={set("unitCost")} /></label>
       </div>
       <label><span style={{ fontSize: 13 }}>Notes</span><input style={inputStyle} value={form.notes} onChange={set("notes")} /></label>
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-        <button onClick={() => save.mutate()} disabled={!form.quantity || save.isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{save.isPending ? "Saving…" : "Record"}</button>
+        <button onClick={handleRecord} disabled={save.isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{save.isPending ? "Saving…" : "Record"}</button>
         <button onClick={onClose} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
       </div>
     </div>
@@ -81,12 +95,24 @@ function PaperForm({ initial, defaultInventoryType, onSave, onCancel, isPending 
     cost_per_unit: initial?.cost_per_unit?.toString() ?? "",
     inventory_type: initial?.inventory_type ?? defaultInventoryType ?? "in_house",
   });
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const [nameError, setNameError] = useState("");
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setForm(f => ({ ...f, [k]: e.target.value }));
+    if (k === "name") setNameError("");
+  };
+  function handleSave() {
+    if (!form.name.trim()) { setNameError("Name is required."); return; }
+    onSave(form as unknown as Record<string, string>);
+  }
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
       <h3 style={{ marginBottom: 16 }}>{initial?.id ? "Edit Paper" : "Add Paper"}</h3>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
-        <label><span style={{ fontSize: 13 }}>Name *</span><input style={inputStyle} value={form.name} onChange={set("name")} /></label>
+        <label style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontSize: 13 }}>Name *</span>
+          <input style={nameError ? errInputStyle : inputStyle} value={form.name} onChange={set("name")} />
+          {nameError && <span style={fieldErrText}>{nameError}</span>}
+        </label>
         <label><span style={{ fontSize: 13 }}>Brand</span><input style={inputStyle} value={form.brand} onChange={set("brand")} /></label>
         <label><span style={{ fontSize: 13 }}>GSM</span><input style={inputStyle} type="number" value={form.gsm} onChange={set("gsm")} /></label>
         <label><span style={{ fontSize: 13 }}>Size</span><input style={inputStyle} placeholder="e.g. A4, 28x40" value={form.size} onChange={set("size")} /></label>
@@ -102,7 +128,7 @@ function PaperForm({ initial, defaultInventoryType, onSave, onCancel, isPending 
         </label>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => onSave(form as unknown as Record<string, string>)} disabled={!form.name || isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{isPending ? "Saving…" : "Save"}</button>
+        <button onClick={handleSave} disabled={isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{isPending ? "Saving…" : "Save"}</button>
         <button onClick={onCancel} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
       </div>
     </div>
@@ -118,12 +144,24 @@ function ItemForm({ initial, onSave, onCancel, isPending }: { initial?: Partial<
     low_stock_threshold: initial?.low_stock_threshold?.toString() ?? "",
     cost_per_unit: "",
   });
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const [nameError, setNameError] = useState("");
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setForm(f => ({ ...f, [k]: e.target.value }));
+    if (k === "name") setNameError("");
+  };
+  function handleSave() {
+    if (!form.name.trim()) { setNameError("Name is required."); return; }
+    onSave(form as unknown as Record<string, string>);
+  }
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
       <h3 style={{ marginBottom: 16 }}>{initial?.id ? "Edit Item" : "Add Item"}</h3>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
-        <label><span style={{ fontSize: 13 }}>Name *</span><input style={inputStyle} value={form.name} onChange={set("name")} /></label>
+        <label style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontSize: 13 }}>Name *</span>
+          <input style={nameError ? errInputStyle : inputStyle} value={form.name} onChange={set("name")} />
+          {nameError && <span style={fieldErrText}>{nameError}</span>}
+        </label>
         <label><span style={{ fontSize: 13 }}>Category</span>
           <select style={inputStyle} value={form.category} onChange={set("category")}>
             <option value="ink">Ink</option><option value="plate">Plate</option>
@@ -135,7 +173,7 @@ function ItemForm({ initial, onSave, onCancel, isPending }: { initial?: Partial<
         <label><span style={{ fontSize: 13 }}>Cost/Unit (₹)</span><input style={inputStyle} type="number" value={form.cost_per_unit} onChange={set("cost_per_unit")} /></label>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => onSave(form as unknown as Record<string, string>)} disabled={!form.name || isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{isPending ? "Saving…" : "Save"}</button>
+        <button onClick={handleSave} disabled={isPending} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{isPending ? "Saving…" : "Save"}</button>
         <button onClick={onCancel} style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
       </div>
     </div>

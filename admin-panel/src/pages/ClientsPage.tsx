@@ -16,17 +16,33 @@ import { exportToCsv } from "../lib/exportCsv.ts";
 interface Client { id: string; name: string; company_name: string; phone: string; email: string; city: string; gstin: string; status: string; email_reminder: boolean; }
 
 const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14 };
+const errInputStyle: React.CSSProperties = { ...inputStyle, border: "1px solid #e03131", boxShadow: "0 0 0 3px rgba(224,49,49,0.12)" };
+const fieldErrText: React.CSSProperties = { color: "#c92a2a", fontSize: 12, marginTop: 2, display: "block" };
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
 function ClientForm({ initial, onSave, onCancel }: { initial?: Partial<Client>; onSave: (d: Record<string, string | boolean>) => void; onCancel: () => void }) {
   const [form, setForm] = useState({ name: "", company_name: "", phone: "", email: "", city: "", gstin: "", email_reminder: false, ...initial });
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm(f => ({ ...f, [k]: e.target.value }));
+    setFieldErrors(fe => ({ ...fe, [k]: "" }));
+  };
+  function handleSave() {
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Name is required.";
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    onSave(form as Record<string, string | boolean>);
+  }
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 20, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
       <h3 style={{ marginBottom: 16 }}>{initial?.id ? "Edit Client" : "New Client"}</h3>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
-        <label><span style={{ fontSize: 13 }}>Name *</span><input style={inputStyle} value={form.name} onChange={set("name")} /></label>
+        <label style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontSize: 13 }}>Name *</span>
+          <input style={fieldErrors.name ? errInputStyle : inputStyle} value={form.name} onChange={set("name")} />
+          {fieldErrors.name && <span style={fieldErrText}>{fieldErrors.name}</span>}
+        </label>
         <label><span style={{ fontSize: 13 }}>Company</span><input style={inputStyle} value={form.company_name} onChange={set("company_name")} /></label>
         <label><span style={{ fontSize: 13 }}>Phone</span><input style={inputStyle} value={form.phone} onChange={set("phone")} /></label>
         <label><span style={{ fontSize: 13 }}>Email</span><input style={inputStyle} type="email" value={form.email} onChange={set("email")} /></label>
@@ -41,7 +57,7 @@ function ClientForm({ initial, onSave, onCancel }: { initial?: Partial<Client>; 
         </span>
       </label>
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => onSave(form as Record<string, string | boolean>)} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>Save</button>
+        <button onClick={handleSave} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>Save</button>
         <button onClick={onCancel} style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
       </div>
     </div>

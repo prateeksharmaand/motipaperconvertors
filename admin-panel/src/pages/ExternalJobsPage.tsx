@@ -60,6 +60,7 @@ interface StaffUser { id: string; name: string; role: string; }
 interface SettingItem { id: string; name: string; }
 
 const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14, boxSizing: "border-box" };
+const errInputStyle: React.CSSProperties = { ...inputStyle, border: "1px solid #e03131", boxShadow: "0 0 0 3px rgba(224,49,49,0.12)" };
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
@@ -298,9 +299,10 @@ interface SearchableSelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  isError?: boolean;
 }
 
-function SearchableSelect({ options, value, onChange, placeholder = "— select —", disabled = false }: SearchableSelectProps) {
+function SearchableSelect({ options, value, onChange, placeholder = "— select —", disabled = false, isError = false }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -346,7 +348,7 @@ function SearchableSelect({ options, value, onChange, placeholder = "— select 
         onFocus={handleInputClick}
         placeholder={placeholder}
         style={{
-          ...inputStyle,
+          ...(isError ? errInputStyle : inputStyle),
           cursor: disabled ? "not-allowed" : "pointer",
           background: disabled ? "#f5f5f5" : "#fff",
         }}
@@ -560,8 +562,9 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
             <SearchableSelect
               options={clientOptions}
               value={form.client_id as string}
-              onChange={v => setVal("client_id", v)}
+              onChange={v => { setVal("client_id", v); setStepError(false); }}
               placeholder="— select client —"
+              isError={stepError && !(form.client_id as string)}
             />
           </label>
           <label style={labelStyle}>
@@ -569,8 +572,9 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
             <SearchableSelect
               options={jobTypeOptions}
               value={form.job_type as string}
-              onChange={v => setVal("job_type", v)}
+              onChange={v => { setVal("job_type", v); setStepError(false); }}
               placeholder="— select job title —"
+              isError={stepError && !(form.job_type as string)}
             />
           </label>
           <label style={labelStyle}>
@@ -584,11 +588,11 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
           </label>
           <label style={labelStyle}>
             Quantity
-            <input style={inputStyle} type="number" value={form.quantity as string} onChange={set("quantity")} />
+            <input style={stepError && !(form.quantity as string) ? errInputStyle : inputStyle} type="number" value={form.quantity as string} onChange={e => { set("quantity")(e); setStepError(false); }} />
           </label>
           <label style={labelStyle}>
             Due Date
-            <input style={inputStyle} type="date" value={form.due_date as string} onChange={set("due_date")} min={new Date().toISOString().slice(0, 10)} />
+            <input style={stepError && !(form.due_date as string) ? errInputStyle : inputStyle} type="date" value={form.due_date as string} onChange={e => { set("due_date")(e); setStepError(false); }} min={new Date().toISOString().slice(0, 10)} />
           </label>
         </div>
         <div style={{ marginTop: 16 }}>
@@ -608,8 +612,9 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
             <SearchableSelect
               options={machineOptions}
               value={form.machine_id as string}
-              onChange={v => setVal("machine_id", v)}
+              onChange={v => { setVal("machine_id", v); setStepError(false); }}
               placeholder="— select machine —"
+              isError={stepError && !(form.machine_id as string)}
             />
           </label>
           <label style={labelStyle}>

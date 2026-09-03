@@ -11,15 +11,31 @@ interface Machine { id: string; name: string; type: string; model: string; max_c
 
 const STATUS_COLOR: Record<string, string> = { active: "#2b8a3e", maintenance: "#e67700", inactive: "#868e96" };
 const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14 };
+const errInputStyle: React.CSSProperties = { ...inputStyle, border: "1px solid #e03131", boxShadow: "0 0 0 3px rgba(224,49,49,0.12)" };
+const fieldErrText: React.CSSProperties = { color: "#c92a2a", fontSize: 12, marginTop: 2, display: "block" };
 
 function MachineForm({ initial, onSave, onCancel }: { initial?: Partial<Machine>; onSave: (d: Record<string, string>) => void; onCancel: () => void }) {
   const [form, setForm] = useState({ name: "", type: "", model: "", max_colors: "", status: "active", notes: "", ...initial });
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setForm(f => ({ ...f, [k]: e.target.value }));
+    setFieldErrors(fe => ({ ...fe, [k]: "" }));
+  };
+  function handleSave() {
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Name is required.";
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    onSave(form as Record<string, string>);
+  }
   return (
     <div style={{ background: "#fff", padding: 24, borderRadius: 8, marginBottom: 24, boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
       <h3 style={{ marginBottom: 16 }}>{initial?.id ? "Edit Machine" : "New Machine"}</h3>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <label><span style={{ fontSize: 13 }}>Name *</span><input style={inputStyle} value={form.name} onChange={set("name")} /></label>
+        <label style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontSize: 13 }}>Name *</span>
+          <input style={fieldErrors.name ? errInputStyle : inputStyle} value={form.name} onChange={set("name")} />
+          {fieldErrors.name && <span style={fieldErrText}>{fieldErrors.name}</span>}
+        </label>
         <label><span style={{ fontSize: 13 }}>Type</span><input style={inputStyle} placeholder="offset, digital, screen…" value={form.type} onChange={set("type")} /></label>
         <label><span style={{ fontSize: 13 }}>Model</span><input style={inputStyle} value={form.model} onChange={set("model")} /></label>
         <label><span style={{ fontSize: 13 }}>Max Colors</span><input style={inputStyle} type="number" value={form.max_colors} onChange={set("max_colors")} /></label>
@@ -33,7 +49,7 @@ function MachineForm({ initial, onSave, onCancel }: { initial?: Partial<Machine>
       </div>
       <label><span style={{ fontSize: 13 }}>Notes</span><textarea style={{ ...inputStyle, height: 64 }} value={form.notes} onChange={set("notes")} /></label>
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <button onClick={() => onSave(form as Record<string, string>)} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>Save</button>
+        <button onClick={handleSave} style={{ padding: "8px 20px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>Save</button>
         <button onClick={onCancel} style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>Cancel</button>
       </div>
     </div>

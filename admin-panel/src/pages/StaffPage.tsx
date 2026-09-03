@@ -26,6 +26,8 @@ interface StaffMember {
 interface SettingItem { id: string; name: string; }
 
 const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14, boxSizing: "border-box" };
+const errInputStyle: React.CSSProperties = { ...inputStyle, border: "1px solid #e03131", boxShadow: "0 0 0 3px rgba(224,49,49,0.12)" };
+const fieldErrText: React.CSSProperties = { color: "#c92a2a", fontSize: 12, marginTop: 2 };
 const th: React.CSSProperties = { padding: "11px 14px", textAlign: "left", fontSize: 13, color: "#555", fontWeight: 600, whiteSpace: "nowrap" };
 const td: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
 
@@ -66,16 +68,20 @@ function StaffModal({
   isEdit: boolean;
 }) {
   const [form, setForm] = useState<FormState>(() => initForm(initial));
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm(f => ({ ...f, [k]: e.target.value }));
+    setFieldErrors(fe => ({ ...fe, [k]: "" }));
+  };
 
   function handleSave() {
-    if (!form.name.trim()) { setError("Name is required."); return; }
-    if (!form.email.trim()) { setError("Email is required."); return; }
-    if (!isEdit && form.password.length < 6) { setError("Password must be at least 6 characters."); return; }
-    setError("");
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Name is required.";
+    if (!form.email.trim()) errs.email = "Email is required.";
+    if (!isEdit && form.password.length < 6) errs.password = "Password must be at least 6 characters.";
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    setFieldErrors({});
     onSave(form);
   }
 
@@ -89,16 +95,19 @@ function StaffModal({
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <label style={labelStyle}>
             Name<span style={reqMark}>*</span>
-            <input style={inputStyle} value={form.name} onChange={set("name")} placeholder="Full name" />
+            <input style={fieldErrors.name ? errInputStyle : inputStyle} value={form.name} onChange={set("name")} placeholder="Full name" />
+            {fieldErrors.name && <span style={fieldErrText}>{fieldErrors.name}</span>}
           </label>
           <label style={labelStyle}>
             Email<span style={reqMark}>*</span>
-            <input style={inputStyle} type="email" value={form.email} onChange={set("email")} placeholder="email@example.com" />
+            <input style={fieldErrors.email ? errInputStyle : inputStyle} type="email" value={form.email} onChange={set("email")} placeholder="email@example.com" />
+            {fieldErrors.email && <span style={fieldErrText}>{fieldErrors.email}</span>}
           </label>
           {!isEdit && (
             <label style={labelStyle}>
               Password<span style={reqMark}>*</span>
-              <input style={inputStyle} type="password" value={form.password} onChange={set("password")} placeholder="Min 6 characters" />
+              <input style={fieldErrors.password ? errInputStyle : inputStyle} type="password" value={form.password} onChange={set("password")} placeholder="Min 6 characters" />
+              {fieldErrors.password && <span style={fieldErrText}>{fieldErrors.password}</span>}
             </label>
           )}
           <label style={labelStyle}>
@@ -118,7 +127,7 @@ function StaffModal({
             </select>
           </label>
         </div>
-        {error && <div style={{ color: "#c92a2a", fontSize: 13, marginTop: 12, fontWeight: 500 }}>{error}</div>}
+        {Object.values(fieldErrors).some(Boolean) && <div style={{ color: "#c92a2a", fontSize: 13, marginTop: 12, fontWeight: 500 }}>Please fix the errors above.</div>}
         <div style={{ display: "flex", gap: 8, marginTop: 24, justifyContent: "flex-end" }}>
           <button
             onClick={onCancel}

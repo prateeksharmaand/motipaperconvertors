@@ -12,22 +12,26 @@ interface Props {
 export default function ChangePasswordModal({ userId, userName, onClose }: Props) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const save = useMutation({
     mutationFn: () => api.patch(`/admin/users/${userId}/password`, { password }),
     onSuccess: () => { toast.success("Password changed successfully"); onClose(); },
-    onError: (e: unknown) => { const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to change password."; setError(msg); toast.error(msg); },
+    onError: (e: unknown) => { const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to change password."; setFieldErrors({ password: msg }); toast.error(msg); },
   });
 
   function handleSave() {
-    setError("");
-    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
-    if (password !== confirm) { setError("Passwords do not match."); return; }
+    const errs: Record<string, string> = {};
+    if (password.length < 6) errs.password = "Must be at least 6 characters.";
+    else if (password !== confirm) errs.confirm = "Passwords do not match.";
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    setFieldErrors({});
     save.mutate();
   }
 
   const inputStyle: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 6, width: "100%", fontSize: 14, boxSizing: "border-box" };
+  const errInputStyle: React.CSSProperties = { ...inputStyle, border: "1px solid #e03131", boxShadow: "0 0 0 3px rgba(224,49,49,0.12)" };
+  const fieldErrText: React.CSSProperties = { color: "#c92a2a", fontSize: 12, marginTop: 2 };
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 4000, display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -39,14 +43,14 @@ export default function ChangePasswordModal({ userId, userName, onClose }: Props
 
         <label style={{ fontSize: 13, color: "#374151", display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
           New Password
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters" style={inputStyle} />
+          <input type="password" value={password} onChange={e => { setPassword(e.target.value); setFieldErrors(fe => ({ ...fe, password: "" })); }} placeholder="Min 6 characters" style={fieldErrors.password ? errInputStyle : inputStyle} />
+          {fieldErrors.password && <span style={fieldErrText}>{fieldErrors.password}</span>}
         </label>
         <label style={{ fontSize: 13, color: "#374151", display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
           Confirm Password
-          <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" style={inputStyle} onKeyDown={e => e.key === "Enter" && handleSave()} />
+          <input type="password" value={confirm} onChange={e => { setConfirm(e.target.value); setFieldErrors(fe => ({ ...fe, confirm: "" })); }} placeholder="Repeat password" style={fieldErrors.confirm ? errInputStyle : inputStyle} onKeyDown={e => e.key === "Enter" && handleSave()} />
+          {fieldErrors.confirm && <span style={fieldErrText}>{fieldErrors.confirm}</span>}
         </label>
-
-        {error && <div style={{ color: "#c92a2a", fontSize: 13, marginBottom: 12 }}>{error}</div>}
 
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={handleSave} disabled={save.isPending}
