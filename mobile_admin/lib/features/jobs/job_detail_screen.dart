@@ -129,10 +129,12 @@ class _JobDetailView extends StatelessWidget {
               ]),
               const SizedBox(height: 12),
               // Financial
-              if (job.quotedPrice != null || job.advanceAmount != null)
+              if (job.quotedPrice != null || job.advanceAmount != null || job.taxInvoiceNo != null || job.invoiceDate != null)
                 _InfoCard(title: 'Financial', children: [
                   if (job.quotedPrice != null) _InfoRow('Quoted Price', Fmt.money(job.quotedPrice), highlight: true),
                   if (job.advanceAmount != null) _InfoRow('Advance', Fmt.money(job.advanceAmount)),
+                  if (job.taxInvoiceNo != null) _InfoRow('Tax Invoice No', job.taxInvoiceNo!),
+                  if (job.invoiceDate != null) _InfoRow('Invoice Date', Fmt.date(job.invoiceDate)),
                 ]),
               if (job.papers.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -228,7 +230,14 @@ class _PapersCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _InfoCard(
     title: 'Paper Used (${papers.length})',
-    children: papers.map((p) => _InfoRow('${p.paperName ?? 'Paper'} ${p.gsm != null ? "${p.gsm}gsm" : ""}', '${p.sheetCount} sheets')).toList(),
+    children: papers.map((p) {
+      final cost = p.effectiveCost;
+      final costStr = cost != null ? ' — ₹${cost.toStringAsFixed(0)}' : '';
+      return _InfoRow(
+        '${p.paperName ?? 'Paper'}${p.gsm != null ? " ${p.gsm}gsm" : ""}',
+        '${p.sheetCount} sheets$costStr',
+      );
+    }).toList(),
   );
 }
 

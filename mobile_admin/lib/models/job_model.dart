@@ -26,6 +26,8 @@ class Job {
   final String? printOperatorName;
   final String? laminationType;
   final bool? isLamination;
+  final String? taxInvoiceNo;
+  final String? invoiceDate;
   final List<JobPaper> papers;
 
   const Job({
@@ -56,6 +58,8 @@ class Job {
     this.printOperatorName,
     this.laminationType,
     this.isLamination,
+    this.taxInvoiceNo,
+    this.invoiceDate,
     this.papers = const [],
   });
 
@@ -87,6 +91,8 @@ class Job {
     printOperatorName: j['print_operator_name'] as String?,
     laminationType: j['lamination_type'] as String?,
     isLamination: j['is_lamination'] as bool?,
+    taxInvoiceNo: j['tax_invoice_no'] as String?,
+    invoiceDate: j['invoice_date'] as String?,
     papers: (j['papers'] as List? ?? []).map((p) => JobPaper.fromJson(p as Map<String, dynamic>)).toList(),
   );
 }
@@ -99,6 +105,8 @@ class JobPaper {
   final String? size;
   final String? unit;
   final int sheetCount;
+  final double? paperCost;
+  final double? computedCost;
 
   const JobPaper({
     required this.id,
@@ -108,7 +116,11 @@ class JobPaper {
     this.size,
     this.unit,
     required this.sheetCount,
+    this.paperCost,
+    this.computedCost,
   });
+
+  double? get effectiveCost => paperCost ?? computedCost;
 
   factory JobPaper.fromJson(Map<String, dynamic> j) => JobPaper(
     id: j['id'] as String,
@@ -118,6 +130,8 @@ class JobPaper {
     size: j['size'] as String?,
     unit: j['unit'] as String?,
     sheetCount: j['sheet_count'] as int? ?? 0,
+    paperCost: double.tryParse(j['paper_cost']?.toString() ?? ''),
+    computedCost: double.tryParse(j['computed_cost']?.toString() ?? ''),
   );
 }
 

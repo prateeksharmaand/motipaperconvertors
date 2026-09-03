@@ -23,8 +23,9 @@ class JobsFilterChanged extends JobsEvent {
   final String? status;
   final String? clientId;
   final String? machineId;
-  const JobsFilterChanged({this.status, this.clientId, this.machineId});
-  @override List<Object?> get props => [status, clientId, machineId];
+  final String? orderType;
+  const JobsFilterChanged({this.status, this.clientId, this.machineId, this.orderType});
+  @override List<Object?> get props => [status, clientId, machineId, orderType];
 }
 class JobsFilterCleared extends JobsEvent { const JobsFilterCleared(); }
 class JobsNextPageRequested extends JobsEvent { const JobsNextPageRequested(); }
@@ -54,6 +55,7 @@ class JobsState extends Equatable {
   final String? statusFilter;
   final String? clientFilter;
   final String? machineFilter;
+  final String? orderTypeFilter;
   final String sortBy;
   final String sortDir;
   final String? error;
@@ -69,12 +71,13 @@ class JobsState extends Equatable {
     this.statusFilter,
     this.clientFilter,
     this.machineFilter,
+    this.orderTypeFilter,
     this.sortBy = 'created_at',
     this.sortDir = 'desc',
     this.error,
   });
 
-  bool get hasActiveFilters => statusFilter != null || clientFilter != null || machineFilter != null || search.isNotEmpty;
+  bool get hasActiveFilters => statusFilter != null || clientFilter != null || machineFilter != null || orderTypeFilter != null || search.isNotEmpty;
 
   JobsState copyWith({
     List<Job>? jobs, bool? isLoading, bool? isLoadingMore, bool? hasMore,
@@ -82,6 +85,7 @@ class JobsState extends Equatable {
     String? statusFilter, bool clearStatus = false,
     String? clientFilter, bool clearClient = false,
     String? machineFilter, bool clearMachine = false,
+    String? orderTypeFilter, bool clearOrderType = false,
     String? sortBy, String? sortDir,
     String? error, bool clearError = false,
   }) => JobsState(
@@ -95,12 +99,13 @@ class JobsState extends Equatable {
     statusFilter: clearStatus ? null : (statusFilter ?? this.statusFilter),
     clientFilter: clearClient ? null : (clientFilter ?? this.clientFilter),
     machineFilter: clearMachine ? null : (machineFilter ?? this.machineFilter),
+    orderTypeFilter: clearOrderType ? null : (orderTypeFilter ?? this.orderTypeFilter),
     sortBy: sortBy ?? this.sortBy,
     sortDir: sortDir ?? this.sortDir,
     error: clearError ? null : (error ?? this.error),
   );
 
-  @override List<Object?> get props => [jobs, isLoading, isLoadingMore, page, search, statusFilter, sortBy, sortDir];
+  @override List<Object?> get props => [jobs, isLoading, isLoadingMore, page, search, statusFilter, orderTypeFilter, sortBy, sortDir];
 }
 
 // ── BLoC ──────────────────────────────────────────────────
@@ -125,6 +130,7 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     if (state.statusFilter != null) 'status': state.statusFilter,
     if (state.clientFilter != null) 'clientId': state.clientFilter,
     if (state.machineFilter != null) 'machineId': state.machineFilter,
+    if (state.orderTypeFilter != null) 'order_type': state.orderTypeFilter,
   };
 
   Future<void> _onLoad(JobsLoadRequested event, Emitter<JobsState> emit) async {
@@ -148,12 +154,13 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
       statusFilter: event.status, clearStatus: event.status == null,
       clientFilter: event.clientId, clearClient: event.clientId == null,
       machineFilter: event.machineId, clearMachine: event.machineId == null,
+      orderTypeFilter: event.orderType, clearOrderType: event.orderType == null,
     ));
     await _onLoad(const JobsLoadRequested(), emit);
   }
 
   Future<void> _onClearFilter(JobsFilterCleared event, Emitter<JobsState> emit) async {
-    emit(state.copyWith(clearStatus: true, clearClient: true, clearMachine: true, search: ''));
+    emit(state.copyWith(clearStatus: true, clearClient: true, clearMachine: true, clearOrderType: true, search: ''));
     await _onLoad(const JobsLoadRequested(), emit);
   }
 

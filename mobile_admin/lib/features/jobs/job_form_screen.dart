@@ -25,7 +25,7 @@ class JobFormData {
   double? plateCost;
   String? plateSource;
   double? dieCost;
-  double? helaCost;
+  double? thelaCost;
   double? otherCost;
   double? composingAmount;
   bool isNumbering = false;
@@ -52,6 +52,8 @@ class JobFormData {
   double? approvedRate;
   String? dueDate;
   bool proofRequired = false;
+  String? taxInvoiceNo;
+  String? invoiceDate;
   List<({String paperStockId, int sheetCount, String? paperName})> papers = [];
 
   Map<String, dynamic> toJson() => {
@@ -73,7 +75,7 @@ class JobFormData {
     if (plateCost != null) 'plateCost': plateCost,
     if (plateSource != null) 'plateSource': plateSource,
     if (dieCost != null) 'dieCost': dieCost,
-    if (helaCost != null) 'helaCost': helaCost,
+    if (thelaCost != null) 'helaCost': thelaCost,
     if (otherCost != null) 'otherCost': otherCost,
     if (composingAmount != null) 'composingAmount': composingAmount,
     'isNumbering': isNumbering,
@@ -100,6 +102,8 @@ class JobFormData {
     if (approvedRate != null) 'approvedRate': approvedRate,
     if (dueDate != null) 'dueDate': dueDate,
     'proofRequired': proofRequired,
+    if (taxInvoiceNo != null && taxInvoiceNo!.isNotEmpty) 'taxInvoiceNo': taxInvoiceNo,
+    if (invoiceDate != null) 'invoiceDate': invoiceDate,
     'papers': papers.map((p) => {'paperStockId': p.paperStockId, 'sheetCount': p.sheetCount}).toList(),
   };
 }
@@ -158,16 +162,19 @@ class _JobFormScreenState extends State<JobFormScreen> {
     _data.bindingOperatorId = j.bindingOperatorId;
     _data.packingOperatorId = j.packingOperatorId;
     _data.qcOperatorId = j.qcOperatorId;
+    _data.taxInvoiceNo = j.taxInvoiceNo;
+    _data.invoiceDate = j.invoiceDate;
     _data.papers = j.papers.map((p) => (paperStockId: p.paperStockId, sheetCount: p.sheetCount, paperName: p.paperName)).toList();
   }
 
   Future<void> _loadMeta() async {
     try {
+      final inventoryType = _data.orderType == 'external' ? 'external' : 'in_house';
       final results = await Future.wait([
         ApiClient.instance.get('/admin/clients', queryParameters: {'limit': 200}),
         ApiClient.instance.get('/admin/machines', queryParameters: {'limit': 100}),
         ApiClient.instance.get('/admin/users', queryParameters: {'limit': 200, 'status': 'active'}),
-        ApiClient.instance.get('/admin/inventory/paper', queryParameters: {'limit': 200}),
+        ApiClient.instance.get('/admin/inventory/paper', queryParameters: {'limit': 200, 'inventory_type': inventoryType}),
         ApiClient.instance.get('/admin/settings/job-types'),
       ]);
       if (!mounted) return;
@@ -182,6 +189,20 @@ class _JobFormScreenState extends State<JobFormScreen> {
     } catch (_) {
       if (mounted) setState(() => _loadingMeta = false);
     }
+  }
+
+  Future<void> _reloadPaperStock() async {
+    final inventoryType = _data.orderType == 'external' ? 'external' : 'in_house';
+    try {
+      final res = await ApiClient.instance.get('/admin/inventory/paper', queryParameters: {'limit': 200, 'inventory_type': inventoryType});
+      if (!mounted) return;
+      setState(() {
+        _paperStock = (res.data['data'] as List? ?? []).map((e) => _Option(e['id'] as String, '${e['name']} ${e['gsm'] != null ? "${e['gsm']}gsm" : ""} ${e['size'] ?? ""}'.trim())).toList();
+        // clear any paper selections that no longer exist in the new pool
+        final validIds = _paperStock.map((o) => o.id).toSet();
+        _data.papers = _data.papers.where((p) => validIds.contains(p.paperStockId)).toList();
+      });
+    } catch (_) {}
   }
 
   void _next() {
@@ -252,7 +273,17 @@ class _JobFormScreenState extends State<JobFormScreen> {
                 controller: _pageCtrl,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  _Step1BasicInfo(data: _data, clients: _clients, machines: _machines, jobTypes: _jobTypes, onChange: () => setState(() {})),
+                  _Step1BasicInfo(
+                    data: _data,
+                    clients: _clients,
+                    machines: _machines,
+                    jobTypes: _jobTypes,
+                    onChange: () => setState(() {}),
+                    onOrderTypeChanged: () {
+                      setState(() {});
+                      _reloadPaperStock();
+                    },
+                  ),
                   _Step2PaperPrint(data: _data, paperStock: _paperStock, onChange: () => setState(() {})),
                   _Step3Finishing(data: _data, onChange: () => setState(() {})),
                   _Step4Assignment(data: _data, staff: _staff, onChange: () => setState(() {})),
@@ -355,7 +386,7 @@ Widget _toggle(String label, bool value, ValueChanged<bool> onChanged) => Paddin
   padding: const EdgeInsets.only(bottom: 8),
   child: Row(children: [
     Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
-    Switch.adaptive(value: value, onChanged: onChanged, activeColor: AppColors.primary),
+    Switch.adaptive(value: value, onChanged: onChanged, activeThumbColor: AppColors.primary),
   ]),
 );
 
@@ -365,7 +396,8 @@ class _Step1BasicInfo extends StatelessWidget {
   final List<_Option> clients, machines;
   final List<String> jobTypes;
   final VoidCallback onChange;
-  const _Step1BasicInfo({required this.data, required this.clients, required this.machines, required this.jobTypes, required this.onChange});
+  final VoidCallback onOrderTypeChanged;
+  const _Step1BasicInfo({required this.data, required this.clients, required this.machines, required this.jobTypes, required this.onChange, required this.onOrderTypeChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -397,8 +429,11 @@ class _Step1BasicInfo extends StatelessWidget {
         )),
         _dropdownField('Order Type', data.orderType, const [
           DropdownMenuItem(value: 'in_house', child: Text('In House')),
-          DropdownMenuItem(value: 'outsourced', child: Text('Outsourced')),
-        ], (v) { data.orderType = v ?? 'in_house'; onChange(); }),
+          DropdownMenuItem(value: 'external', child: Text('External')),
+        ], (v) {
+          data.orderType = v ?? 'in_house';
+          onOrderTypeChanged();
+        }),
       ]),
       _FormSection(title: 'Quantity & Size', children: [
         Row(children: [
@@ -504,7 +539,7 @@ class _Step2PaperPrint extends StatelessWidget {
         Row(children: [
           Expanded(child: _textField('Die Cost', data.dieCost?.toString(), (v) { data.dieCost = double.tryParse(v); onChange(); }, type: TextInputType.number)),
           const SizedBox(width: 12),
-          Expanded(child: _textField('Hela Cost', data.helaCost?.toString(), (v) { data.helaCost = double.tryParse(v); onChange(); }, type: TextInputType.number)),
+          Expanded(child: _textField('Thela Cost', data.thelaCost?.toString(), (v) { data.thelaCost = double.tryParse(v); onChange(); }, type: TextInputType.number)),
         ]),
         _textField('Composing Amount', data.composingAmount?.toString(), (v) { data.composingAmount = double.tryParse(v); onChange(); }, type: TextInputType.number),
       ]),
@@ -532,7 +567,7 @@ class _Step3Finishing extends StatelessWidget {
         _toggle('Lamination', data.isLamination, (v) { data.isLamination = v; if (!v) data.laminationType = null; onChange(); }),
         if (data.isLamination)
           _dropdownField<String>('Lamination Type', data.laminationType, const [
-            DropdownMenuItem(value: 'glass', child: Text('Glass')),
+            DropdownMenuItem(value: 'gloss', child: Text('Gloss')),
             DropdownMenuItem(value: 'matte', child: Text('Matte')),
           ], (v) { data.laminationType = v; onChange(); }),
         _toggle('Folding', data.isFolding, (v) { data.isFolding = v; onChange(); }),
@@ -591,17 +626,38 @@ class _Step5Pricing extends StatelessWidget {
         _textField('Approved Rate (₹)', data.approvedRate?.toString(), (v) { data.approvedRate = double.tryParse(v); onChange(); }, type: TextInputType.number),
         _textField('Other Cost (₹)', data.otherCost?.toString(), (v) { data.otherCost = double.tryParse(v); onChange(); }, type: TextInputType.number),
       ]),
+      _FormSection(title: 'Invoice', children: [
+        _textField('Tax Invoice No', data.taxInvoiceNo, (v) { data.taxInvoiceNo = v; onChange(); }, hint: 'e.g. INV-2026-001'),
+        _field('Invoice Date', InkWell(
+          onTap: () async {
+            final now = DateTime.now();
+            final initial = data.invoiceDate != null ? DateTime.tryParse(data.invoiceDate!) ?? now : now;
+            final picked = await showDatePicker(context: context, initialDate: initial, firstDate: DateTime(2020), lastDate: DateTime(2030));
+            if (picked != null) { data.invoiceDate = picked.toIso8601String().substring(0, 10); onChange(); }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(8), color: AppColors.surface),
+            child: Row(children: [
+              const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.textMuted),
+              const SizedBox(width: 8),
+              Text(data.invoiceDate ?? 'Select invoice date', style: TextStyle(fontSize: 13, color: data.invoiceDate == null ? AppColors.textDisabled : AppColors.textPrimary)),
+            ]),
+          ),
+        )),
+      ]),
       // Summary
       Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('Review Summary', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
         const Divider(height: 20),
         _summaryRow('Job Title', data.jobType.isEmpty ? '—' : data.jobType),
-        _summaryRow('Order Type', data.orderType == 'in_house' ? 'In House' : 'Outsourced'),
+        _summaryRow('Order Type', data.orderType == 'in_house' ? 'In House' : 'External'),
         if (data.quantity != null) _summaryRow('Quantity', '${data.quantity}'),
         if (data.dueDate != null) _summaryRow('Due Date', data.dueDate!),
         _summaryRow('Papers', '${data.papers.length} selected'),
         _summaryRow('Finishing', _getFinishing(data)),
         if (data.quotedPrice != null) _summaryRow('Quoted Price', '₹${data.quotedPrice!.toStringAsFixed(0)}', color: AppColors.primary),
+        if (data.taxInvoiceNo != null && data.taxInvoiceNo!.isNotEmpty) _summaryRow('Tax Invoice No', data.taxInvoiceNo!),
       ]))),
     ]));
   }

@@ -233,6 +233,11 @@ class _JobsViewState extends State<_JobsView> {
   void _showFilters(BuildContext ctx, JobsState state) {
     final bloc = ctx.read<JobsBloc>();
     String? selectedStatus = state.statusFilter;
+    String? selectedOrderType = state.orderTypeFilter;
+    const orderTypes = [
+      ('in_house', 'In House'),
+      ('external', 'External'),
+    ];
     showModalBottomSheet(
       context: ctx,
       isScrollControlled: true,
@@ -246,6 +251,21 @@ class _JobsViewState extends State<_JobsView> {
               const Text('Filter Jobs', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
               TextButton(onPressed: () { Navigator.pop(context); bloc.add(const JobsFilterCleared()); }, child: const Text('Reset')),
             ]),
+            const SizedBox(height: 16),
+            const Text('Order Type', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 8, children: orderTypes.map(((String, String) ot) {
+              final selected = selectedOrderType == ot.$1;
+              return FilterChip(
+                label: Text(ot.$2, style: TextStyle(fontSize: 12, color: selected ? Colors.white : AppColors.primary, fontWeight: FontWeight.w600)),
+                selected: selected,
+                onSelected: (_) => setModal(() => selectedOrderType = selected ? null : ot.$1),
+                backgroundColor: AppColors.primaryLight,
+                selectedColor: AppColors.primary,
+                checkmarkColor: Colors.white,
+                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4)),
+              );
+            }).toList()),
             const SizedBox(height: 16),
             const Text('Status', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
             const SizedBox(height: 8),
@@ -264,7 +284,7 @@ class _JobsViewState extends State<_JobsView> {
             }).toList()),
             const SizedBox(height: 24),
             SizedBox(width: double.infinity, child: ElevatedButton(
-              onPressed: () { Navigator.pop(context); bloc.add(JobsFilterChanged(status: selectedStatus)); },
+              onPressed: () { Navigator.pop(context); bloc.add(JobsFilterChanged(status: selectedStatus, orderType: selectedOrderType)); },
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
               child: const Text('Apply Filter'),
             )),
@@ -287,6 +307,8 @@ class _FilterChips extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: Row(children: [
+        if (state.orderTypeFilter != null)
+          _chip(context, state.orderTypeFilter == 'in_house' ? 'In House' : 'External', () => context.read<JobsBloc>().add(const JobsFilterChanged())),
         if (state.statusFilter != null)
           _chip(context, Fmt.statusLabel(state.statusFilter!), () => context.read<JobsBloc>().add(const JobsFilterChanged())),
         if (state.search.isNotEmpty)
