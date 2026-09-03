@@ -461,10 +461,10 @@ function JobForm({ initial, initialPapers, clients, machines, plateSources, onCr
   const isNumbering = boolField(form, "is_numbering");
   const isLamination = boolField(form, "is_lamination");
 
-  // Paper stocks
+  // Paper stocks — external jobs use external inventory pool
   const { data: paperStocks = [] } = useQuery<PaperStock[]>({
-    queryKey: ["paper-stocks-mini"],
-    queryFn: () => api.get("/admin/inventory/paper", { params: { limit: "200" } }).then(r => r.data.data ?? []),
+    queryKey: ["paper-stocks-mini", "external"],
+    queryFn: () => api.get("/admin/inventory/paper", { params: { limit: "200", inventory_type: "external" } }).then(r => r.data.data ?? []),
   });
 
   // Staff users (operators only)
