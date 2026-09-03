@@ -247,6 +247,7 @@ class _SubAdminsViewState extends State<_SubAdminsView> {
 
   void _showCreateSheet(BuildContext context) {
     final bloc = context.read<SubAdminsBloc>();
+    final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     final passCtrl = TextEditingController();
@@ -258,26 +259,33 @@ class _SubAdminsViewState extends State<_SubAdminsView> {
       builder: (_) => StatefulBuilder(builder: (ctx, setModal) => SafeArea(
         child: Padding(
           padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const Text('Add Sub Admin', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 16),
-          TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Full Name *')),
-          const SizedBox(height: 12),
-          TextField(controller: emailCtrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email *')),
-          const SizedBox(height: 12),
-          TextField(controller: passCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Password *')),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-            onPressed: saving ? null : () async {
-              if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty || passCtrl.text.isEmpty) return;
-              setModal(() => saving = true);
-              Navigator.pop(ctx);
-              bloc.add(SubAdminCreated(nameCtrl.text, emailCtrl.text, passCtrl.text));
-            },
-            child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Create'),
+          child: Form(
+            key: formKey,
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const Text('Add Sub Admin', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              TextFormField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Full Name *'), validator: (v) => v?.trim().isEmpty == true ? 'Name is required' : null),
+              const SizedBox(height: 12),
+              TextFormField(controller: emailCtrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email *'), validator: (v) {
+                if (v?.trim().isEmpty == true) return 'Email is required';
+                if (v != null && !v.contains('@')) return 'Invalid email';
+                return null;
+              }),
+              const SizedBox(height: 12),
+              TextFormField(controller: passCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Password * (min 6 chars)'), validator: (v) => (v?.length ?? 0) < 6 ? 'Min 6 characters' : null),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                onPressed: saving ? null : () {
+                  if (!formKey.currentState!.validate()) return;
+                  setModal(() => saving = true);
+                  Navigator.pop(ctx);
+                  bloc.add(SubAdminCreated(nameCtrl.text, emailCtrl.text, passCtrl.text));
+                },
+                child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Create'),
+              ),
+            ]),
           ),
-        ]),
         ),
       )),
     );

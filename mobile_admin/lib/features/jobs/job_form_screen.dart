@@ -138,6 +138,7 @@ class _JobFormScreenState extends State<JobFormScreen> {
   final _pageCtrl = PageController();
   int _step = 0;
   bool _saving = false;
+  bool _stepError = false;
   String? _error;
 
   final _data = JobFormData();
@@ -250,7 +251,22 @@ class _JobFormScreenState extends State<JobFormScreen> {
     } catch (_) {}
   }
 
+  bool _validateCurrentStep() {
+    if (_step == 0) {
+      return _data.jobType.isNotEmpty &&
+          _data.clientId != null &&
+          _data.quantity != null &&
+          _data.dueDate != null;
+    }
+    return true;
+  }
+
   void _next() {
+    if (!_validateCurrentStep()) {
+      setState(() => _stepError = true);
+      return;
+    }
+    setState(() => _stepError = false);
     if (_step < 5) {
       _pageCtrl.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       setState(() => _step++);
@@ -316,7 +332,8 @@ class _JobFormScreenState extends State<JobFormScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _Step1BasicInfo(data: _data, clients: _clients, machines: _machines, jobTypes: _jobTypes,
-                    onChange: () => setState(() {}),
+                    showErrors: _stepError,
+                    onChange: () => setState(() { _stepError = false; }),
                     onOrderTypeChanged: () { setState(() {}); _reloadPaperStock(); }),
                   _Step2PaperPrint(data: _data, paperStock: _paperStock, onChange: () => setState(() {})),
                   _Step3Finishing(data: _data, onChange: () => setState(() {})),
@@ -452,26 +469,50 @@ class _Step1BasicInfo extends StatelessWidget {
   final JobFormData data;
   final List<_Option> clients, machines;
   final List<String> jobTypes;
+  final bool showErrors;
   final VoidCallback onChange;
   final VoidCallback onOrderTypeChanged;
-  const _Step1BasicInfo({required this.data, required this.clients, required this.machines, required this.jobTypes, required this.onChange, required this.onOrderTypeChanged});
+  const _Step1BasicInfo({required this.data, required this.clients, required this.machines, required this.jobTypes, this.showErrors = false, required this.onChange, required this.onOrderTypeChanged});
+
+  InputDecoration _dec(String label, {bool required = false, bool hasError = false}) => InputDecoration(
+    labelText: label,
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    errorText: (required && hasError) ? 'Required' : null,
+  );
 
   @override
   Widget build(BuildContext context) {
+    final jobTitleError = showErrors && data.jobType.isEmpty;
+    final clientError = showErrors && data.clientId == null;
+    final quantityError = showErrors && data.quantity == null;
+    final dueDateError = showErrors && data.dueDate == null;
+
     return SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (showErrors && (jobTitleError || clientError || quantityError || dueDateError))
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(color: AppColors.errorLight, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.error.withValues(alpha: 0.4))),
+          child: const Row(children: [
+            Icon(Icons.error_outline, color: AppColors.error, size: 16),
+            SizedBox(width: 8),
+            Expanded(child: Text('Please fill all required fields before proceeding.', style: TextStyle(color: AppColors.error, fontSize: 13))),
+          ]),
+        ),
       _FormSection(title: 'Job Information', children: [
         _field('Job Title *', DropdownButtonFormField<String>(
           value: jobTypes.contains(data.jobType) ? data.jobType : null,
           hint: const Text('Select Job Title', style: TextStyle(color: AppColors.textDisabled)),
-          decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+          decoration: _dec('Job Title *', required: true, hasError: jobTitleError),
           isExpanded: true,
           items: jobTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
           onChanged: (v) { data.jobType = v ?? ''; onChange(); },
         )),
-        _field('Client', DropdownButtonFormField<String>(
+        _field('Client *', DropdownButtonFormField<String>(
           value: clients.any((c) => c.id == data.clientId) ? data.clientId : null,
           hint: const Text('Select Client', style: TextStyle(color: AppColors.textDisabled)),
-          decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+          decoration: _dec('Client *', required: true, hasError: clientError),
           isExpanded: true,
           items: clients.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))).toList(),
           onChanged: (v) { data.clientId = v; onChange(); },
@@ -491,7 +532,17 @@ class _Step1BasicInfo extends StatelessWidget {
       ]),
       _FormSection(title: 'Quantity & Size', children: [
         Row(children: [
-          Expanded(child: _textField('Quantity', data.quantity?.toString(), (v) { data.quantity = int.tryParse(v); onChange(); }, type: TextInputType.number)),
+          Expanded(child: _field('Quantity *', TextFormField(
+            initialValue: data.quantity?.toString(),
+            onChanged: (v) { data.quantity = int.tryParse(v); onChange(); },
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              hintText: 'e.g. 1000',
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              errorText: quantityError ? 'Required' : null,
+            ),
+          ))),
           const SizedBox(width: 12),
           Expanded(child: _textField('Sheet Size', data.sheetSize, (v) { data.sheetSize = v; onChange(); }, hint: 'e.g. A4, 12x18')),
         ]),
@@ -499,7 +550,32 @@ class _Step1BasicInfo extends StatelessWidget {
         _textField('Description', data.description, (v) { data.description = v; onChange(); }, hint: 'Optional notes'),
       ]),
       _FormSection(title: 'Schedule', children: [
-        _datePicker(context, 'Due Date', data.dueDate, (v) { data.dueDate = v; onChange(); }, firstDate: DateTime.now()),
+        _field('Due Date *', InkWell(
+          onTap: () async {
+            final now = DateTime.now();
+            final picked = await showDatePicker(context: context, initialDate: now, firstDate: now, lastDate: now.add(const Duration(days: 365)));
+            if (picked != null) { data.dueDate = picked.toIso8601String().substring(0, 10); onChange(); }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              border: Border.all(color: dueDateError ? AppColors.error : AppColors.border),
+              borderRadius: BorderRadius.circular(8),
+              color: AppColors.surface,
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Icon(Icons.calendar_today_outlined, size: 16, color: dueDateError ? AppColors.error : AppColors.textMuted),
+                const SizedBox(width: 8),
+                Text(data.dueDate ?? 'Select due date', style: TextStyle(fontSize: 13, color: data.dueDate == null ? (dueDateError ? AppColors.error : AppColors.textDisabled) : AppColors.textPrimary)),
+              ]),
+              if (dueDateError) Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text('Required', style: TextStyle(fontSize: 12, color: AppColors.error)),
+              ),
+            ]),
+          ),
+        )),
         _toggle('Proof Required', data.proofRequired, (v) { data.proofRequired = v; onChange(); }),
       ]),
     ]));

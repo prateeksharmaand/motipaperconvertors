@@ -287,6 +287,7 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
 
   void _showPaperForm(BuildContext context, InventoryState state, {PaperStock? existing}) {
     final bloc = context.read<InventoryBloc>();
+    final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController(text: existing?.name);
     final brandCtrl = TextEditingController(text: existing?.brand);
     final gsmCtrl = TextEditingController(text: existing?.gsm?.toString());
@@ -304,71 +305,87 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
       builder: (_) => StatefulBuilder(builder: (ctx, setModal) => SafeArea(
         child: Padding(
           padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(existing == null ? 'Add Paper Stock' : 'Edit Paper Stock', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name *')),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(child: TextField(controller: brandCtrl, decoration: const InputDecoration(labelText: 'Brand'))),
-              const SizedBox(width: 12),
-              Expanded(child: TextField(controller: gsmCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'GSM'))),
-            ]),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(child: TextField(controller: sizeCtrl, decoration: const InputDecoration(labelText: 'Size', hintText: 'e.g. A4, 28x40'))),
-              const SizedBox(width: 12),
-              Expanded(child: TextField(controller: unitCtrl, decoration: const InputDecoration(labelText: 'Unit'))),
-            ]),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(child: TextField(controller: qtyCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity'))),
-              const SizedBox(width: 12),
-              Expanded(child: TextField(controller: threshCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Reorder Level'))),
-            ]),
-            const SizedBox(height: 12),
-            TextField(controller: costCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Cost / Unit (₹)', prefixText: '₹ ')),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: invType,
-              decoration: const InputDecoration(labelText: 'Inventory Pool'),
-              items: const [
-                DropdownMenuItem(value: 'in_house', child: Text('In House')),
-                DropdownMenuItem(value: 'external', child: Text('External')),
-              ],
-              onChanged: (v) => setModal(() => invType = v ?? 'in_house'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-              onPressed: saving || nameCtrl.text.isEmpty ? null : () async {
-                setModal(() => saving = true);
-                try {
-                  final data = {
-                    'name': nameCtrl.text,
-                    if (brandCtrl.text.isNotEmpty) 'brand': brandCtrl.text,
-                    if (gsmCtrl.text.isNotEmpty) 'gsm': int.tryParse(gsmCtrl.text),
-                    if (sizeCtrl.text.isNotEmpty) 'size': sizeCtrl.text,
-                    'unit': unitCtrl.text.isNotEmpty ? unitCtrl.text : 'sheets',
-                    'quantity': double.tryParse(qtyCtrl.text) ?? 0,
-                    'lowStockThreshold': double.tryParse(threshCtrl.text) ?? 100,
-                    if (costCtrl.text.isNotEmpty) 'costPerUnit': double.tryParse(costCtrl.text),
-                    'inventoryType': invType,
-                  };
-                  if (existing == null) {
-                    await ApiClient.instance.post('/admin/inventory/paper', data: data);
-                    AppToast.success('Paper stock added');
-                  } else {
-                    await ApiClient.instance.patch('/admin/inventory/paper/${existing.id}', data: data);
-                    AppToast.success('Paper stock updated');
-                  }
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  bloc.add(const PaperLoadRequested());
-                } catch (_) { AppToast.error('Failed to save'); setModal(() => saving = false); }
-              },
-              child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(existing == null ? 'Add Paper' : 'Save'),
-            ),
-          ])),
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text(existing == null ? 'Add Paper Stock' : 'Edit Paper Stock', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              TextFormField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name *'), validator: (v) => v?.trim().isEmpty == true ? 'Name is required' : null),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: TextFormField(controller: brandCtrl, decoration: const InputDecoration(labelText: 'Brand'))),
+                const SizedBox(width: 12),
+                Expanded(child: TextFormField(controller: gsmCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'GSM'), validator: (v) {
+                  if (v != null && v.isNotEmpty && int.tryParse(v) == null) return 'Numbers only';
+                  return null;
+                })),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: TextFormField(controller: sizeCtrl, decoration: const InputDecoration(labelText: 'Size', hintText: 'e.g. A4, 28x40'))),
+                const SizedBox(width: 12),
+                Expanded(child: TextFormField(controller: unitCtrl, decoration: const InputDecoration(labelText: 'Unit'))),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: TextFormField(controller: qtyCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity'), validator: (v) {
+                  if (v != null && v.isNotEmpty && double.tryParse(v) == null) return 'Numbers only';
+                  return null;
+                })),
+                const SizedBox(width: 12),
+                Expanded(child: TextFormField(controller: threshCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Reorder Level'), validator: (v) {
+                  if (v != null && v.isNotEmpty && double.tryParse(v) == null) return 'Numbers only';
+                  return null;
+                })),
+              ]),
+              const SizedBox(height: 12),
+              TextFormField(controller: costCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Cost / Unit (₹)', prefixText: '₹ '), validator: (v) {
+                if (v != null && v.isNotEmpty && double.tryParse(v) == null) return 'Numbers only';
+                return null;
+              }),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: invType,
+                decoration: const InputDecoration(labelText: 'Inventory Pool'),
+                items: const [
+                  DropdownMenuItem(value: 'in_house', child: Text('In House')),
+                  DropdownMenuItem(value: 'external', child: Text('External')),
+                ],
+                onChanged: (v) => setModal(() => invType = v ?? 'in_house'),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                onPressed: saving ? null : () async {
+                  if (!formKey.currentState!.validate()) return;
+                  setModal(() => saving = true);
+                  try {
+                    final data = {
+                      'name': nameCtrl.text,
+                      if (brandCtrl.text.isNotEmpty) 'brand': brandCtrl.text,
+                      if (gsmCtrl.text.isNotEmpty) 'gsm': int.tryParse(gsmCtrl.text),
+                      if (sizeCtrl.text.isNotEmpty) 'size': sizeCtrl.text,
+                      'unit': unitCtrl.text.isNotEmpty ? unitCtrl.text : 'sheets',
+                      'quantity': double.tryParse(qtyCtrl.text) ?? 0,
+                      'lowStockThreshold': double.tryParse(threshCtrl.text) ?? 100,
+                      if (costCtrl.text.isNotEmpty) 'costPerUnit': double.tryParse(costCtrl.text),
+                      'inventoryType': invType,
+                    };
+                    if (existing == null) {
+                      await ApiClient.instance.post('/admin/inventory/paper', data: data);
+                      AppToast.success('Paper stock added');
+                    } else {
+                      await ApiClient.instance.patch('/admin/inventory/paper/${existing.id}', data: data);
+                      AppToast.success('Paper stock updated');
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    bloc.add(const PaperLoadRequested());
+                  } catch (_) { AppToast.error('Failed to save'); setModal(() => saving = false); }
+                },
+                child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(existing == null ? 'Add Paper' : 'Save'),
+              ),
+            ])),
+          ),
         ),
       )),
     );
@@ -376,6 +393,7 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
 
   void _showItemForm(BuildContext context, {InventoryItem? existing}) {
     final bloc = context.read<InventoryBloc>();
+    final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController(text: existing?.name);
     final unitCtrl = TextEditingController(text: existing?.unit ?? 'pcs');
     final qtyCtrl = TextEditingController(text: existing?.quantity.toStringAsFixed(0));
@@ -389,51 +407,61 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
       builder: (_) => StatefulBuilder(builder: (ctx, setModal) => SafeArea(
         child: Padding(
           padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(existing == null ? 'Add Item' : 'Edit Item', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name *')),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: category,
-              decoration: const InputDecoration(labelText: 'Category'),
-              items: const [
-                DropdownMenuItem(value: 'ink', child: Text('Ink')),
-                DropdownMenuItem(value: 'plate', child: Text('Plate')),
-                DropdownMenuItem(value: 'consumable', child: Text('Consumable')),
-                DropdownMenuItem(value: 'other', child: Text('Other')),
-              ],
-              onChanged: (v) => setModal(() => category = v ?? 'ink'),
-            ),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(child: TextField(controller: unitCtrl, decoration: const InputDecoration(labelText: 'Unit'))),
-              const SizedBox(width: 12),
-              Expanded(child: TextField(controller: qtyCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity'))),
+          child: Form(
+            key: formKey,
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text(existing == null ? 'Add Item' : 'Edit Item', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              TextFormField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name *'), validator: (v) => v?.trim().isEmpty == true ? 'Name is required' : null),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: category,
+                decoration: const InputDecoration(labelText: 'Category'),
+                items: const [
+                  DropdownMenuItem(value: 'ink', child: Text('Ink')),
+                  DropdownMenuItem(value: 'plate', child: Text('Plate')),
+                  DropdownMenuItem(value: 'consumable', child: Text('Consumable')),
+                  DropdownMenuItem(value: 'other', child: Text('Other')),
+                ],
+                onChanged: (v) => setModal(() => category = v ?? 'ink'),
+              ),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: TextFormField(controller: unitCtrl, decoration: const InputDecoration(labelText: 'Unit'))),
+                const SizedBox(width: 12),
+                Expanded(child: TextFormField(controller: qtyCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity'), validator: (v) {
+                  if (v != null && v.isNotEmpty && double.tryParse(v) == null) return 'Numbers only';
+                  return null;
+                })),
+              ]),
+              const SizedBox(height: 12),
+              TextFormField(controller: threshCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Reorder Level'), validator: (v) {
+                if (v != null && v.isNotEmpty && double.tryParse(v) == null) return 'Numbers only';
+                return null;
+              }),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                onPressed: saving ? null : () async {
+                  if (!formKey.currentState!.validate()) return;
+                  setModal(() => saving = true);
+                  try {
+                    final data = {'name': nameCtrl.text, 'category': category, 'unit': unitCtrl.text.isNotEmpty ? unitCtrl.text : 'pcs', 'quantity': double.tryParse(qtyCtrl.text) ?? 0, 'lowStockThreshold': double.tryParse(threshCtrl.text) ?? 100};
+                    if (existing == null) {
+                      await ApiClient.instance.post('/admin/inventory/items', data: data);
+                      AppToast.success('Item added');
+                    } else {
+                      await ApiClient.instance.patch('/admin/inventory/items/${existing.id}', data: data);
+                      AppToast.success('Item updated');
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    bloc.add(const ItemsLoadRequested());
+                  } catch (_) { AppToast.error('Failed to save'); setModal(() => saving = false); }
+                },
+                child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(existing == null ? 'Add Item' : 'Save'),
+              ),
             ]),
-            const SizedBox(height: 12),
-            TextField(controller: threshCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Reorder Level')),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-              onPressed: saving || nameCtrl.text.isEmpty ? null : () async {
-                setModal(() => saving = true);
-                try {
-                  final data = {'name': nameCtrl.text, 'category': category, 'unit': unitCtrl.text.isNotEmpty ? unitCtrl.text : 'pcs', 'quantity': double.tryParse(qtyCtrl.text) ?? 0, 'lowStockThreshold': double.tryParse(threshCtrl.text) ?? 100};
-                  if (existing == null) {
-                    await ApiClient.instance.post('/admin/inventory/items', data: data);
-                    AppToast.success('Item added');
-                  } else {
-                    await ApiClient.instance.patch('/admin/inventory/items/${existing.id}', data: data);
-                    AppToast.success('Item updated');
-                  }
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  bloc.add(const ItemsLoadRequested());
-                } catch (_) { AppToast.error('Failed to save'); setModal(() => saving = false); }
-              },
-              child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(existing == null ? 'Add Item' : 'Save'),
-            ),
-          ]),
+          ),
         ),
       )),
     );
@@ -441,6 +469,7 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
 
   void _showTxnForm(BuildContext context, {String? paperId, String? itemId, required String name}) {
     final bloc = context.read<InventoryBloc>();
+    final formKey = GlobalKey<FormState>();
     String txType = 'in';
     final qtyCtrl = TextEditingController();
     final notesCtrl = TextEditingController();
@@ -452,49 +481,58 @@ class _InventoryViewState extends State<_InventoryView> with SingleTickerProvide
       builder: (_) => StatefulBuilder(builder: (ctx, setModal) => SafeArea(
         child: Padding(
           padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text('Record Transaction', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            Text(name, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: txType,
-              decoration: const InputDecoration(labelText: 'Transaction Type'),
-              items: const [
-                DropdownMenuItem(value: 'in', child: Text('Stock In')),
-                DropdownMenuItem(value: 'out', child: Text('Stock Out')),
-                DropdownMenuItem(value: 'wastage', child: Text('Wastage')),
-                DropdownMenuItem(value: 'adjustment', child: Text('Adjustment')),
-              ],
-              onChanged: (v) => setModal(() => txType = v ?? 'in'),
-            ),
-            const SizedBox(height: 12),
-            TextField(controller: qtyCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity *')),
-            const SizedBox(height: 12),
-            TextField(controller: notesCtrl, decoration: const InputDecoration(labelText: 'Notes (optional)')),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-              onPressed: saving || qtyCtrl.text.isEmpty ? null : () async {
-                setModal(() => saving = true);
-                try {
-                  await ApiClient.instance.post('/admin/inventory/transactions', data: {
-                    if (paperId != null) 'paperStockId': paperId,
-                    if (itemId != null) 'inventoryItemId': itemId,
-                    'type': txType,
-                    'quantity': double.tryParse(qtyCtrl.text) ?? 0,
-                    if (notesCtrl.text.isNotEmpty) 'notes': notesCtrl.text,
-                  });
-                  AppToast.success('Transaction recorded');
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  bloc.add(const PaperLoadRequested());
-                  bloc.add(const ItemsLoadRequested());
-                  bloc.add(const TransactionsLoadRequested());
-                } catch (_) { AppToast.error('Failed to record transaction'); setModal(() => saving = false); }
-              },
-              child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Record'),
-            ),
-          ]),
+          child: Form(
+            key: formKey,
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const Text('Record Transaction', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text(name, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: txType,
+                decoration: const InputDecoration(labelText: 'Transaction Type'),
+                items: const [
+                  DropdownMenuItem(value: 'in', child: Text('Stock In')),
+                  DropdownMenuItem(value: 'out', child: Text('Stock Out')),
+                  DropdownMenuItem(value: 'wastage', child: Text('Wastage')),
+                  DropdownMenuItem(value: 'adjustment', child: Text('Adjustment')),
+                ],
+                onChanged: (v) => setModal(() => txType = v ?? 'in'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(controller: qtyCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity *'), validator: (v) {
+                if (v?.trim().isEmpty == true) return 'Quantity is required';
+                if (double.tryParse(v!) == null) return 'Must be a number';
+                if ((double.tryParse(v) ?? 0) <= 0) return 'Must be greater than 0';
+                return null;
+              }),
+              const SizedBox(height: 12),
+              TextFormField(controller: notesCtrl, decoration: const InputDecoration(labelText: 'Notes (optional)')),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                onPressed: saving ? null : () async {
+                  if (!formKey.currentState!.validate()) return;
+                  setModal(() => saving = true);
+                  try {
+                    await ApiClient.instance.post('/admin/inventory/transactions', data: {
+                      if (paperId != null) 'paperStockId': paperId,
+                      if (itemId != null) 'inventoryItemId': itemId,
+                      'type': txType,
+                      'quantity': double.tryParse(qtyCtrl.text) ?? 0,
+                      if (notesCtrl.text.isNotEmpty) 'notes': notesCtrl.text,
+                    });
+                    AppToast.success('Transaction recorded');
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    bloc.add(const PaperLoadRequested());
+                    bloc.add(const ItemsLoadRequested());
+                    bloc.add(const TransactionsLoadRequested());
+                  } catch (_) { AppToast.error('Failed to record transaction'); setModal(() => saving = false); }
+                },
+                child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Record'),
+              ),
+            ]),
+          ),
         ),
       )),
     );

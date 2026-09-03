@@ -194,6 +194,7 @@ class _MachinesViewState extends State<_MachinesView> {
 
   void _showForm(BuildContext context, [Machine? existing]) {
     final bloc = context.read<MachinesBloc>();
+    final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController(text: existing?.name);
     final typeCtrl = TextEditingController(text: existing?.type);
     final modelCtrl = TextEditingController(text: existing?.model);
@@ -207,41 +208,48 @@ class _MachinesViewState extends State<_MachinesView> {
       builder: (_) => StatefulBuilder(builder: (ctx, setModal) => SafeArea(
         child: Padding(
           padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(existing == null ? 'Add Machine' : 'Edit Machine', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 16),
-          TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Machine Name *')),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: TextField(controller: typeCtrl, decoration: const InputDecoration(labelText: 'Type'))),
-            const SizedBox(width: 12),
-            Expanded(child: TextField(controller: modelCtrl, decoration: const InputDecoration(labelText: 'Model'))),
-          ]),
-          const SizedBox(height: 12),
-          TextField(controller: colorsCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Max Colors')),
-          const SizedBox(height: 12),
-          TextField(controller: notesCtrl, decoration: const InputDecoration(labelText: 'Notes'), maxLines: 2),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-            onPressed: saving || nameCtrl.text.isEmpty ? null : () async {
-              setModal(() => saving = true);
-              try {
-                final data = {'name': nameCtrl.text, if (typeCtrl.text.isNotEmpty) 'type': typeCtrl.text, if (modelCtrl.text.isNotEmpty) 'model': modelCtrl.text, if (colorsCtrl.text.isNotEmpty) 'maxColors': int.tryParse(colorsCtrl.text), if (notesCtrl.text.isNotEmpty) 'notes': notesCtrl.text};
-                if (existing == null) {
-                  await ApiClient.instance.post('/admin/machines', data: data);
-                  AppToast.success('Machine created');
-                } else {
-                  await ApiClient.instance.patch('/admin/machines/${existing.id}', data: data);
-                  AppToast.success('Machine updated');
-                }
-                if (ctx.mounted) Navigator.pop(ctx);
-                bloc.add(const MachinesLoadRequested());
-              } catch (_) { AppToast.error('Failed to save machine'); setModal(() => saving = false); }
-            },
-            child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(existing == null ? 'Add Machine' : 'Save'),
+          child: Form(
+            key: formKey,
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text(existing == null ? 'Add Machine' : 'Edit Machine', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              TextFormField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Machine Name *'), validator: (v) => v?.trim().isEmpty == true ? 'Name is required' : null),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: TextFormField(controller: typeCtrl, decoration: const InputDecoration(labelText: 'Type'))),
+                const SizedBox(width: 12),
+                Expanded(child: TextFormField(controller: modelCtrl, decoration: const InputDecoration(labelText: 'Model'))),
+              ]),
+              const SizedBox(height: 12),
+              TextFormField(controller: colorsCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Max Colors'), validator: (v) {
+                if (v != null && v.isNotEmpty && int.tryParse(v) == null) return 'Must be a number';
+                return null;
+              }),
+              const SizedBox(height: 12),
+              TextFormField(controller: notesCtrl, decoration: const InputDecoration(labelText: 'Notes'), maxLines: 2),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                onPressed: saving ? null : () async {
+                  if (!formKey.currentState!.validate()) return;
+                  setModal(() => saving = true);
+                  try {
+                    final data = {'name': nameCtrl.text, if (typeCtrl.text.isNotEmpty) 'type': typeCtrl.text, if (modelCtrl.text.isNotEmpty) 'model': modelCtrl.text, if (colorsCtrl.text.isNotEmpty) 'maxColors': int.tryParse(colorsCtrl.text), if (notesCtrl.text.isNotEmpty) 'notes': notesCtrl.text};
+                    if (existing == null) {
+                      await ApiClient.instance.post('/admin/machines', data: data);
+                      AppToast.success('Machine created');
+                    } else {
+                      await ApiClient.instance.patch('/admin/machines/${existing.id}', data: data);
+                      AppToast.success('Machine updated');
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    bloc.add(const MachinesLoadRequested());
+                  } catch (_) { AppToast.error('Failed to save machine'); setModal(() => saving = false); }
+                },
+                child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(existing == null ? 'Add Machine' : 'Save'),
+              ),
+            ]),
           ),
-        ]),
         ),
       )),
     );

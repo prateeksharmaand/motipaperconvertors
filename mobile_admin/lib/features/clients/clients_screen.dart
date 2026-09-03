@@ -236,6 +236,7 @@ class _ClientsViewState extends State<_ClientsView> {
 
   void _showClientForm(BuildContext context, [Client? existing]) {
     final bloc = context.read<ClientsBloc>();
+    final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController(text: existing?.name);
     final companyCtrl = TextEditingController(text: existing?.companyName);
     final phoneCtrl = TextEditingController(text: existing?.phone);
@@ -252,64 +253,71 @@ class _ClientsViewState extends State<_ClientsView> {
         return SafeArea(
           child: Padding(
             padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-            child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text(existing == null ? 'New Client' : 'Edit Client', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 16),
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name *')),
-              const SizedBox(height: 12),
-              TextField(controller: companyCtrl, decoration: const InputDecoration(labelText: 'Company Name')),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone'))),
-                const SizedBox(width: 12),
-                Expanded(child: TextField(controller: emailCtrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email'))),
-              ]),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: TextField(controller: cityCtrl, decoration: const InputDecoration(labelText: 'City'))),
-                const SizedBox(width: 12),
-                Expanded(child: TextField(controller: gstinCtrl, decoration: const InputDecoration(labelText: 'GSTIN'), textCapitalization: TextCapitalization.characters)),
-              ]),
-              const SizedBox(height: 12),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Auto Email Reminder', style: TextStyle(fontSize: 14)),
-                subtitle: const Text('Daily 9 AM payment reminder', style: TextStyle(fontSize: 12)),
-                value: emailReminder,
-                onChanged: (v) => setModal(() => emailReminder = v),
-                activeThumbColor: AppColors.primary,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: saving || nameCtrl.text.isEmpty ? null : () async {
-                  setModal(() => saving = true);
-                  try {
-                    final data = {
-                      'name': nameCtrl.text,
-                      if (companyCtrl.text.isNotEmpty) 'companyName': companyCtrl.text,
-                      if (phoneCtrl.text.isNotEmpty) 'phone': phoneCtrl.text,
-                      if (emailCtrl.text.isNotEmpty) 'email': emailCtrl.text,
-                      if (cityCtrl.text.isNotEmpty) 'city': cityCtrl.text,
-                      if (gstinCtrl.text.isNotEmpty) 'gstin': gstinCtrl.text,
-                      'emailReminder': emailReminder,
-                    };
-                    if (existing == null) {
-                      await ApiClient.instance.post('/admin/clients', data: data);
-                      AppToast.success('Client created successfully');
-                    } else {
-                      await ApiClient.instance.patch('/admin/clients/${existing.id}', data: data);
-                      AppToast.success('Client updated successfully');
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text(existing == null ? 'New Client' : 'Edit Client', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 16),
+                TextFormField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name *'), validator: (v) => v?.trim().isEmpty == true ? 'Name is required' : null),
+                const SizedBox(height: 12),
+                TextFormField(controller: companyCtrl, decoration: const InputDecoration(labelText: 'Company Name')),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(child: TextFormField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone'))),
+                  const SizedBox(width: 12),
+                  Expanded(child: TextFormField(controller: emailCtrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email'), validator: (v) {
+                    if (v != null && v.isNotEmpty && !v.contains('@')) return 'Invalid email';
+                    return null;
+                  })),
+                ]),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(child: TextFormField(controller: cityCtrl, decoration: const InputDecoration(labelText: 'City'))),
+                  const SizedBox(width: 12),
+                  Expanded(child: TextFormField(controller: gstinCtrl, decoration: const InputDecoration(labelText: 'GSTIN'), textCapitalization: TextCapitalization.characters)),
+                ]),
+                const SizedBox(height: 12),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Auto Email Reminder', style: TextStyle(fontSize: 14)),
+                  subtitle: const Text('Daily 9 AM payment reminder', style: TextStyle(fontSize: 12)),
+                  value: emailReminder,
+                  onChanged: (v) => setModal(() => emailReminder = v),
+                  activeThumbColor: AppColors.primary,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: saving ? null : () async {
+                    if (!formKey.currentState!.validate()) return;
+                    setModal(() => saving = true);
+                    try {
+                      final data = {
+                        'name': nameCtrl.text,
+                        if (companyCtrl.text.isNotEmpty) 'companyName': companyCtrl.text,
+                        if (phoneCtrl.text.isNotEmpty) 'phone': phoneCtrl.text,
+                        if (emailCtrl.text.isNotEmpty) 'email': emailCtrl.text,
+                        if (cityCtrl.text.isNotEmpty) 'city': cityCtrl.text,
+                        if (gstinCtrl.text.isNotEmpty) 'gstin': gstinCtrl.text,
+                        'emailReminder': emailReminder,
+                      };
+                      if (existing == null) {
+                        await ApiClient.instance.post('/admin/clients', data: data);
+                        AppToast.success('Client created successfully');
+                      } else {
+                        await ApiClient.instance.patch('/admin/clients/${existing.id}', data: data);
+                        AppToast.success('Client updated successfully');
+                      }
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      bloc.add(const ClientsLoadRequested());
+                    } catch (_) {
+                      AppToast.error('Failed to save client');
+                      setModal(() => saving = false);
                     }
-                    if (ctx.mounted) Navigator.pop(ctx);
-                    bloc.add(const ClientsLoadRequested());
-                  } catch (_) {
-                    AppToast.error('Failed to save client');
-                    setModal(() => saving = false);
-                  }
-                },
-                child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(existing == null ? 'Create Client' : 'Save Changes'),
-              ),
-            ])),
+                  },
+                  child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(existing == null ? 'Create Client' : 'Save Changes'),
+                ),
+              ])),
+            ),
           ),
         );
       }),
